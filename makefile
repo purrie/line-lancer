@@ -6,6 +6,9 @@ SOURCE_FOLDER=src
 SOURCE_TEST_FOLDER=tests
 BIN_FOLDER=bin
 
+FLAGS=
+LIBS=-lraylib
+
 SOURCES=$(wildcard $(SOURCE_FOLDER)/*.c)
 TESTS=$(wildcard $(SOURCE_TEST_FOLDER)/*_test.c)
 
@@ -24,10 +27,10 @@ clean:
 	rm -rf $(BIN_FOLDER) $(OBJ_FOLDER)
 
 $(BIN_FOLDER)/$(BIN): $(OBJECTS)
-	$(CC) -o $@ $(OBJECTS)
+	$(CC) $(FLAGS) $(LIBS) -o $@ $(OBJECTS)
 
 $(BIN_FOLDER)/%_test.ut: $(OBJ_FOLDER)/%_src.o $(OBJ_FOLDER)/%_test.o
-	$(CC) -o $@ $^
+	$(CC) $(FLAGS) $(LIBS) -o $@ $^
 
 $(BIN_FOLDER):
 	mkdir -p $(BIN_FOLDER)
