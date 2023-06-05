@@ -2,10 +2,14 @@
 #define TYPES_H_
 
 #include <raylib.h>
+#include "optional.h"
+#include "array.h"
 
 typedef unsigned char uchar;
 typedef unsigned int uint;
 typedef unsigned long int usize;
+typedef long int size;
+typedef unsigned short ushort;
 
 typedef void * ( * Allocator )(uint size);
 typedef void ( * Deallocator )(void * ptr);
@@ -26,22 +30,12 @@ typedef void ( * Deallocator )(void * ptr);
 #define true 1
 #endif
 
-#define makeOptional(type, name) typedef struct {\
-        type value;\
-        bool has_value;\
-    } Optional ## name
-
-#define makeOptionals(type, size, name) typedef struct {\
-        type value[size];\
-        bool has_value;\
-        } Optionals ## name
-
-makeOptional(usize, Usize);
 makeOptional(float, Float);
-makeOptional(Vector2, Vector2);
 makeOptional(uint, Uint);
 
-#define arrayLength(arr) (sizeof(arr) / sizeof(arr[0]))
+makeList(Vector2, Vector2);
+makeList(ushort, Ushort);
+makeList(usize, Usize);
 
 typedef struct {
     uchar * start;

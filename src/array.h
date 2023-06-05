@@ -1,7 +1,7 @@
 #ifndef ARRAY_H_
 #define ARRAY_H_
 
-#include "std.h"
+#include "optional.h"
 
 #define makeList(type, name) typedef struct {\
         type * items;\
@@ -78,8 +78,9 @@ Optional ## name list ## name ## Remove(List ## name * list, usize index) {\
     removed.value = list->items[index];\
     removed.has_value = 1 ;\
 \
-    copy_memory(list->items + index, list->items + index + 1, sizeof(type) * (list->len - index - 1));\
     list->len --;\
+    if (index < list->len)\
+        copy_memory(list->items + index, list->items + index + 1, sizeof(type) * (list->len - index));\
     return removed;\
 }\
 

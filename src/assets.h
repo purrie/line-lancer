@@ -3,8 +3,8 @@
 
 #include <raylib.h>
 #include "level.h"
-#include "types.h"
 
 OptionalMap load_level(char * path);
+void level_unload(Map * map);
 
 #endif // ASSETS_H_

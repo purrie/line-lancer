@@ -1,5 +1,5 @@
 
-CC=clang
+CC=gcc
 BIN=line-lancer
 OBJ_FOLDER=cache
 SOURCE_FOLDER=src
@@ -7,7 +7,8 @@ SOURCE_TEST_FOLDER=tests
 BIN_FOLDER=bin
 
 FLAGS=
-LIBS=-lraylib
+DEBUG_FLAGS=-g
+LIBS=-lraylib -lm
 
 SOURCES=$(wildcard $(SOURCE_FOLDER)/*.c)
 TESTS=$(wildcard $(SOURCE_TEST_FOLDER)/*_test.c)
@@ -17,8 +18,17 @@ TEST_OBJECTS=$(patsubst $(SOURCE_TEST_FOLDER)/%_test.c, $(OBJECT_FOLDER)/%.o, $(
 
 BIN_TESTS=$(patsubst $(SOURCE_TEST_FOLDER)/%.c, $(BIN_FOLDER)/%.ut, $(TESTS))
 
-run: $(BIN_FOLDER) $(OBJ_FOLDER) $(BIN_FOLDER)/$(BIN)
+build: $(BIN_FOLDER) $(OBJ_FOLDER) $(BIN_FOLDER)/$(BIN)
+
+build-debug:
+	make clean
+	FLAGS="$(FLAGS) $(DEBUG_FLAGS)" make build -e
+
+run: build
 	$(BIN_FOLDER)/$(BIN)
+
+debug: build-debug
+	gdb $(BIN_FOLDER)/$(BIN) -d $(SOURCE_FOLDER)
 
 test: $(BIN_FOLDER) $(OBJ_FOLDER) $(BIN_TESTS)
 	@for test in $(BIN_TESTS); do $$test; done
@@ -39,7 +49,7 @@ $(OBJ_FOLDER):
 	mkdir -p $(OBJ_FOLDER)
 
 $(OBJ_FOLDER)/%_src.o: $(SOURCE_FOLDER)/%.c
-	$(CC) -o $@ -c $<
+	$(CC) $(FLAGS) -o $@ -c $<
 
 $(OBJ_FOLDER)/%_test.o: $(SOURCE_TEST_FOLDER)/%_test.c
-	$(CC) -o $@ -c $<
+	$(CC) $(FLAGS) -o $@ -c $<
