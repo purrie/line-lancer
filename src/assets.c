@@ -325,6 +325,7 @@ usize load_region(
 
   Region region = {0};
   region.buildings = listBuildingInit(5, &MemAlloc, &MemFree);
+  region.paths = listPathEntryInit(5, &MemAlloc, &MemFree);
 
   usize children_count = tokens[region_pos].size;
   region_pos ++;
@@ -390,6 +391,7 @@ usize load_region(
 
   fail:
   listBuildingDeinit(&region.buildings);
+  listPathEntryDeinit(&region.paths);
   return 0;
 }
 
@@ -848,6 +850,54 @@ Model generate_area_mesh(const Area *const area, const float layer) {
 #define LAYER_PATH -0.2f
 #define LAYER_BUILDING -0.1f
 
+void connect_map(Map * map) {
+  // connect path <-> region
+  for (usize i = 0; i < map->paths.len; i++) {
+    Path * path = &map->paths.items[i];
+    for (usize r = 0; r < map->regions.len; r++) {
+      if (area_contains_point(&map->regions.items[r].area, path->lines.items[0].a)) {
+        path->region_a = &map->regions.items[r];
+      }
+
+      if (area_contains_point(&map->regions.items[r].area, path->lines.items[path->lines.len - 1].b)) {
+        path->region_b = &map->regions.items[r];
+      }
+
+      if (path->region_a && path->region_b) {
+        PathEntry a = { .path = path, .point = path->lines.items[0].a };
+        PathEntry b = { .path = path, .point = path->lines.items[path->lines.len - 1].b };
+        listPathEntryAppend(&path->region_a->paths, a);
+        listPathEntryAppend(&path->region_b->paths, b);
+        break;
+      }
+    }
+  }
+
+  for (usize i = 0; i < map->regions.len; i++) {
+    Region * region = &map->regions.items[i];
+
+    // connect path -> building
+    for (usize b = 0; b < region->buildings.len; b++) {
+      Building * building = &region->buildings.items[b];
+      building->region = region;
+
+      float distance = 99999.9f;
+      for (usize p = 0; p < region->paths.len; p++) {
+        float d = Vector2DistanceSqr(building->position, region->paths.items[p].point);
+        if (d < distance) {
+          distance = d;
+          building->spawn_target = region->paths.items[p];
+        }
+      }
+    }
+
+    // connect region path in -> out
+    for (usize p = 0; p < region->paths.len; p++) {
+      region->paths.items[p].redirect = region->paths.items[(p + 1) % region->paths.len].path;
+    }
+  }
+}
+
 void generate_map_mesh(Map * map) {
   // TODO sizes and thickness will depend on the map size I imagine
   TraceLog(LOG_INFO, "Generating meshes");
@@ -1041,6 +1091,7 @@ OptionalMap load_level(char *path) {
   map_clamp(&map.value);
   subdivide_map_paths(&map.value);
   generate_map_mesh(&map.value);
+  connect_map(&map.value);
   return map;
 
 fail:

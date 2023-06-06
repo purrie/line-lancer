@@ -5,9 +5,11 @@
 
 implementList(Region, Region)
 implementList(Path, Path)
+implementList(PathEntry, PathEntry)
 implementList(Building, Building)
 implementList(Line, Line)
 
+/* Line Functions **********************************************************/
 OptionalVector2 get_line_intersection (Line a, Line b) {
     OptionalVector2 ret = {0};
 
@@ -167,6 +169,7 @@ Rectangle get_lines_bounds(const ListLine lines) {
     return result;
 }
 
+/* Area Functions **********************************************************/
 Rectangle area_bounds(const Area *const area) {
     return get_lines_bounds(area->lines);
 }
@@ -196,6 +199,7 @@ bool area_contains_point(const Area *const area, const Vector2 point) {
     return false;
 }
 
+/* Building Functions ******************************************************/
 float building_size() {
     return 10.0f;
 }
@@ -226,6 +230,70 @@ Building * get_building_by_position(Map *const map, Vector2 position) {
     return NULL;
 }
 
+/* Path Functions **********************************************************/
+Vector2 path_start_point(Path * path, Region * from) {
+    if (path->region_a == from) {
+        return path->lines.items[0].a;
+    }
+    else {
+        return path->lines.items[path->lines.len - 1].b;
+    }
+}
+
+OptionalVector2 path_follow(Path * path, Region * from, float distance) {
+    OptionalVector2 result = {0};
+    float progress = 0.0f;
+    bool reverse = path->region_b == from;
+    for (usize i = 0; i < path->lines.len; i++) {
+        usize index = reverse ? path->lines.len - i - 1 : i;
+
+        Vector2 a = path->lines.items[index].a;
+        Vector2 b = path->lines.items[index].b;
+
+        float length = Vector2Distance(a, b);
+        if (progress + length > distance) {
+            float t = ((progress + length) - distance) / length;
+            if (reverse) {
+                result.value = Vector2Lerp(a, b, t);
+            }
+            else {
+                result.value = Vector2Lerp(b, a, t);
+            }
+            result.has_value = true;
+            return result;
+        }
+        progress += length;
+    }
+
+    return result;
+}
+
+Region * path_end_region(Path * path, Region * from) {
+    return path->region_a == from ? path->region_b : path->region_a;
+}
+
+float path_length(Path * path) {
+    float sum = 0.0f;
+    for (usize i = 0; i < path->lines.len; i++) {
+        float d = Vector2Distance(path->lines.items[i].a, path->lines.items[i].b);
+        sum += d;
+    }
+
+    return sum;
+}
+
+/* Region Functions **********************************************************/
+Path * region_redirect_path(Region * region, Path * from) {
+    for (usize i = 0; i < region->paths.len; i++) {
+        if (region->paths.items[i].path == from) {
+            return region->paths.items[i].redirect;
+        }
+    }
+    TraceLog(LOG_ERROR, "Tried to redirect path that isn't connected to region");
+    return NULL;
+}
+
+/* Map Functions ***********************************************************/
 void map_clamp(Map * map) {
     Vector2 map_size = { (float)map->width, (float)map->height };
 

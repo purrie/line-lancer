@@ -5,12 +5,13 @@
 #include "assets.h"
 #include "input.h"
 #include "ui.h"
+#include "units.h"
 
 const int WINDOW_WIDTH = 1400;
 const int WINDOW_HEIGHT = 1200;
 
 int main(void) {
-    SetTraceLogLevel(LOG_WARNING);
+    SetTraceLogLevel(LOG_INFO);
     InitWindow(WINDOW_WIDTH, WINDOW_HEIGHT, "Hello!");
 
     OptionalMap m = load_level("./assets/maps/tiled.json");
@@ -23,9 +24,12 @@ int main(void) {
     set_cursor_to_camera_scale(&cam);
 
     GameState state = {0};
+    state.current_map = &m.value;
+    state.units = listUnitInit(120, &MemAlloc, &MemFree);
 
     while (!WindowShouldClose()) {
         update_input_state(&m.value, &state);
+        simulate_units(&state);
 
         BeginDrawing();
         BeginMode2D(cam);
@@ -33,11 +37,15 @@ int main(void) {
         ClearBackground(RAYWHITE);
 
         render_map_mesh(&m.value);
+        render_units(&state.units);
         render_ui(&state);
 
         EndMode2D();
         EndDrawing();
     }
+
+    clear_unit_list(&state.units);
+    listUnitDeinit(&state.units);
 
     end:
     if (m.has_value) {
