@@ -13,18 +13,20 @@ typedef struct {
 makeList(Line, Line);
 
 typedef enum {
-    Empty = 0,
-    Fighter,
-    Archer,
-    Support,
-    Special,
-    Resource,
+    BUILDING_EMPTY = 0,
+    BUILDING_FIGHTER,
+    BUILDING_ARCHER,
+    BUILDING_SUPPORT,
+    BUILDING_SPECIAL,
+    BUILDING_RESOURCE,
+    BUILDING_TYPE_COUNT = BUILDING_RESOURCE,
 } BuildingType;
 
 typedef struct {
     Vector2 position;
     BuildingType type;
     Model model;
+    ushort upgrades;
 } Building;
 
 typedef struct {
@@ -64,6 +66,7 @@ typedef struct {
 
 makeOptional(Map, Map);
 
+
 //* Line Functions ***********************************************************/
 Line             make_line               (Vector2 a, Vector2 b);
 OptionalVector2  get_line_point          (Line line, float t);
@@ -87,9 +90,15 @@ bool             area_contains_point     (const Area *const area, const Vector2 
 OptionalVector2  area_center             (Area *const area); // won't have value unless area is valid
 Rectangle        area_bounds             (const Area *const area);
 
+///* Building Functions ******************************************************/
+float building_size();
+Rectangle building_bounds(Building *const building);
+Building * get_building_by_position(Map * map, Vector2 position);
+
 //* Region Functions *********************************************************/
 void map_clamp(Map * map);
 Camera2D setup_camera(Map * map);
+void set_cursor_to_camera_scale(Camera2D *const cam);
 void render_map(Map * map);
 void render_map_mesh(Map * map);
 

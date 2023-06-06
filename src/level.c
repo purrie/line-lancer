@@ -196,6 +196,36 @@ bool area_contains_point(const Area *const area, const Vector2 point) {
     return false;
 }
 
+float building_size() {
+    return 10.0f;
+}
+
+Rectangle building_bounds(Building *const building) {
+    Rectangle bounds = {0};
+    float size       = building_size();
+    bounds.x         = building->position.x - size * 0.5f;
+    bounds.y         = building->position.y - size * 0.5f;
+    bounds.width     = size;
+    bounds.height    = size;
+    return bounds;
+}
+
+Building * get_building_by_position(Map *const map, Vector2 position) {
+    for (usize r = 0; r < map->regions.len; r++) {
+        ListBuilding * buildings = &map->regions.items[r].buildings;
+
+        for (usize b = 0; b < buildings->len; b++) {
+            Rectangle aabb = building_bounds(&buildings->items[b]);
+
+            if (CheckCollisionPointRec(position, aabb)) {
+                return &buildings->items[b];
+            }
+        }
+    }
+
+    return NULL;
+}
+
 void map_clamp(Map * map) {
     Vector2 map_size = { (float)map->width, (float)map->height };
 
@@ -238,7 +268,26 @@ void render_map_mesh(Map * map) {
 
         ListBuilding * buildings = &map->regions.items[i].buildings;
         for (usize b = 0; b < buildings->len; b++) {
-            DrawModel(buildings->items[b].model, Vector3Zero(), 1.0f, BLUE);
+            switch (buildings->items[b].type) {
+                case BUILDING_EMPTY: {
+                    DrawModel(buildings->items[b].model, Vector3Zero(), 1.0f, BLUE);
+                } break;
+                case BUILDING_FIGHTER: {
+                    DrawModel(buildings->items[b].model, Vector3Zero(), 1.0f, DARKBLUE);
+                } break;
+                case BUILDING_ARCHER: {
+                    DrawModel(buildings->items[b].model, Vector3Zero(), 1.0f, BROWN);
+                } break;
+                case BUILDING_SUPPORT: {
+                    DrawModel(buildings->items[b].model, Vector3Zero(), 1.0f, DARKGREEN);
+                } break;
+                case BUILDING_SPECIAL: {
+                    DrawModel(buildings->items[b].model, Vector3Zero(), 1.0f, DARKPURPLE);
+                } break;
+                case BUILDING_RESOURCE: {
+                    DrawModel(buildings->items[b].model, Vector3Zero(), 1.0f, YELLOW);
+                } break;
+            }
         }
 
         DrawModel(map->regions.items[i].castle.model, Vector3Zero(), 1.0f, RED);
@@ -267,4 +316,10 @@ Camera2D setup_camera(Map * map) {
     cam.offset.y += 5.0f;
 
     return cam;
+}
+
+void set_cursor_to_camera_scale(Camera2D *const cam) {
+    SetMouseOffset(-cam->offset.x, -cam->offset.y);
+    float scale = 1.0f / cam->zoom;
+    SetMouseScale(scale, scale);
 }
