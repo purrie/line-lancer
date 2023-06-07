@@ -2,8 +2,6 @@
 #include "std.h"
 #include "game.h"
 
-implementList(Unit*, Unit)
-
 void clear_unit_list(ListUnit * list) {
     for(usize i = 0; i < list->len; i++) {
         MemFree(list->items[i]);

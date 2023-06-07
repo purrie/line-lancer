@@ -2,93 +2,7 @@
 #define GEOMETRY_H_
 
 #include <raylib.h>
-#include <raymath.h>
 #include "types.h"
-
-typedef struct Line Line;
-typedef struct Path Path;
-typedef struct PathEntry PathEntry;
-typedef struct Building Building;
-typedef struct Castle Castle;
-typedef struct Region Region;
-typedef struct Map Map;
-typedef struct Area Area;
-
-struct Line {
-    Vector2 a;
-    Vector2 b;
-};
-
-makeList(Line, Line);
-
-struct Path {
-    ListLine lines;
-    Model model;
-    Region * region_a;
-    Region * region_b;
-};
-
-makeList(Path, Path);
-
-struct PathEntry {
-    Path * path;
-    Path * redirect;
-};
-
-makeList(PathEntry, PathEntry);
-
-typedef enum {
-    BUILDING_EMPTY = 0,
-    BUILDING_FIGHTER,
-    BUILDING_ARCHER,
-    BUILDING_SUPPORT,
-    BUILDING_SPECIAL,
-    BUILDING_RESOURCE,
-    BUILDING_TYPE_COUNT = BUILDING_RESOURCE,
-} BuildingType;
-
-struct Building {
-    Vector2        position;
-    BuildingType   type;
-    Model          model;
-    ushort         upgrades;
-    float          spawn_timer;
-    Path         * spawn_target;
-    Region       * region;
-};
-
-struct Castle {
-    Vector2 position;
-    Model   model;
-};
-
-makeList(Building, Building);
-
-struct Area {
-    ListLine lines;
-    Model    model;
-};
-
-struct Region {
-    Area          area;
-    OptionalUsize player_owned;
-    Castle        castle;
-    ListBuilding  buildings;
-    ListPathEntry paths;
-};
-
-makeList(Region, Region);
-
-struct Map {
-    usize      width;
-    usize      height;
-    uchar      player_count;
-    ListRegion regions;
-    ListPath   paths;
-};
-
-makeOptional(Map, Map);
-
 
 /* Line Functions ***********************************************************/
 Line            make_line               (Vector2 a, Vector2 b);
@@ -102,10 +16,10 @@ Rectangle       get_lines_bounds        (const ListLine lines);
 void            bevel_lines             (ListLine *lines, usize resolution, float depth, bool enclosed);
 
 /* Path Functions ***********************************************************/
-Vector2           path_start_point (Path * path, Region * from);
-OptionalVector2   path_follow      (Path * path, Region * from, float distance);
-Region          * path_end_region  (Path * path, Region * from);
-float             path_length      (Path * path);
+Vector2           path_start_point (Path *const path, Region *const from);
+OptionalVector2   path_follow      (Path *const path, Region *const from, float distance);
+Region          * path_end_region  (Path *const path, Region *const from);
+float             path_length      (Path *const path);
 
 /* Area Functions ***********************************************************/
 void            clamp_area              (Area *area, Rectangle rect);

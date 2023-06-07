@@ -1,13 +1,7 @@
-#include <assert.h>
 #include "std.h"
 #include "level.h"
 #include "math.h"
-
-implementList(Region, Region)
-implementList(Path, Path)
-implementList(PathEntry, PathEntry)
-implementList(Building, Building)
-implementList(Line, Line)
+#include <raymath.h>
 
 /* Line Functions **********************************************************/
 OptionalVector2 get_line_intersection (Line a, Line b) {
@@ -92,13 +86,25 @@ void create_sublines(
 
 void bevel_lines(ListLine * lines, usize resolution, float depth, bool enclosed) {
     if (enclosed) {
-        assert(lines->len > 2 && "Enclosed lines need to have at least 3 segments");
+        if (lines->len < 3) {
+            TraceLog(LOG_ERROR, "Enclosed lines need to have at least 3 segments");
+            return;
+        }
     }
     else {
-        assert(lines->len > 1 && "There needs to be at least two line segments");
+        if (lines->len < 2) {
+            TraceLog(LOG_ERROR, "There needs to be at least two line segments");
+            return;
+        }
     }
-    assert(resolution > 0);
-    assert(depth > 1.0f && "Cannot have depth smaller than 1.0f");
+    if (resolution == 0) {
+        TraceLog(LOG_ERROR, "Resolution needs to be larger than zero for bevel to have any effect");
+        return;
+    }
+    if (depth < 1.0f) {
+        TraceLog(LOG_ERROR, "Cannot have depth smaller than 1.0f");
+        return;
+    }
 
     usize lines_count = lines->len * resolution + lines->len;
     ListLine beveled = listLineInit(lines_count, lines->alloc, lines->dealloc);
@@ -231,7 +237,7 @@ Building * get_building_by_position(Map *const map, Vector2 position) {
 }
 
 /* Path Functions **********************************************************/
-Vector2 path_start_point(Path * path, Region * from) {
+Vector2 path_start_point(Path *const path, Region *const from) {
     if (path->region_a == from) {
         return path->lines.items[0].a;
     }
@@ -240,7 +246,7 @@ Vector2 path_start_point(Path * path, Region * from) {
     }
 }
 
-OptionalVector2 path_follow(Path * path, Region * from, float distance) {
+OptionalVector2 path_follow(Path *const path, Region *const from, float distance) {
     OptionalVector2 result = {0};
     float progress = 0.0f;
     bool reverse = path->region_b == from;
@@ -268,11 +274,11 @@ OptionalVector2 path_follow(Path * path, Region * from, float distance) {
     return result;
 }
 
-Region * path_end_region(Path * path, Region * from) {
+Region * path_end_region(Path *const path, Region *const from) {
     return path->region_a == from ? path->region_b : path->region_a;
 }
 
-float path_length(Path * path) {
+float path_length(Path *const path) {
     float sum = 0.0f;
     for (usize i = 0; i < path->lines.len; i++) {
         float d = Vector2Distance(path->lines.items[i].a, path->lines.items[i].b);

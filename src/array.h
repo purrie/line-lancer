@@ -1,8 +1,6 @@
 #ifndef ARRAY_H_
 #define ARRAY_H_
 
-#include "optional.h"
-
 #define makeList(type, name) typedef struct {\
         type * items;\
         usize len;\
@@ -10,12 +8,11 @@
         Allocator alloc;\
         Deallocator dealloc;\
     } List ## name;\
-    makeOptional(type, name);\
     List ## name list ## name ## Init(usize cap, Allocator alloc, Deallocator dealloc);\
     void list ## name ## Deinit(List ## name * list);\
     int list ## name ## Grow(List ## name * list, usize new_cap);\
     int list ## name ## Append(List ## name * list, type item);\
-    Optional ## name list ## name ## Remove(List ## name * list, usize index)\
+    void list ## name ## Remove(List ## name * list, usize index)\
 
 
 #define implementList(type, name) \
@@ -69,19 +66,15 @@ int list ## name ## Append(List ## name * list, type item) {\
     return 0;\
 }\
 \
-Optional ## name list ## name ## Remove(List ## name * list, usize index) {\
-    Optional ## name removed = {0};\
+void list ## name ## Remove(List ## name * list, usize index) {\
     if (index >= list->len) {\
-        return removed;\
+        return;\
     }\
-\
-    removed.value = list->items[index];\
-    removed.has_value = 1 ;\
 \
     list->len --;\
     if (index < list->len)\
         copy_memory(list->items + index, list->items + index + 1, sizeof(type) * (list->len - index));\
-    return removed;\
+    return;\
 }\
 
 #endif // ARRAY_H_
