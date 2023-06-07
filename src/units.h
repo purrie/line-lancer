@@ -23,6 +23,7 @@ typedef enum {
 typedef struct Unit Unit;
 
 struct Unit {
+    float       health;
     Vector2     position;
     UnitType    type;
     ushort      upgrade;
@@ -36,8 +37,9 @@ struct Unit {
 
 makeList(Unit*, Unit);
 
-Unit * unit_from_building(Building *const building);
-void clear_unit_list(ListUnit * list);
-void render_units(ListUnit * units);
+Unit * unit_from_building (Building *const building);
+void   clear_unit_list    (ListUnit * list);
+void   render_units       (ListUnit *const units);
+float  get_unit_attack    (Unit * unit);
 
 #endif // UNITS_H_

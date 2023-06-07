@@ -31,9 +31,8 @@ struct Path {
 makeList(Path, Path);
 
 struct PathEntry {
-    Path    * path;
-    Vector2   point;
-    Path    * redirect;
+    Path * path;
+    Path * redirect;
 };
 
 makeList(PathEntry, PathEntry);
@@ -54,7 +53,7 @@ struct Building {
     Model          model;
     ushort         upgrades;
     float          spawn_timer;
-    PathEntry      spawn_target;
+    Path         * spawn_target;
     Region       * region;
 };
 

@@ -855,17 +855,19 @@ void connect_map(Map * map) {
   for (usize i = 0; i < map->paths.len; i++) {
     Path * path = &map->paths.items[i];
     for (usize r = 0; r < map->regions.len; r++) {
-      if (area_contains_point(&map->regions.items[r].area, path->lines.items[0].a)) {
+      Vector2 a = path->lines.items[0].a;
+      Vector2 b = path->lines.items[path->lines.len - 1].b;
+      if (area_contains_point(&map->regions.items[r].area, a)) {
         path->region_a = &map->regions.items[r];
       }
 
-      if (area_contains_point(&map->regions.items[r].area, path->lines.items[path->lines.len - 1].b)) {
+      if (area_contains_point(&map->regions.items[r].area, b)) {
         path->region_b = &map->regions.items[r];
       }
 
       if (path->region_a && path->region_b) {
-        PathEntry a = { .path = path, .point = path->lines.items[0].a };
-        PathEntry b = { .path = path, .point = path->lines.items[path->lines.len - 1].b };
+        PathEntry a = { .path = path };
+        PathEntry b = { .path = path };
         listPathEntryAppend(&path->region_a->paths, a);
         listPathEntryAppend(&path->region_b->paths, b);
         break;
@@ -883,10 +885,12 @@ void connect_map(Map * map) {
 
       float distance = 99999.9f;
       for (usize p = 0; p < region->paths.len; p++) {
-        float d = Vector2DistanceSqr(building->position, region->paths.items[p].point);
+        Path * path = region->paths.items[p].path;
+        Vector2 start = path_start_point(path, region);
+        float d = Vector2DistanceSqr(building->position, start);
         if (d < distance) {
           distance = d;
-          building->spawn_target = region->paths.items[p];
+          building->spawn_target = path;
         }
       }
     }
