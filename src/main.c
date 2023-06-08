@@ -7,8 +7,8 @@
 #include "ui.h"
 #include "units.h"
 
-const int WINDOW_WIDTH = 1400;
-const int WINDOW_HEIGHT = 1200;
+const int WINDOW_WIDTH = 800;
+const int WINDOW_HEIGHT = 600;
 
 int main(void) {
     SetTraceLogLevel(LOG_INFO);
