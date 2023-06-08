@@ -1,4 +1,7 @@
 #include "game.h"
+#include "units.h"
+#include "level.h"
+#include <raymath.h>
 
 Unit * get_enemy_in_range(ListUnit *const units, Unit *const unit) {
     float range;

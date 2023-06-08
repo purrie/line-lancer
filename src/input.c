@@ -1,5 +1,6 @@
 #include "input.h"
 #include "ui.h"
+#include "level.h"
 
 void place_building(Building * building, BuildingType type) {
     building->type = type;

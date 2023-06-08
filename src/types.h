@@ -37,6 +37,7 @@ defOptional(Uint);
 defOptional(Usize);
 defOptional(Vector2);
 defOptional(Ushort);
+defOptional(Map);
 
 #ifndef NULL
 #define NULL ((void *)0)
