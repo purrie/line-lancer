@@ -10,7 +10,7 @@ implementList(Path, Path)
 implementList(PathEntry, PathEntry)
 implementList(Building, Building)
 implementList(Line, Line)
-implementList(Bridge, Bridge)
+implementList(PathBridge, PathBridge)
 
 StringSlice make_slice(uchar * from, usize start, usize end) {
     StringSlice s;

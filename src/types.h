@@ -7,6 +7,7 @@
 
 typedef struct Node Node;
 typedef struct Bridge Bridge;
+typedef struct PathBridge PathBridge;
 typedef struct Line Line;
 typedef struct Path Path;
 typedef struct PathEntry PathEntry;
@@ -69,8 +70,20 @@ makeList(Path, Path);
 makeList(PathEntry, PathEntry);
 makeList(Building, Building);
 makeList(Region, Region);
-makeList(Bridge, Bridge);
+makeList(PathBridge, PathBridge);
 makeList(Unit*, Unit);
+
+struct Node {
+    Node    * previous;
+    Node    * next;
+    Unit    * unit;
+    Vector2   position;
+};
+
+struct Bridge {
+    Node * start;
+    Node * end;
+};
 
 struct Line {
     Vector2 a;
@@ -80,13 +93,9 @@ struct Line {
 struct Path {
     ListLine lines;
     Model model;
+    Bridge bridge;
     Region * region_a;
     Region * region_b;
-};
-
-struct PathEntry {
-    Path * path;
-    Path * redirect;
 };
 
 enum BuildingType {
@@ -110,8 +119,9 @@ struct Building {
 };
 
 struct Castle {
-    Vector2 position;
-    Model   model;
+    Vector2  position;
+    Model    model;
+    Region * region;
 };
 
 struct Area {
@@ -166,16 +176,17 @@ struct Unit {
     usize       player_owned;
 };
 
-struct Node {
-    Node    * previous;
-    Node    * next;
-    Unit    * unit;
-    Vector2   position;
+struct PathBridge {
+    Path * from;
+    Path * to;
+    Bridge bridge;
 };
 
-struct Bridge {
-    Node * start;
-    Node * end;
+struct PathEntry {
+    Path           * path;
+    ListPathBridge   redirects;
+    usize            active_redirect;
+    Bridge           castle_path;
 };
 
 enum PlayerState {
