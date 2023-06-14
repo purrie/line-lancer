@@ -5,17 +5,18 @@
 #include "std.h"
 
 Result bridge_points (Vector2 a, Vector2 b, Bridge * result) {
+    float step_size = UNIT_SIZE * 2.0f;
     float distance = Vector2Distance(a, b);
-    if (distance < ( UNIT_SIZE * 2.0f )) {
+    if (distance < ( step_size * 2.0f )) {
         TraceLog(LOG_ERROR, "Distance between points is too short to create bridge");
         return FAILURE;
     }
-    float offset = distance / UNIT_SIZE;
+    float offset = distance / step_size;
     usize count  = (usize)(offset + 0.5f) - 1;
 
     offset = offset - (usize)offset;
     offset = offset * 0.5f;
-    offset = offset * UNIT_SIZE;
+    offset = offset * step_size;
 
     Node * node = MemAlloc(sizeof(Node));
     if (node == NULL) {
@@ -23,7 +24,7 @@ Result bridge_points (Vector2 a, Vector2 b, Bridge * result) {
         return FAILURE;
     }
 
-    a = Vector2MoveTowards(a, b, UNIT_SIZE + offset);
+    a = Vector2MoveTowards(a, b, step_size + offset);
     result->start  = node;
     node->previous = NULL;
     node->unit     = NULL;
@@ -38,7 +39,7 @@ Result bridge_points (Vector2 a, Vector2 b, Bridge * result) {
             return FAILURE;
         }
 
-        a = Vector2MoveTowards(a, b, UNIT_SIZE);
+        a = Vector2MoveTowards(a, b, step_size);
         next->previous = node;
         next->unit     = NULL;
         next->position = a;
@@ -87,6 +88,9 @@ Result bridge_castle_and_path (PathEntry * path, Castle *const castle) {
     if (bridge_nodes(start, &castle->guardian_spot, &path->castle_path)) {
         return FAILURE;
     }
+    path->castle_path.end = path->castle_path.end->previous;
+    MemFree(path->castle_path.end->next);
+    path->castle_path.end->next = &castle->guardian_spot;
 
     return SUCCESS;
 }
@@ -145,12 +149,13 @@ Result bridge_region (Region * region) {
 }
 
 Result bridge_over_path (Path * path) {
+    float step_size = UNIT_SIZE * 2.0f;
     TraceLog(LOG_INFO, "Bridging Path");
     float progress = 0.0f;
     float length = path_length(path);
-    float leftover = length / UNIT_SIZE;
+    float leftover = length / step_size;
     leftover = leftover - (usize)leftover;
-    leftover = leftover * UNIT_SIZE * 0.5f;
+    leftover = leftover * step_size * 0.5f;
 
     Vector2 point;
     if (path_follow(path, path->region_a, leftover, &point)) {
@@ -170,8 +175,8 @@ Result bridge_over_path (Path * path) {
     node->bridge   = &path->bridge;
     path->bridge.start = node;
 
-    progress = leftover + UNIT_SIZE;
-    while (progress + UNIT_SIZE < length) {
+    progress = leftover + step_size;
+    while (progress + step_size < length) {
         if (path_follow(path, path->region_a, progress, &point)) {
             clean_up_bridge(&path->bridge);
             TraceLog(LOG_ERROR, "Failed to create next point on a path");
@@ -192,7 +197,7 @@ Result bridge_over_path (Path * path) {
 
 
         next->position = point;
-        progress += UNIT_SIZE;
+        progress += step_size;
         node = next;
     }
 

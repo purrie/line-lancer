@@ -22,28 +22,22 @@ Result move_node (Node ** from, Movement * direction) {
         return FAILURE;
     }
 
-    if (next->bridge != orig->bridge) {
-        if (next == next->bridge->start) {
-            *direction = MOVEMENT_DIR_FORWARD;
+    if (next->bridge) {
+        if (next->bridge != orig->bridge) {
+            if (next == next->bridge->start) {
+                *direction = MOVEMENT_DIR_FORWARD;
+            }
+            else {
+                *direction = MOVEMENT_DIR_BACKWARD;
+            }
         }
-        else {
-            *direction = MOVEMENT_DIR_BACKWARD;
-        }
+    }
+    else {
+        *direction = MOVEMENT_INVALID;
     }
     *from = next;
 
     return SUCCESS;
-}
-
-Node * next_node (Node *const from, Movement direction) {
-    switch (direction) {
-        case MOVEMENT_DIR_FORWARD:
-            return from->next;
-        case MOVEMENT_DIR_BACKWARD:
-            return from->previous;
-    }
-    TraceLog(LOG_ERROR, "Failed to get next node");
-    return NULL;
 }
 
 usize get_unit_range (Unit *const unit) {
@@ -56,6 +50,8 @@ usize get_unit_range (Unit *const unit) {
             return 1 + unit->upgrade;
         case UNIT_SPECIAL:
             return 2 + unit->upgrade;
+        case UNIT_GUARDIAN:
+            return 3;
     }
 }
 
@@ -109,6 +105,7 @@ usize destroy_unit(ListUnit * list, Unit * unit) {
             return i;
         }
     }
+    TraceLog(LOG_ERROR, "Can't destroy the unit, it's not in the list of units");
     return list->cap;
 }
 
@@ -177,14 +174,40 @@ Unit * unit_from_building(Building *const building) {
     return result;
 }
 
-void render_units(ListUnit *const units) {
+void unit_guardian (Region * region) {
+    region->castle.guardian.health       = 500.0f;
+    region->castle.guardian.player_owned = region->player_id;
+    region->castle.guardian.position     = region->castle.guardian_spot.position;
+    region->castle.guardian.state        = UNIT_STATE_GUARDING;
+    region->castle.guardian.type         = UNIT_GUARDIAN;
+    region->castle.guardian.location     = &region->castle.guardian_spot;
+
+    region->castle.guardian_spot.unit    = &region->castle.guardian;
+}
+
+void render_units(GameState *const state) {
+    ListUnit * units = &state->units;
     for (usize i = 0; i < units->len; i ++) {
         Unit * unit = units->items[i];
-        if (unit->player_owned == 1) {
-            DrawCircleV(unit->position, 5.0f, BLACK);
+        Color col = BLACK;
+        switch (unit->state) {
+            case UNIT_STATE_FIGHTING: {
+                col.r = 255;
+            } break;
+            case UNIT_STATE_MOVING: {
+                col.g = 255;
+            } break;
+            case UNIT_STATE_GUARDING: {
+                TraceLog(LOG_ERROR, "Unit is in guard state, that shouldn't happen!");
+            } break;
         }
-        else {
-            DrawCircleV(unit->position, 5.0f, ORANGE);
-        }
+        col.b = unit->player_owned * 127;
+
+        DrawCircleV(unit->position, 5.0f, col);
+    }
+
+    for (usize i = 0; i < state->current_map->regions.len; i++) {
+        Region * region = &state->current_map->regions.items[i];
+        DrawCircleV(region->castle.guardian.position, 6.0f, RED);
     }
 }

@@ -70,6 +70,37 @@ makeList(PathBridge, PathBridge);
 makeList(Unit*, Unit);
 makeList(Bridge, Bridge);
 
+enum UnitType {
+    UNIT_FIGHTER,
+    UNIT_ARCHER,
+    UNIT_SUPPORT,
+    UNIT_SPECIAL,
+    UNIT_GUARDIAN,
+};
+
+enum UnitState {
+    UNIT_STATE_MOVING = 0,
+    UNIT_STATE_FIGHTING,
+    UNIT_STATE_GUARDING,
+};
+
+enum Movement {
+    MOVEMENT_DIR_FORWARD = 0,
+    MOVEMENT_DIR_BACKWARD,
+    MOVEMENT_INVALID,
+};
+
+struct Unit {
+    float       health;
+    Vector2     position;
+    UnitType    type;
+    ushort      upgrade;
+    UnitState   state;
+    Node      * location;
+    Movement    move_direction;
+    usize       player_owned;
+};
+
 struct Node {
     Node    * previous;
     Node    * next;
@@ -114,6 +145,7 @@ struct Castle {
     Model    model;
     Node     guardian_spot;
     Region * region;
+    Unit     guardian;
 };
 
 struct Area {
@@ -156,36 +188,6 @@ struct Map {
     ListRegion regions;
     ListPath   paths;
 };
-
-enum UnitType {
-    UNIT_FIGHTER,
-    UNIT_ARCHER,
-    UNIT_SUPPORT,
-    UNIT_SPECIAL,
-};
-
-enum UnitState {
-    UNIT_STATE_MOVING = 0,
-    UNIT_STATE_FIGHTING,
-    UNIT_STATE_GUARDING,
-};
-
-enum Movement {
-    MOVEMENT_DIR_FORWARD = 0,
-    MOVEMENT_DIR_BACKWARD,
-};
-
-struct Unit {
-    float       health;
-    Vector2     position;
-    UnitType    type;
-    ushort      upgrade;
-    UnitState   state;
-    Node      * location;
-    Movement    move_direction;
-    usize       player_owned;
-};
-
 enum PlayerState {
     INPUT_NONE = 0,
     INPUT_OPEN_BUILDING,

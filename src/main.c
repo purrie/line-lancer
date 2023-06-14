@@ -34,10 +34,10 @@ int main(void) {
         BeginDrawing();
         BeginMode2D(cam);
 
-        ClearBackground(RAYWHITE);
+        ClearBackground(BLACK);
 
         render_map_mesh(&map);
-        render_units(&state.units);
+        render_units(&state);
         render_ui(&state);
 
         EndMode2D();

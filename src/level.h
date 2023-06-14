@@ -36,6 +36,9 @@ Rectangle   building_bounds          (Building *const building);
 Building  * get_building_by_position (Map * map, Vector2 position);
 
 /* Region Functions ********************************************************/
+void     region_change_ownership (Region * region, usize player_id);
+void     region_update_paths     (Region * region);
+Region * region_by_guardian      (ListRegion *const regions, Unit *const guardian);
 
 /* Map Functions *********************************************************/
 void     set_cursor_to_camera_scale (Camera2D *const cam);

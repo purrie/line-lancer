@@ -315,7 +315,52 @@ float path_length(Path *const path) {
 }
 
 /* Region Functions **********************************************************/
+void region_update_paths (Region * region) {
+    for (usize e = 0; e < region->paths.len; e++) {
+      PathEntry * entry = &region->paths.items[e];
+      Movement dir;
+      Node * start = path_start_node(entry->path, region, &dir);
+      Node * connect;
 
+      if (entry->path->region_a->player_id == entry->path->region_b->player_id)
+        connect = entry->redirects.items[entry->active_redirect].bridge->start;
+      else
+        connect = entry->castle_path.start;
+
+      if (dir == MOVEMENT_DIR_FORWARD)
+        start->previous = connect;
+      else
+        start->next = connect;
+    }
+}
+
+void region_change_ownership (Region * region, usize player_id) {
+    region->player_id = player_id;
+    region_update_paths(region);
+    for (usize i = 0; i < region->paths.len; i++) {
+        Region * other;
+        PathEntry * entry = &region->paths.items[i];
+        if (entry->path->region_a == region) {
+            other = entry->path->region_b;
+        }
+        else {
+            other = entry->path->region_a;
+        }
+        region_update_paths(other);
+    }
+    unit_guardian(region);
+}
+
+Region * region_by_guardian (ListRegion *const regions, Unit *const guardian) {
+    for (usize i = 0; i < regions->len; i++) {
+        Region * region = &regions->items[i];
+        if (&region->castle.guardian == guardian) {
+            return region;
+        }
+    }
+    TraceLog(LOG_ERROR, "Attempted to get region from a non-guardian unit");
+    return NULL;
+}
 /* Map Functions ***********************************************************/
 void map_clamp(Map * map) {
     Vector2 map_size = { (float)map->width, (float)map->height };
@@ -362,7 +407,7 @@ void render_map_mesh(Map * map) {
         ListBuilding * buildings = &region->buildings;
         for (usize b = 0; b < buildings->len; b++) {
             Building * building = &buildings->items[b];
-            /* render_bridge(&building->spawn_paths.items[building->active_spawn], BLACK, RED, BLUE); */
+            render_bridge(&building->spawn_paths.items[building->active_spawn], BLACK, RED, BLUE);
             switch (building->type) {
                 case BUILDING_EMPTY: {
                     DrawModel(building->model, Vector3Zero(), 1.0f, BLUE);
@@ -386,6 +431,16 @@ void render_map_mesh(Map * map) {
         }
 
         DrawModel(region->castle.model, Vector3Zero(), 1.0f, RED);
+
+        for (usize e = 0; e < region->paths.len; e++) {
+            PathEntry * entry = &region->paths.items[e];
+            if (entry->path->region_a->player_id == entry->path->region_b->player_id) {
+                render_bridge(entry->redirects.items[entry->active_redirect].bridge, BLACK, RED, BLUE);
+            }
+            else {
+                render_bridge(&entry->castle_path, BLACK, RED, BLUE);
+            }
+        }
     }
 
     for (usize i = 0; i < map->paths.len; i++) {
@@ -396,8 +451,6 @@ void render_map_mesh(Map * map) {
                 break;
         }
         DrawModel(path->model, Vector3Zero(), 1.0f, colors[start_region_index]);
-        DrawCircleV(path->lines.items[0].a, 5.0f, RED);
-        DrawCircleV(path->lines.items[path->lines.len - 1].b, 5.0f, BLUE);
 
         render_bridge(&path->bridge, BLACK, RED, BLUE);
     }

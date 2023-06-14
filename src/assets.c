@@ -911,6 +911,9 @@ Result connect_map(Map * map) {
     if (bridge_region(region)) {
       return FAILURE;
     }
+
+    region_update_paths(region);
+    unit_guardian(region);
   }
 
   return SUCCESS;
@@ -1106,7 +1109,8 @@ Result load_level(char *path, Map * result) {
   }
 
   UnloadFileData(data);
-  TraceLog(LOG_INFO, "Loading map %s succeeded", path);
+  TraceLog(LOG_INFO, "Loading map data succeeded");
+
   map_clamp(result);
   subdivide_map_paths(result);
   generate_map_mesh(result);
@@ -1114,7 +1118,7 @@ Result load_level(char *path, Map * result) {
     goto fail;
   }
 
-  TraceLog(LOG_INFO, "Map loaded successfully");
+  TraceLog(LOG_INFO, "Map %s loaded successfully", path);
   return SUCCESS;
 
 fail:
