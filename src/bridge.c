@@ -28,6 +28,7 @@ Result bridge_points (Vector2 a, Vector2 b, Bridge * result) {
     node->previous = NULL;
     node->unit     = NULL;
     node->position = a;
+    node->bridge = result;
 
     while (count --> 1) {
         Node * next = MemAlloc(sizeof(Node)) ;
@@ -41,7 +42,7 @@ Result bridge_points (Vector2 a, Vector2 b, Bridge * result) {
         next->previous = node;
         next->unit     = NULL;
         next->position = a;
-
+        next->bridge   = result;
         node->next     = next;
 
         node = next;
@@ -63,7 +64,7 @@ Result bridge_nodes (Node *const a, Node *const b, Bridge * result) {
 
 Result bridge_building_and_path (Path *const path, Building * building) {
     if (building->spawn_paths.cap == building->spawn_paths.len) {
-        listBridgeAppend(&building->spawn_paths, (Bridge){0});
+        listBridgeGrow(&building->spawn_paths, building->spawn_paths.cap + 1);
     }
     Bridge  * result      = &building->spawn_paths.items[building->spawn_paths.len];
     Node    * destination = path_start_node(path, building->region, NULL);
