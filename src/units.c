@@ -75,7 +75,7 @@ Unit * get_enemy_in_range (Unit *const unit) {
     return NULL;
 }
 
-Result move_unit_forward ( Unit * unit ) {
+Result move_unit_forward (Unit * unit) {
     Node * next = unit->location;
     Movement dir = unit->move_direction;
     if (move_node(&next, &dir)) {
@@ -145,7 +145,7 @@ Unit * unit_from_building(Building *const building) {
     clear_memory(result, sizeof(Unit));
     result->position     = building->position;
     result->upgrade      = building->upgrades;
-    result->player_owned = building->region->player_owned.value;
+    result->player_owned = building->region->player_id;
     result->location     = spawn;
 
     switch (building->type) {

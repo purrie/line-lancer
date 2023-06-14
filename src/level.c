@@ -5,14 +5,13 @@
 #include <raymath.h>
 
 /* Line Functions **********************************************************/
-OptionalVector2 get_line_intersection (Line a, Line b) {
-    OptionalVector2 ret = {0};
+Result get_line_intersection (Line a, Line b, Vector2 * value) {
 
     const Vector2 sn = Vector2Subtract(a.a, a.b);
     const Vector2 wn = Vector2Subtract(b.a, b.b);
     const float d = sn.x * wn.y - sn.y * wn.x;
     if (FloatEquals(d, 0.0f)) {
-        return ret;
+        return FAILURE;
     }
 
     const float xd = a.a.x - b.a.x;
@@ -22,41 +21,41 @@ OptionalVector2 get_line_intersection (Line a, Line b) {
     const float u = (xd * sn.y - yd * sn.x) / d;
 
     if (t < 0.0f || t > 1.0f) {
-        return ret;
+        return FAILURE;
     }
     if (u < 0.0f || u > 1.0f) {
-        return ret;
+        return FAILURE;
     }
 
-    ret.has_value = true;
-    ret.value.x = a.a.x + t * (a.b.x - a.a.x);
-    ret.value.y = a.a.y + t * (a.b.y - a.a.y);
+    value->x = a.a.x + t * (a.b.x - a.a.x);
+    value->y = a.a.y + t * (a.b.y - a.a.y);
 
-    return ret;
+    return SUCCESS;
 }
 
-bool get_lines_intersections (const ListLine lines, const Line line, ListVector2 * result) {
+usize get_lines_intersections (const ListLine lines, const Line line, ListVector2 * result) {
+    usize added = 0;
     for (usize i = 0; i < lines.len; i++) {
-        OptionalVector2 r = get_line_intersection(lines.items[i], line);
+        Vector2 value;
 
-        if (r.has_value) {
+        if(get_line_intersection(lines.items[i], line, &value) == SUCCESS) {
             if (result == NULL) return true;
 
             bool contains = false;
             for (usize c = 0; c < result->len; c++) {
-                if (Vector2Equals(r.value, result->items[c])) {
+                if (Vector2Equals(value, result->items[c])) {
                     contains = true;
                     break;
                 }
             }
 
             if (contains == false) {
-                listVector2Append(result, r.value);
+                listVector2Append(result, value);
+                added++;
             }
         }
     }
-    if (result == NULL || result->len == 0) return false;
-    return true;
+    return added;
 }
 
 void create_sublines(
@@ -269,11 +268,10 @@ Node * path_start_node (Path *const path, Region *const from, Movement * directi
         return NULL;
 }
 
-OptionalVector2 path_follow(Path *const path, Region *const from, float distance) {
-    OptionalVector2 result = {0};
+Result path_follow(Path *const path, Region *const from, float distance, Vector2 * value) {
     if (path->region_a == NULL || path->region_b == NULL || path->region_a == path->region_b) {
         TraceLog(LOG_ERROR, "Path is not correctly initialized");
-        return result;
+        return FAILURE;
     }
 
     float progress = 0.0f;
@@ -289,18 +287,17 @@ OptionalVector2 path_follow(Path *const path, Region *const from, float distance
             float t = ((progress + length) - distance) / length;
             if (reverse) {
                 // TODO this seems wrong
-                result.value = Vector2Lerp(a, b, t);
+                *value = Vector2Lerp(a, b, t);
             }
             else {
-                result.value = Vector2Lerp(b, a, t);
+                *value = Vector2Lerp(b, a, t);
             }
-            result.has_value = true;
-            return result;
+            return SUCCESS;
         }
         progress += length;
     }
 
-    return result;
+    return FAILURE;
 }
 
 Region * path_end_region(Path *const path, Region *const from) {

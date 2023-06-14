@@ -46,28 +46,28 @@ bool compare_literal(StringSlice slice, char *const literal) {
     return literal[i] == '\0';
 }
 
-OptionalUsize convert_slice_usize(StringSlice slice) {
-    OptionalUsize ret = {0};
+Result convert_slice_usize(StringSlice slice, usize * value) {
+    bool first = true;
     for (usize i = 0; i < slice.len; i++) {
         if (slice.start[i] >= '0' && slice.start[i] <= '9') {
-            if (ret.has_value) {
-                ret.value = ret.value * 10 + (slice.start[i] - '0');
+            if (first == false) {
+                *value *= 10;
+                *value += slice.start[i] - '0';
             } else {
-                ret.value = slice.start[i] - '0';
-                ret.has_value = true;
+                *value = slice.start[i] - '0';
+                first = false;
             }
         } else {
-            ret.has_value = false;
-            break;
+            return FAILURE;
         }
     }
-    return ret;
+    return SUCCESS;
 }
 
-OptionalFloat convert_slice_float(StringSlice slice) {
-    OptionalFloat ret = {0};
+Result convert_slice_float(StringSlice slice, float * value) {
     int dot = -1;
     bool neg = false;
+    bool first = true;
     for (usize i = 0; i < slice.len; i++) {
         uchar c = slice.start[i];
         if (c >= '0' && c <= '9') {
@@ -78,20 +78,20 @@ OptionalFloat convert_slice_float(StringSlice slice) {
                 for (usize p = 0; p < dot_spot; p++) {
                     scalar *= 10.0f;
                 }
-                ret.value += digit / scalar;
+                *value += digit / scalar;
             }
-            else if (ret.has_value) {
-                ret.value = ret.value * 10.0f + digit;
+            else if (first == false) {
+                *value *= 10.0f;
+                *value += digit;
             } 
             else {
-                ret.value = digit;
+                *value = digit;
             }
-            ret.has_value = true;
-        } 
+            first = false;
+        }
         else if (c == '.') {
             if (dot >= 0) {
-                ret.has_value = false;
-                break;
+                return FAILURE;
             } else {
                 dot = i;
             }
@@ -100,12 +100,11 @@ OptionalFloat convert_slice_float(StringSlice slice) {
             neg = true; 
         }
         else {
-            ret.has_value = false;
-            break;
+            return FAILURE;
         }
     }
-    if (ret.has_value && neg) { ret.value *= -1.0f; }
-    return ret;
+    if (neg) { *value *= -1.0f; }
+    return SUCCESS;
 }
 
 void log_slice(TraceLogLevel log_level, char * text, StringSlice slice) {

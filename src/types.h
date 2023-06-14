@@ -2,7 +2,6 @@
 #define TYPES_H_
 
 #include <raylib.h>
-#include "optional.h"
 #include "array.h"
 
 #define STRINGIFY(x) #x
@@ -38,13 +37,6 @@ typedef unsigned short ushort;
 typedef void * ( * Allocator )(uint size);
 typedef void ( * Deallocator )(void * ptr);
 
-defOptional(Float);
-defOptional(Uint);
-defOptional(Usize);
-defOptional(Vector2);
-defOptional(Ushort);
-defOptional(Map);
-
 enum Result {
     SUCCESS = 0,
     FAILURE,
@@ -65,12 +57,6 @@ enum Result {
 #ifndef true
 #define true 1
 #endif
-
-makeOptional(float, Float);
-makeOptional(uint, Uint);
-makeOptional(usize, Usize);
-makeOptional(ushort, Ushort);
-makeOptional(Vector2, Vector2);
 
 makeList(Vector2, Vector2);
 makeList(ushort, Ushort);
@@ -157,7 +143,7 @@ struct PathEntry {
 
 struct Region {
     Area          area;
-    OptionalUsize player_owned;
+    usize         player_id;
     Castle        castle;
     ListBuilding  buildings;
     ListPathEntry paths;
@@ -170,8 +156,6 @@ struct Map {
     ListRegion regions;
     ListPath   paths;
 };
-
-makeOptional(Map, Map);
 
 enum UnitType {
     UNIT_FIGHTER,

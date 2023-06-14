@@ -14,21 +14,21 @@ int main(void) {
     SetTraceLogLevel(LOG_INFO);
     InitWindow(WINDOW_WIDTH, WINDOW_HEIGHT, "Hello!");
 
-    OptionalMap m = load_level("./assets/maps/tiled.json");
-    if (m.has_value == false) {
+    Map map = {0};
+    if (load_level("./assets/maps/tiled.json", &map)) {
         TraceLog(LOG_ERROR, "Failed to load map");
         goto end;
     }
 
-    Camera2D cam = setup_camera(&m.value);
+    Camera2D cam = setup_camera(&map);
     set_cursor_to_camera_scale(&cam);
 
     GameState state = {0};
-    state.current_map = &m.value;
+    state.current_map = &map;
     state.units = listUnitInit(120, &MemAlloc, &MemFree);
 
     while (!WindowShouldClose()) {
-        update_input_state(&m.value, &state);
+        update_input_state(&map, &state);
         simulate_units(&state);
 
         BeginDrawing();
@@ -36,7 +36,7 @@ int main(void) {
 
         ClearBackground(RAYWHITE);
 
-        render_map_mesh(&m.value);
+        render_map_mesh(&map);
         render_units(&state.units);
         render_ui(&state);
 
@@ -48,9 +48,7 @@ int main(void) {
     listUnitDeinit(&state.units);
 
     end:
-    if (m.has_value) {
-        level_unload(&m.value);
-    }
+    level_unload(&map);
     CloseWindow();
     return 0;
 }

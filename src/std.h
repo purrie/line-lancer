@@ -20,8 +20,8 @@ void * clear_memory(void * ptr, usize bytes);
 
 bool compare_literal(StringSlice slice, char *const literal);
 
-OptionalUsize convert_slice_usize(StringSlice slice);
-OptionalFloat convert_slice_float(StringSlice slice);
+Result convert_slice_usize(StringSlice slice, usize * out_value);
+Result convert_slice_float(StringSlice slice, float * out_value);
 
 void log_slice(TraceLogLevel log_level, char * text, StringSlice slice);
 

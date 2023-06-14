@@ -152,8 +152,8 @@ Result bridge_over_path (Path * path) {
     leftover = leftover - (usize)leftover;
     leftover = leftover * UNIT_SIZE * 0.5f;
 
-    OptionalVector2 start = path_follow(path, path->region_a, leftover);
-    if (start.has_value == false) {
+    Vector2 point;
+    if (path_follow(path, path->region_a, leftover, &point)) {
         TraceLog(LOG_ERROR, "Failed to get initial point of a path");
         return FAILURE;
     }
@@ -166,14 +166,13 @@ Result bridge_over_path (Path * path) {
 
     node->previous = NULL;
     node->unit     = NULL;
-    node->position = start.value;
+    node->position = point;
     node->bridge   = &path->bridge;
     path->bridge.start = node;
 
     progress = leftover + UNIT_SIZE;
     while (progress + UNIT_SIZE < length) {
-        start = path_follow(path, path->region_a, progress);
-        if (start.has_value == false) {
+        if (path_follow(path, path->region_a, progress, &point)) {
             clean_up_bridge(&path->bridge);
             TraceLog(LOG_ERROR, "Failed to create next point on a path");
             return FAILURE;
@@ -192,7 +191,7 @@ Result bridge_over_path (Path * path) {
         next->bridge = &path->bridge;
 
 
-        next->position = start.value;
+        next->position = point;
         progress += UNIT_SIZE;
         node = next;
     }
@@ -204,8 +203,7 @@ Result bridge_over_path (Path * path) {
         return FAILURE;
     }
 
-    start = path_follow(path, path->region_a, length - leftover);
-    if (start.has_value == false) {
+    if (path_follow(path, path->region_a, length - leftover, &point)) {
         TraceLog(LOG_ERROR, "Failed to get the last point of the path");
         clean_up_bridge(&path->bridge);
         return FAILURE;
@@ -216,7 +214,7 @@ Result bridge_over_path (Path * path) {
     node->bridge = &path->bridge;
     node->next = NULL;
     node->unit = NULL;
-    node->position = start.value;
+    node->position = point;
 
     path->bridge.end = node;
 

@@ -249,7 +249,7 @@
                         {
                          "name":"player_id",
                          "type":"int",
-                         "value":0
+                         "value":2
                         }],
                  "type":"objectgroup",
                  "visible":true,

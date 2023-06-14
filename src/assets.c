@@ -66,17 +66,18 @@ bool load_paths(
             char c = data[tokens[cursor].start];
             cursor ++;
             StringSlice num = make_slice(data, tokens[cursor].start, tokens[cursor].end);
-            OptionalFloat f = convert_slice_float(num);
-            if (f.has_value == false) {
+
+            float value = 0;
+            if(convert_slice_float(num, &value)) {
               log_slice(LOG_ERROR, "Failed to convert path point", num);
               listLineDeinit(&lines);
               goto fail;
             }
 
             if (c == 'x') {
-              point.x = f.value;
+              point.x = value;
             } else {
-              point.y = f.value;
+              point.y = value;
             }
             cursor ++;
           }
@@ -95,17 +96,17 @@ bool load_paths(
       else if (compare_literal(key, "x") || compare_literal(key, "y")) {
         cursor ++;
         StringSlice val = make_slice(data, tokens[cursor].start, tokens[cursor].end);
-        OptionalFloat f = convert_slice_float(val);
-        if (f.has_value == false) {
+        float value = 0;
+        if(convert_slice_float(val, &value)) {
           log_slice(LOG_ERROR, "Failed to convert path offset", val);
           listLineDeinit(&lines);
           goto fail;
         }
 
         if (key.start[0] == 'x') {
-          offset.x += f.value;
+          offset.x += value;
         } else if (key.start[0] == 'y'){
-          offset.y += f.value;
+          offset.y += value;
         }
         cursor ++;
       }
@@ -177,16 +178,16 @@ usize load_region_objects(
       else if (compare_literal(key, "x") || compare_literal(key, "y")) {
         cursor ++;
         StringSlice num = make_slice(data, tokens[cursor].start, tokens[cursor].end);
-        OptionalFloat f = convert_slice_float(num);
-        if (f.has_value == false) {
+        float value = 0;
+        if(convert_slice_float(num, &value)) {
           TraceLog(LOG_ERROR, "Couldn't parse region object coordinate");
           return 0;
         }
         if (key.start[0] == 'x') {
-          offset.x += f.value;
+          offset.x += value;
         }
         else {
-          offset.y += f.value;
+          offset.y += value;
         }
       }
       cursor = skip_tokens(tokens, cursor);
@@ -210,17 +211,17 @@ usize load_region_objects(
           uchar c = data[tokens[point].start];
           point ++;
           StringSlice num = make_slice(data, tokens[point].start, tokens[point].end);
-          OptionalFloat f = convert_slice_float(num);
-          if (f.has_value == false) {
+          float value = 0;
+          if (convert_slice_float(num, &value)) {
             log_slice(LOG_ERROR, "Couldn't convert region polygon x point", num);
             listLineDeinit(&area);
             return 0;
           }
           if (c == 'x') {
-            v.x += f.value;
+            v.x += value;
           }
           else if (c == 'y') {
-            v.y += f.value;
+            v.y += value;
           }
           else {
             TraceLog(LOG_ERROR, "Encountered unexpected coordinate in region polygon");
@@ -306,7 +307,11 @@ usize load_region_properties(
     StringSlice s = make_slice(data, tokens[name].start, tokens[name].end);
     if (compare_literal(s, "player_id")) {
       StringSlice v = make_slice(data, tokens[value].start, tokens[value].end);
-      region->player_owned = convert_slice_usize(v);
+      usize value;
+      if (convert_slice_usize(v, &value)) {
+        value = 0;
+      }
+      region->player_id = value;
     }
 
     else {
@@ -355,15 +360,15 @@ usize load_region(
     else if (compare_literal(s, "x") || compare_literal(s, "y")) {
       region_pos ++;
       StringSlice s = make_slice(data, tokens[region_pos].start, tokens[region_pos].end);
-      OptionalFloat f = convert_slice_float(s);
-      if (f.has_value == false) {
+      float value = 0.0f;
+      if (convert_slice_float(s, &value)) {
         TraceLog(LOG_ERROR, "Failed to convert region offset position");
         goto fail;
       }
       if (s.start[0] == 'x') {
-        offset.x += f.value;
+        offset.x += value;
       } else {
-        offset.y += f.value;
+        offset.y += value;
       }
       region_pos ++;
     }
@@ -475,15 +480,14 @@ usize load_map_layers(
         cursor++;
         StringSlice num =
           make_slice(data, tokens[cursor].start, tokens[cursor].end);
-        OptionalFloat x = convert_slice_float(num);
-
-        if (x.has_value) {
-          offset.x = x.value;
-        } else {
+        float value = 0.0f;
+        if (convert_slice_float(num, &value)) {
           log_slice(LOG_ERROR,
                     "Failed to convert float for layer x offset from:", num);
           return 0;
         }
+
+        offset.x = value;
         cursor++;
       }
 
@@ -492,15 +496,14 @@ usize load_map_layers(
         cursor++;
         StringSlice num =
           make_slice(data, tokens[cursor].start, tokens[cursor].end);
-        OptionalFloat y = convert_slice_float(num);
-
-        if (y.has_value) {
-          offset.y = y.value;
-        } else {
+        float value = 0.0f;
+        if (convert_slice_float(num, &value)) {
           log_slice(LOG_ERROR,
                     "Failed to convert float for layer y offset from:", num);
           return 0;
         }
+
+        offset.y = value;
         cursor++;
       }
 
@@ -678,7 +681,7 @@ Model generate_line_mesh(const ListLine lines, float thickness, ushort cap_resol
     }
   }
   // resolving mesh collisions
-  {
+  if (false){
     // make sure none of the lines cross each other
     TraceLog(LOG_INFO, "  Resolving mesh collisions");
 
@@ -696,12 +699,13 @@ Model generate_line_mesh(const ListLine lines, float thickness, ushort cap_resol
         .b = { .x = mesh.vertices[left_index + 3], .y = mesh.vertices[left_index + 4]}
       };
 
-      OptionalVector2 intersection = get_line_intersection(left, right);
+      Vector2 intersection;
+      Result intersects = get_line_intersection(left, right, &intersection);
       usize intersections = 1;
       Vector2 center = Vector2Zero();
 
-      while (intersection.has_value) {
-        if (Vector2DistanceSqr(left.a, intersection.value) > Vector2DistanceSqr(left.b, intersection.value)) {
+      while (intersects == SUCCESS) {
+        if (Vector2DistanceSqr(left.a, intersection) > Vector2DistanceSqr(left.b, intersection)) {
           center = Vector2Add(center, left.a);
         }
         else {
@@ -720,6 +724,7 @@ Model generate_line_mesh(const ListLine lines, float thickness, ushort cap_resol
         else {
           break;
         }
+        intersects = get_line_intersection(left, right, &intersection);
       }
 
       if (intersections > 1) {
@@ -968,16 +973,15 @@ void subdivide_map_paths(Map * map) {
   }
 }
 
-OptionalMap load_level(char *path) {
+Result load_level(char *path, Map * result) {
   TraceLog(LOG_INFO, "Loading map: %s", path);
 
-  OptionalMap map = {0};
   uint    len;
   uchar * data;
   data = LoadFileData(path, &len);
   if (len == 0) {
     TraceLog(LOG_ERROR, "Failed to open map file %s", path);
-    return map;
+    return FAILURE;
   }
 
   jsmn_parser json_parser;
@@ -997,8 +1001,8 @@ OptionalMap load_level(char *path) {
     goto fail;
   }
 
-  map.value.regions = listRegionInit (10, &MemAlloc, &MemFree);
-  map.value.paths   = listPathInit   (10, &MemAlloc, &MemFree);
+  result->regions = listRegionInit (10, &MemAlloc, &MemFree);
+  result->paths   = listPathInit   (10, &MemAlloc, &MemFree);
 
   usize fields = tokens[0].size;
   usize cursor = 2;
@@ -1020,15 +1024,16 @@ OptionalMap load_level(char *path) {
     if (compare_literal(map_key, "height") || compare_literal(map_key, "tileheight")) {
       cursor ++;
       StringSlice num = make_slice(data, tokens[cursor].start, tokens[cursor].end);
-      OptionalUsize v = convert_slice_usize(num);
-      if (v.has_value == false) {
+      usize value;
+      if (convert_slice_usize(num, &value)) {
         TraceLog(LOG_ERROR, "Failed to parse map height");
         goto fail;
       }
-      if (map.value.height == 0) {
-        map.value.height = v.value;
+
+      if (result->height == 0) {
+        result->height = value;
       } else {
-        map.value.height *= v.value;
+        result->height *= value;
       }
       cursor ++;
     }
@@ -1036,21 +1041,22 @@ OptionalMap load_level(char *path) {
     else if (compare_literal(map_key, "width") || compare_literal(map_key, "tilewidth")) {
       cursor ++;
       StringSlice num = make_slice(data, tokens[cursor].start, tokens[cursor].end);
-      OptionalUsize v = convert_slice_usize(num);
-      if (v.has_value == false) {
+      usize value;
+      if (convert_slice_usize(num, &value)) {
         TraceLog(LOG_ERROR, "Failed to parse map width");
         goto fail;
       }
-      if (map.value.width == 0) {
-        map.value.width = v.value;
+
+      if (result->width == 0) {
+        result->width = value;
       } else {
-        map.value.width *= v.value;
+        result->width *= value;
       }
       cursor ++;
     }
 
     else if (compare_literal(map_key, "layers")) {
-      cursor = load_map_layers(&map.value, data, tokens, cursor + 1);
+      cursor = load_map_layers(result, data, tokens, cursor + 1);
     }
 
     else if (compare_literal(map_key, "properties")) {
@@ -1076,12 +1082,12 @@ OptionalMap load_level(char *path) {
         StringSlice property_type = make_slice(data, tokens[name].start, tokens[name].end);
         if (compare_literal(property_type, "player_count")) {
           StringSlice num = make_slice(data, tokens[value].start, tokens[value].end);
-          OptionalUsize n = convert_slice_usize(num);
-          if (n.has_value == false) {
+          usize value;
+          if (convert_slice_usize(num, &value)) {
             log_slice(LOG_ERROR, "Couldn't parse player count:", num);
             goto fail;
           }
-          map.value.player_count = n.value;
+          result->player_count = value;
         }
 
         else {
@@ -1101,22 +1107,21 @@ OptionalMap load_level(char *path) {
 
   UnloadFileData(data);
   TraceLog(LOG_INFO, "Loading map %s succeeded", path);
-  map_clamp(&map.value);
-  subdivide_map_paths(&map.value);
-  generate_map_mesh(&map.value);
-  if(connect_map(&map.value)) {
+  map_clamp(result);
+  subdivide_map_paths(result);
+  generate_map_mesh(result);
+  if(connect_map(result)) {
     goto fail;
   }
 
   TraceLog(LOG_INFO, "Map loaded successfully");
-  map.has_value = true;
-  return map;
+  return SUCCESS;
 
 fail:
   TraceLog(LOG_ERROR, "Loading map %s failed", path);
   UnloadFileData(data);
-  level_unload(&map.value);
-  return map;
+  level_unload(result);
+  return FAILURE;
 }
 
 void level_unload(Map * map) {
