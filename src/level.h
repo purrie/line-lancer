@@ -17,6 +17,7 @@ void            bevel_lines             (ListLine *lines, usize resolution, floa
 
 /* Path Functions ***********************************************************/
 Vector2           path_start_point (Path *const path, Region *const from);
+Node            * path_start_node  (Path *const path, Region *const from, Movement * out_direction_forward);
 OptionalVector2   path_follow      (Path *const path, Region *const from, float distance);
 Region          * path_end_region  (Path *const path, Region *const from);
 float             path_length      (Path *const path);
@@ -37,7 +38,6 @@ Rectangle   building_bounds          (Building *const building);
 Building  * get_building_by_position (Map * map, Vector2 position);
 
 /* Region Functions ********************************************************/
-Path * region_redirect_path(Region * region, Path * from);
 
 /* Map Functions *********************************************************/
 void     set_cursor_to_camera_scale (Camera2D *const cam);

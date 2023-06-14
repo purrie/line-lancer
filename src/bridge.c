@@ -4,52 +4,193 @@
 #include "constants.h"
 #include "std.h"
 
+Result bridge_points (Vector2 a, Vector2 b, Bridge * result) {
+    float distance = Vector2Distance(a, b);
+    if (distance < ( UNIT_SIZE * 2.0f )) {
+        TraceLog(LOG_ERROR, "Distance between points is too short to create bridge");
+        return FAILURE;
+    }
+    float offset = distance / UNIT_SIZE;
+    usize count  = (usize)(offset + 0.5f) - 1;
 
-Bridge bridge_from_path (Path *const path) {
-    Bridge result = {0};
+    offset = offset - (usize)offset;
+    offset = offset * 0.5f;
+    offset = offset * UNIT_SIZE;
+
+    Node * node = MemAlloc(sizeof(Node));
+    if (node == NULL) {
+        TraceLog(LOG_ERROR, "Failed to allocate starting node for building path");
+        return FAILURE;
+    }
+
+    a = Vector2MoveTowards(a, b, UNIT_SIZE + offset);
+    result->start  = node;
+    node->previous = NULL;
+    node->unit     = NULL;
+    node->position = a;
+
+    while (count --> 1) {
+        Node * next = MemAlloc(sizeof(Node)) ;
+        if (next == NULL) {
+            clean_up_bridge(result);
+            TraceLog(LOG_ERROR, "Failed to allocate next node");
+            return FAILURE;
+        }
+
+        a = Vector2MoveTowards(a, b, UNIT_SIZE);
+        next->previous = node;
+        next->unit     = NULL;
+        next->position = a;
+
+        node->next     = next;
+
+        node = next;
+    }
+
+    node->next = NULL;
+    result->end = node;
+    return SUCCESS;
+}
+
+Result bridge_nodes (Node *const a, Node *const b, Bridge * result) {
+    if (bridge_points(a->position, b->position, result)) {
+        return FAILURE;
+    }
+    result->start->previous = a;
+    result->end->next = b;
+    return SUCCESS;
+}
+
+Result bridge_building_and_path (Path *const path, Building * building) {
+    if (building->spawn_paths.cap == building->spawn_paths.len) {
+        listBridgeAppend(&building->spawn_paths, (Bridge){0});
+    }
+    Bridge  * result      = &building->spawn_paths.items[building->spawn_paths.len];
+    Node    * destination = path_start_node(path, building->region, NULL);
+    Vector2   start_point = building->position;
+
+    clear_memory(result, sizeof(Bridge));
+
+    if (bridge_points(start_point, destination->position, result)) {
+        return FAILURE;
+    }
+
+    result->end->next = destination;
+    building->spawn_paths.len ++;
+
+    return SUCCESS;
+}
+
+Result bridge_castle_and_path (PathEntry * path, Castle *const castle) {
+    Node * start = path_start_node(path->path, castle->region, NULL);
+    if (bridge_nodes(start, &castle->guardian_spot, &path->castle_path)) {
+        return FAILURE;
+    }
+
+    return SUCCESS;
+}
+
+Result bridge_region (Region * region) {
+    for (usize p = 0; p < region->paths.len; p++) {
+        PathEntry * from_entry = &region->paths.items[p];
+        Path * from = from_entry->path;
+
+        // connect path <-> path
+        for (usize o = p + 1; o < region->paths.len; o++) {
+            PathEntry * to_entry = &region->paths.items[o];
+            Path * to = to_entry->path;
+
+            Node * a = path_start_node(from, region, NULL);
+            Node * b = path_start_node(to, region, NULL);
+
+            PathBridge path = { to };
+            path.bridge = MemAlloc(sizeof(Bridge));
+            if(bridge_nodes(a, b, path.bridge)) {
+                MemFree(path.bridge);
+                return FAILURE;
+            }
+
+            listPathBridgeAppend(&from_entry->redirects, path);
+            path.to = from;
+            listPathBridgeAppend(&to_entry->redirects, path);
+        }
+
+        if (bridge_castle_and_path(from_entry, &region->castle)) {
+            return FAILURE;
+        }
+    }
+
+    for (usize b = 0; b < region->buildings.len; b++) {
+        Building * building = &region->buildings.items[b];
+
+        float distance = 9999.9f;
+        for (usize p = 0; p < region->paths.len; p++) {
+            Path * path = region->paths.items[p].path;
+
+            float d = Vector2Distance(building->position, path_start_point(path, building->region));
+            if (d < distance) {
+                distance = d;
+                building->active_spawn = p;
+            }
+
+            if (bridge_building_and_path(path, building)) {
+                return FAILURE;
+            }
+            // TODO might be a good idea to bridge buildings and castle paths so spawned units go to defend the guardian when under attack
+        }
+    }
+
+    return SUCCESS;
+}
+
+Result bridge_over_path (Path * path) {
+    TraceLog(LOG_INFO, "Bridging Path");
     float progress = 0.0f;
     float length = path_length(path);
     float leftover = length / UNIT_SIZE;
     leftover = leftover - (usize)leftover;
-    leftover = UNIT_SIZE * leftover * 0.5f;
+    leftover = leftover * UNIT_SIZE * 0.5f;
 
-    Vector2 point = path_start_point(path, path->region_a);
     OptionalVector2 start = path_follow(path, path->region_a, leftover);
-
     if (start.has_value == false) {
         TraceLog(LOG_ERROR, "Failed to get initial point of a path");
-        return result;
+        return FAILURE;
     }
-    Vector2 calc = Vector2Subtract(point, start.value);
-    point = Vector2Add(point, calc);
-    progress = leftover;
 
     Node * node = MemAlloc(sizeof(Node));
     if (node == NULL) {
         TraceLog(LOG_ERROR, "Failed to allocate memory for starting node");
-        return result;
+        return FAILURE;
     }
-    node->previous = NULL;
-    node->position = point;
-    node->unit     = NULL;
-    result.start = node;
 
-    while (progress < length) {
+    node->previous = NULL;
+    node->unit     = NULL;
+    node->position = start.value;
+    node->bridge   = &path->bridge;
+    path->bridge.start = node;
+
+    progress = leftover + UNIT_SIZE;
+    while (progress + UNIT_SIZE < length) {
+        start = path_follow(path, path->region_a, progress);
+        if (start.has_value == false) {
+            clean_up_bridge(&path->bridge);
+            TraceLog(LOG_ERROR, "Failed to create next point on a path");
+            return FAILURE;
+        }
+
         Node * next = MemAlloc(sizeof(Node));
         if (next == NULL) {
             TraceLog(LOG_ERROR, "Failed to allocate memory for next node");
-            clean_up_bridge(&result);
-            return result;
+            clean_up_bridge(&path->bridge);
+            return FAILURE;
         }
+
         node->next = next;
         next->previous = node;
         next->unit = NULL;
-        start = path_follow(path, path->region_a, progress);
-        if (start.has_value == false) {
-            clean_up_bridge(&result);
-            TraceLog(LOG_ERROR, "Failed to create next point on a path");
-            return result;
-        }
+        next->bridge = &path->bridge;
+
+
         next->position = start.value;
         progress += UNIT_SIZE;
         node = next;
@@ -58,92 +199,47 @@ Bridge bridge_from_path (Path *const path) {
     node->next = MemAlloc(sizeof(Node));
     if (node->next == NULL) {
         TraceLog(LOG_ERROR, "Failed to allocate the last node");
-        clean_up_bridge(&result);
-        return result;
+        clean_up_bridge(&path->bridge);
+        return FAILURE;
     }
 
     start = path_follow(path, path->region_a, length - leftover);
     if (start.has_value == false) {
         TraceLog(LOG_ERROR, "Failed to get the last point of the path");
-        clean_up_bridge(&result);
-        return result;
+        clean_up_bridge(&path->bridge);
+        return FAILURE;
     }
-    point = path_start_point(path, path->region_b);
-    calc = Vector2Subtract(point, start.value);
-    point = Vector2Add(point, calc);
 
     node->next->previous = node;
     node = node->next;
+    node->bridge = &path->bridge;
     node->next = NULL;
     node->unit = NULL;
-    node->position = point;
+    node->position = start.value;
 
-    result.end = node;
+    path->bridge.end = node;
 
-    return result;
-}
-
-Bridge bridge_building_and_path (Path *const path, Building *const building) {
-    Bridge  result      = {0};
-    Vector2 end_point   = path_start_point(path, building->region);
-    Vector2 start_point = building->position;
-    usize   length      = (usize)( Vector2Distance(end_point, start_point) / UNIT_SIZE );
-    Node  * node        = MemAlloc(sizeof(Node));
-
-    if (node == NULL) {
-        TraceLog(LOG_ERROR, "Failed to allocate starting node for building path");
-        return result;
-    }
-
-    result.start = node;
-    node->previous = NULL;
-    node->unit     = NULL;
-    node->position = Vector2MoveTowards(start_point, end_point, UNIT_SIZE);
-    start_point    = node->position;
-
-    while (length --> 1) {
-        Node * next = MemAlloc(sizeof(Node)) ;
-        if (next == NULL) {
-            clean_up_bridge(&result);
-            TraceLog(LOG_ERROR, "Failed to allocate next node");
-            return result;
-        }
-
-        next->previous = node;
-        next->unit     = NULL;
-        next->position = Vector2MoveTowards(start_point, end_point, UNIT_SIZE);
-
-        node->next     = next;
-
-        node = next;
-        start_point = node->position;
-    }
-
-    node->next = NULL;
-    result.end = node;
-
-    return result;
-}
-
-Bridge bridge_castle_and_path (Path *const path, Castle *const castle) {
-    Bridge result = {0};
-    // TODO implement
-    return result;
+    return SUCCESS;
 }
 
 void clean_up_bridge(Bridge * b) {
     Node * n = b->start;
-    while (n) {
-        if (n->next) {
-            n = n->next;
-            n->previous->next = NULL;
-            MemFree(n->previous);
-            n->previous = NULL;
-        } else {
-            MemFree(n);
-            n = NULL;
-        }
+    while (n != b->end) {
+        n = n->next;
+        MemFree(n->previous);
     }
+    MemFree(b->end);
     b->start = NULL;
     b->end = NULL;
+}
+
+void render_bridge(Bridge *const b, Color mid, Color start, Color end) {
+    DrawCircleV(b->start->position, 2.0f, start);
+    DrawCircleV(b->end->position, 2.0f, end);
+    Node * node = b->start;
+    node = node->next;
+    while (node != b->end) {
+        DrawCircleV(node->position, 1.0f, mid);
+        node = node->next;
+    }
 }

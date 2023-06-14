@@ -4,6 +4,8 @@
 #include "math.h"
 #include "assets.h"
 #include "std.h"
+#include "bridge.h"
+#include "constants.h"
 
 #define JSMN_PARENT_LINKS
 #include "../vendor/jsmn.h"
@@ -68,7 +70,7 @@ bool load_paths(
             if (f.has_value == false) {
               log_slice(LOG_ERROR, "Failed to convert path point", num);
               listLineDeinit(&lines);
-              return false;
+              goto fail;
             }
 
             if (c == 'x') {
@@ -97,7 +99,7 @@ bool load_paths(
         if (f.has_value == false) {
           log_slice(LOG_ERROR, "Failed to convert path offset", val);
           listLineDeinit(&lines);
-          return false;
+          goto fail;
         }
 
         if (key.start[0] == 'x') {
@@ -246,6 +248,11 @@ usize load_region_objects(
     else if (compare_literal(region_object_type, "castle")) {
       TraceLog(LOG_INFO, "Saving castle at [%.3f, %.3f]", offset.x, offset.y);
       region->castle.position = offset;
+    }
+
+    else if (compare_literal(region_object_type, "guard")) {
+      TraceLog(LOG_INFO, "Saving guardian at [%.3f, %.3f]", offset.x, offset.y);
+      region->castle.guardian_spot.position = offset;
     }
 
     else if (compare_literal(region_object_type, "node")) {
@@ -846,30 +853,41 @@ Model generate_area_mesh(const Area *const area, const float layer) {
   return LoadModelFromMesh(mesh);
 }
 
-#define LAYER_MAP -0.3f
-#define LAYER_PATH -0.2f
-#define LAYER_BUILDING -0.1f
-
-void connect_map(Map * map) {
+Result connect_map(Map * map) {
+  TraceLog(LOG_INFO, "Connecting map");
   // connect path <-> region
   for (usize i = 0; i < map->paths.len; i++) {
     Path * path = &map->paths.items[i];
+
     for (usize r = 0; r < map->regions.len; r++) {
+      Region * region = &map->regions.items[r];
+
       Vector2 a = path->lines.items[0].a;
       Vector2 b = path->lines.items[path->lines.len - 1].b;
-      if (area_contains_point(&map->regions.items[r].area, a)) {
-        path->region_a = &map->regions.items[r];
-      }
 
-      if (area_contains_point(&map->regions.items[r].area, b)) {
-        path->region_b = &map->regions.items[r];
+      if (area_contains_point(&region->area, a)) {
+        path->region_a = region;
+        TraceLog(LOG_INFO, "Connecting region %d to start of path %d", r, i);
+      }
+      if (area_contains_point(&region->area, b)) {
+        path->region_b = region;
+        TraceLog(LOG_INFO, "Connecting region %d to end of path %d", r, i);
       }
 
       if (path->region_a && path->region_b) {
-        PathEntry a = { .path = path };
-        PathEntry b = { .path = path };
+        if (path->region_a == path->region_b) {
+          return FAILURE;
+        }
+
+        if (bridge_over_path(path)) {
+          return FAILURE;
+        }
+
+        PathEntry a = { .path = path, .redirects = listPathBridgeInit(6, &MemAlloc, &MemFree) };
+        PathEntry b = { .path = path, .redirects = listPathBridgeInit(6, &MemAlloc, &MemFree) };
         listPathEntryAppend(&path->region_a->paths, a);
         listPathEntryAppend(&path->region_b->paths, b);
+        TraceLog(LOG_INFO, "Path connected");
         break;
       }
     }
@@ -878,28 +896,19 @@ void connect_map(Map * map) {
   for (usize i = 0; i < map->regions.len; i++) {
     Region * region = &map->regions.items[i];
 
-    // connect path -> building
     for (usize b = 0; b < region->buildings.len; b++) {
-      Building * building = &region->buildings.items[b];
-      building->region = region;
-
-      float distance = 99999.9f;
-      for (usize p = 0; p < region->paths.len; p++) {
-        Path * path = region->paths.items[p].path;
-        Vector2 start = path_start_point(path, region);
-        float d = Vector2DistanceSqr(building->position, start);
-        if (d < distance) {
-          distance = d;
-          building->spawn_target = path;
-        }
-      }
+      region->buildings.items[b].region = region;
+      region->buildings.items[b].spawn_paths = listBridgeInit(region->paths.len, &MemAlloc, &MemFree);
     }
 
-    // connect region path in -> out
-    for (usize p = 0; p < region->paths.len; p++) {
-      region->paths.items[p].redirect = region->paths.items[(p + 1) % region->paths.len].path;
+    region->castle.region = region;
+
+    if (bridge_region(region)) {
+      return FAILURE;
     }
   }
+
+  return SUCCESS;
 }
 
 void generate_map_mesh(Map * map) {
@@ -927,6 +936,7 @@ void generate_map_mesh(Map * map) {
 }
 
 void subdivide_map_paths(Map * map) {
+  TraceLog(LOG_INFO, "Smoothing map meshes");
   for(usize i = 0; i < map->paths.len; i++) {
     Vector2 a = map->paths.items[i].lines.items[0].a;
     Vector2 b = map->paths.items[i].lines.items[0].b;
@@ -1091,11 +1101,15 @@ OptionalMap load_level(char *path) {
 
   UnloadFileData(data);
   TraceLog(LOG_INFO, "Loading map %s succeeded", path);
-  map.has_value = true;
   map_clamp(&map.value);
   subdivide_map_paths(&map.value);
   generate_map_mesh(&map.value);
-  connect_map(&map.value);
+  if(connect_map(&map.value)) {
+    goto fail;
+  }
+
+  TraceLog(LOG_INFO, "Map loaded successfully");
+  map.has_value = true;
   return map;
 
 fail:
@@ -1107,20 +1121,37 @@ fail:
 
 void level_unload(Map * map) {
     for (usize i = 0; i < map->regions.len; i++) {
-        for (usize b = 0; b < map->regions.items[i].buildings.len; ++b) {
-            UnloadModel(map->regions.items[i].buildings.items[b].model);
+        Region * region = &map->regions.items[i];
+
+        for (usize e = 0; e < region->paths.len; e++) {
+            for (usize d = e; d < region->paths.items[e].redirects.len; d++) {
+                clean_up_bridge(&region->paths.items[e].castle_path);
+                clean_up_bridge(region->paths.items[e].redirects.items[d].bridge);
+                MemFree(region->paths.items[e].redirects.items[d].bridge);
+            }
         }
-        listBuildingDeinit(&map->regions.items[i].buildings);
 
-        UnloadModel(map->regions.items[i].castle.model);
+        for (usize b = 0; b < region->buildings.len; ++b) {
+            Building * building = &map->regions.items[i].buildings.items[b];
+            for (usize s = 0; s < building->spawn_paths.len; s++) {
+                clean_up_bridge(&building->spawn_paths.items[s]);
+            }
+            listBridgeDeinit(&building->spawn_paths);
+            UnloadModel(building->model);
+        }
 
-        UnloadModel(map->regions.items[i].area.model);
-        listLineDeinit(&map->regions.items[i].area.lines);
+        listBuildingDeinit(&region->buildings);
+        listLineDeinit(&region->area.lines);
+
+        UnloadModel(region->castle.model);
+        UnloadModel(region->area.model);
     }
 
     for (usize i = 0; i < map->paths.len; i++) {
-        UnloadModel(map->paths.items[i].model);
-        listLineDeinit(&map->paths.items[i].lines);
+        Path * path = &map->paths.items[i];
+        clean_up_bridge(&path->bridge);
+        UnloadModel(path->model);
+        listLineDeinit(&path->lines);
     }
 
     listPathDeinit(&map->paths);

@@ -1,4 +1,5 @@
 #include "std.h"
+#include "bridge.h"
 #include "level.h"
 #include "math.h"
 #include <raymath.h>
@@ -241,15 +242,42 @@ Vector2 path_start_point(Path *const path, Region *const from) {
     if (path->region_a == from) {
         return path->lines.items[0].a;
     }
-    else {
-        return path->lines.items[path->lines.len - 1].b;
+    else if (path->region_b == from) {
+        usize last = path->lines.len - 1;
+        return path->lines.items[last].b;
     }
+    else {
+        TraceLog(LOG_ERROR, "Tried to get point start for region that isn't connected to path");
+        return Vector2Zero();
+    }
+}
+
+Node * path_start_node (Path *const path, Region *const from, Movement * direction_forward) {
+    if (path->region_a == from) {
+        if (direction_forward) {
+            *direction_forward = MOVEMENT_DIR_FORWARD;
+        }
+        return path->bridge.start;
+    }
+    else if (path->region_b == from) {
+        if (direction_forward) {
+            *direction_forward = MOVEMENT_DIR_BACKWARD;
+        }
+        return path->bridge.end;
+    }
+    else
+        return NULL;
 }
 
 OptionalVector2 path_follow(Path *const path, Region *const from, float distance) {
     OptionalVector2 result = {0};
+    if (path->region_a == NULL || path->region_b == NULL || path->region_a == path->region_b) {
+        TraceLog(LOG_ERROR, "Path is not correctly initialized");
+        return result;
+    }
+
     float progress = 0.0f;
-    bool reverse = path->region_b == from;
+    bool reverse = from == path->region_b;
     for (usize i = 0; i < path->lines.len; i++) {
         usize index = reverse ? path->lines.len - i - 1 : i;
 
@@ -260,6 +288,7 @@ OptionalVector2 path_follow(Path *const path, Region *const from, float distance
         if (progress + length > distance) {
             float t = ((progress + length) - distance) / length;
             if (reverse) {
+                // TODO this seems wrong
                 result.value = Vector2Lerp(a, b, t);
             }
             else {
@@ -289,15 +318,6 @@ float path_length(Path *const path) {
 }
 
 /* Region Functions **********************************************************/
-Path * region_redirect_path(Region * region, Path * from) {
-    for (usize i = 0; i < region->paths.len; i++) {
-        if (region->paths.items[i].path == from) {
-            return region->paths.items[i].redirect;
-        }
-    }
-    TraceLog(LOG_ERROR, "Tried to redirect path that isn't connected to region");
-    return NULL;
-}
 
 /* Map Functions ***********************************************************/
 void map_clamp(Map * map) {
@@ -337,38 +357,52 @@ void render_map(Map * map) {
 }
 
 void render_map_mesh(Map * map) {
+    Color colors[4] = {PURPLE, VIOLET, DARKPURPLE, DARKBROWN};
     for (usize i = 0; i < map->regions.len; i++) {
-        DrawModel(map->regions.items[i].area.model, Vector3Zero(), 1.0f, PURPLE);
+        Region * region = &map->regions.items[i];
+        DrawModel(region->area.model, Vector3Zero(), 1.0f, colors[i]);
 
-        ListBuilding * buildings = &map->regions.items[i].buildings;
+        ListBuilding * buildings = &region->buildings;
         for (usize b = 0; b < buildings->len; b++) {
-            switch (buildings->items[b].type) {
+            Building * building = &buildings->items[b];
+            /* render_bridge(&building->spawn_paths.items[building->active_spawn], BLACK, RED, BLUE); */
+            switch (building->type) {
                 case BUILDING_EMPTY: {
-                    DrawModel(buildings->items[b].model, Vector3Zero(), 1.0f, BLUE);
+                    DrawModel(building->model, Vector3Zero(), 1.0f, BLUE);
                 } break;
                 case BUILDING_FIGHTER: {
-                    DrawModel(buildings->items[b].model, Vector3Zero(), 1.0f, DARKBLUE);
+                    DrawModel(building->model, Vector3Zero(), 1.0f, DARKBLUE);
                 } break;
                 case BUILDING_ARCHER: {
-                    DrawModel(buildings->items[b].model, Vector3Zero(), 1.0f, BROWN);
+                    DrawModel(building->model, Vector3Zero(), 1.0f, BROWN);
                 } break;
                 case BUILDING_SUPPORT: {
-                    DrawModel(buildings->items[b].model, Vector3Zero(), 1.0f, DARKGREEN);
+                    DrawModel(building->model, Vector3Zero(), 1.0f, DARKGREEN);
                 } break;
                 case BUILDING_SPECIAL: {
-                    DrawModel(buildings->items[b].model, Vector3Zero(), 1.0f, DARKPURPLE);
+                    DrawModel(building->model, Vector3Zero(), 1.0f, DARKPURPLE);
                 } break;
                 case BUILDING_RESOURCE: {
-                    DrawModel(buildings->items[b].model, Vector3Zero(), 1.0f, YELLOW);
+                    DrawModel(building->model, Vector3Zero(), 1.0f, YELLOW);
                 } break;
             }
         }
 
-        DrawModel(map->regions.items[i].castle.model, Vector3Zero(), 1.0f, RED);
+        DrawModel(region->castle.model, Vector3Zero(), 1.0f, RED);
     }
 
     for (usize i = 0; i < map->paths.len; i++) {
-        DrawModel(map->paths.items[i].model, Vector3Zero(), 1.0f, ORANGE);
+        Path * path = &map->paths.items[i];
+        usize start_region_index = 0;
+        for (; start_region_index < map->regions.len; start_region_index++) {
+            if (path->region_a == &map->regions.items[start_region_index])
+                break;
+        }
+        DrawModel(path->model, Vector3Zero(), 1.0f, colors[start_region_index]);
+        DrawCircleV(path->lines.items[0].a, 5.0f, RED);
+        DrawCircleV(path->lines.items[path->lines.len - 1].b, 5.0f, BLUE);
+
+        render_bridge(&path->bridge, BLACK, RED, BLUE);
     }
 }
 

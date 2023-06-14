@@ -5,6 +5,9 @@
 #include "optional.h"
 #include "array.h"
 
+#define STRINGIFY(x) #x
+#define STRINGIFY_VALUE(x) STRINGIFY(x)
+
 typedef struct Node Node;
 typedef struct Bridge Bridge;
 typedef struct PathBridge PathBridge;
@@ -19,10 +22,12 @@ typedef struct Area Area;
 typedef struct GameState GameState;
 typedef struct Unit Unit;
 
+typedef enum Movement Movement;
 typedef enum BuildingType BuildingType;
 typedef enum PlayerState PlayerState;
 typedef enum UnitType UnitType;
 typedef enum UnitState UnitState;
+typedef enum Result Result;
 
 typedef unsigned char uchar;
 typedef unsigned int uint;
@@ -39,6 +44,11 @@ defOptional(Usize);
 defOptional(Vector2);
 defOptional(Ushort);
 defOptional(Map);
+
+enum Result {
+    SUCCESS = 0,
+    FAILURE,
+};
 
 #ifndef NULL
 #define NULL ((void *)0)
@@ -72,11 +82,13 @@ makeList(Building, Building);
 makeList(Region, Region);
 makeList(PathBridge, PathBridge);
 makeList(Unit*, Unit);
+makeList(Bridge, Bridge);
 
 struct Node {
     Node    * previous;
     Node    * next;
     Unit    * unit;
+    Bridge  * bridge;
     Vector2   position;
 };
 
@@ -88,14 +100,6 @@ struct Bridge {
 struct Line {
     Vector2 a;
     Vector2 b;
-};
-
-struct Path {
-    ListLine lines;
-    Model model;
-    Bridge bridge;
-    Region * region_a;
-    Region * region_b;
 };
 
 enum BuildingType {
@@ -114,19 +118,41 @@ struct Building {
     Model          model;
     ushort         upgrades;
     float          spawn_timer;
-    Path         * spawn_target;
+    ListBridge     spawn_paths;
+    usize          active_spawn;
     Region       * region;
 };
 
 struct Castle {
     Vector2  position;
     Model    model;
+    Node     guardian_spot;
     Region * region;
 };
 
 struct Area {
     ListLine lines;
     Model    model;
+};
+
+struct Path {
+    ListLine lines;
+    Model    model;
+    Bridge   bridge;
+    Region * region_a;
+    Region * region_b;
+};
+
+struct PathBridge {
+    Path   * to;
+    Bridge * bridge;
+};
+
+struct PathEntry {
+    Path           * path;
+    ListPathBridge   redirects;
+    usize            active_redirect;
+    Bridge           castle_path;
 };
 
 struct Region {
@@ -155,12 +181,14 @@ enum UnitType {
 };
 
 enum UnitState {
-    UNIT_STATE_APPROACHING_ROAD = 0,
-    UNIT_STATE_FOLLOWING_ROAD,
-    UNIT_STATE_ATTACKING,
-    UNIT_STATE_HURT,
-    UNIT_STATE_DEFENDING_REGION,
-    UNIT_STATE_ATTACKING_REGION,
+    UNIT_STATE_MOVING = 0,
+    UNIT_STATE_FIGHTING,
+    UNIT_STATE_GUARDING,
+};
+
+enum Movement {
+    MOVEMENT_DIR_FORWARD = 0,
+    MOVEMENT_DIR_BACKWARD,
 };
 
 struct Unit {
@@ -169,24 +197,9 @@ struct Unit {
     UnitType    type;
     ushort      upgrade;
     UnitState   state;
-    float       progress;
-    Path      * path;
-    Region    * region;
-    Unit      * target;
+    Node      * location;
+    Movement    move_direction;
     usize       player_owned;
-};
-
-struct PathBridge {
-    Path * from;
-    Path * to;
-    Bridge bridge;
-};
-
-struct PathEntry {
-    Path           * path;
-    ListPathBridge   redirects;
-    usize            active_redirect;
-    Bridge           castle_path;
 };
 
 enum PlayerState {

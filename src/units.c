@@ -2,6 +2,79 @@
 #include "std.h"
 #include "game.h"
 
+Result move_node (Node ** from, Movement * direction) {
+    Node * orig = *from;
+    Node * next = NULL;
+    switch (*direction) {
+        case MOVEMENT_DIR_FORWARD: {
+            next = orig->next;
+        } break;
+        case MOVEMENT_DIR_BACKWARD: {
+            next = orig->previous;
+        } break;
+    }
+    if (next == NULL) {
+        TraceLog(LOG_ERROR, "Failed to get next node");
+        return FAILURE;
+    }
+
+    if (next->bridge != orig->bridge) {
+        if (next == next->bridge->start) {
+            *direction = MOVEMENT_DIR_FORWARD;
+        }
+        else {
+            *direction = MOVEMENT_DIR_BACKWARD;
+        }
+    }
+    *from = next;
+
+    return SUCCESS;
+}
+
+Node * next_node (Node *const from, Movement direction) {
+    switch (direction) {
+        case MOVEMENT_DIR_FORWARD:
+            return from->next;
+        case MOVEMENT_DIR_BACKWARD:
+            return from->previous;
+    }
+    TraceLog(LOG_ERROR, "Failed to get next node");
+    return NULL;
+}
+
+Node * get_next_node (Unit *const unit) {
+    return next_node(unit->location, unit->move_direction);
+}
+
+usize get_unit_range (Unit *const unit) {
+    switch(unit->type) {
+        case UNIT_FIGHTER:
+            return 1;
+        case UNIT_ARCHER:
+            return 3 + unit->upgrade;
+        case UNIT_SUPPORT:
+            return 1 + unit->upgrade;
+        case UNIT_SPECIAL:
+            return 2 + unit->upgrade;
+    }
+}
+
+Unit * get_enemy_in_range (Unit *const unit) {
+    usize range = get_unit_range(unit);
+    Node * node = get_next_node(unit);
+    Movement direction = unit->move_direction;
+    for (usize i = 0; i < range; i++) {
+        if (node->unit && node->unit->player_owned != unit->player_owned) {
+            return node->unit;
+        }
+        if (move_node(&node, &direction)) {
+            TraceLog(LOG_ERROR, "Failed to move node to get enemy in range");
+            return NULL;
+        }
+    }
+    return NULL;
+}
+
 void clear_unit_list(ListUnit * list) {
     for(usize i = 0; i < list->len; i++) {
         MemFree(list->items[i]);
@@ -9,14 +82,16 @@ void clear_unit_list(ListUnit * list) {
     list->len = 0;
 }
 
-void delete_unit(ListUnit * list, Unit * unit) {
+usize destroy_unit(ListUnit * list, Unit * unit) {
     for (usize i = 0; i < list->len; i++) {
         if (list->items[i] == unit) {
+            unit->location->unit = NULL;
             MemFree(unit);
             listUnitRemove(list, i);
-            return;
+            return i;
         }
     }
+    return list->cap;
 }
 
 float get_unit_attack(Unit * unit) {
@@ -44,13 +119,16 @@ float get_unit_attack(Unit * unit) {
 }
 
 Unit * unit_from_building(Building *const building) {
+    Node * spawn = building->spawn_paths.items[building->active_spawn].start;
+    if (spawn->unit) {
+        return NULL;
+    }
     Unit * result = MemAlloc(sizeof(Unit));
     clear_memory(result, sizeof(Unit));
     result->position     = building->position;
     result->upgrade      = building->upgrades;
-    result->path         = building->spawn_target;
-    result->region       = building->region;
     result->player_owned = building->region->player_owned.value;
+    result->location     = spawn;
 
     switch (building->type) {
         case BUILDING_FIGHTER: {
@@ -70,11 +148,13 @@ Unit * unit_from_building(Building *const building) {
             result->health = 120.0f;
         } break;
         default: {
+            TraceLog(LOG_ERROR, "Tried to spawn unit from a building that doesn't spawn units: %s", STRINGIFY_VALUE(building->type));
             MemFree(result);
             return NULL;
         } break;
     }
 
+    spawn->unit = result;
     result->health *= result->upgrade + 1;
     return result;
 }
