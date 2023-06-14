@@ -52,28 +52,11 @@ void update_unit_state(GameState * state) {
             case UNIT_STATE_MOVING: {
                 float distance = Vector2Distance(unit->position, unit->location->position);
                 if (distance < 0.1f) {
-                    // check if there is enemy in range
                     if (get_enemy_in_range(unit)) {
                         unit->state = UNIT_STATE_FIGHTING;
                     }
                     else {
-                        // otherwise check if we changed paths and update movement direction accordingly
-                        Node * next = get_next_node(unit);
-                        if (next->unit) {
-                            // TODO make units traversing in opposite direction pass each other
-                            continue;
-                        }
-                        if (unit->location->bridge != next->bridge) {
-                            if (next->bridge->end == next) {
-                                unit->move_direction = MOVEMENT_DIR_BACKWARD;
-                            }
-                            else {
-                                unit->move_direction = MOVEMENT_DIR_FORWARD;
-                            }
-                        }
-                        unit->location->unit = NULL;
-                        unit->location = next;
-                        unit->location->unit = unit;
+                        move_unit_forward(unit);
                     }
                 }
             } break;

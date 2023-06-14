@@ -12,9 +12,13 @@ Result move_node (Node ** from, Movement * direction) {
         case MOVEMENT_DIR_BACKWARD: {
             next = orig->previous;
         } break;
+        default: {
+            TraceLog(LOG_ERROR, "Node movement has unexpected value");
+            return FAILURE;
+        }
     }
     if (next == NULL) {
-        TraceLog(LOG_ERROR, "Failed to get next node");
+        TraceLog(LOG_ERROR, "Failed to move node");
         return FAILURE;
     }
 
@@ -42,10 +46,6 @@ Node * next_node (Node *const from, Movement direction) {
     return NULL;
 }
 
-Node * get_next_node (Unit *const unit) {
-    return next_node(unit->location, unit->move_direction);
-}
-
 usize get_unit_range (Unit *const unit) {
     switch(unit->type) {
         case UNIT_FIGHTER:
@@ -61,18 +61,36 @@ usize get_unit_range (Unit *const unit) {
 
 Unit * get_enemy_in_range (Unit *const unit) {
     usize range = get_unit_range(unit);
-    Node * node = get_next_node(unit);
+    Node * node = unit->location;
     Movement direction = unit->move_direction;
-    for (usize i = 0; i < range; i++) {
+    while (range --> 0) {
+        if (move_node(&node, &direction)) {
+            TraceLog(LOG_ERROR, "Failed to move node to get enemy in range [%d]", range);
+            return NULL;
+        }
         if (node->unit && node->unit->player_owned != unit->player_owned) {
             return node->unit;
         }
-        if (move_node(&node, &direction)) {
-            TraceLog(LOG_ERROR, "Failed to move node to get enemy in range");
-            return NULL;
-        }
     }
     return NULL;
+}
+
+Result move_unit_forward ( Unit * unit ) {
+    Node * next = unit->location;
+    Movement dir = unit->move_direction;
+    if (move_node(&next, &dir)) {
+        TraceLog(LOG_ERROR, "Failed to get next node for unit movement");
+        return FAILURE;
+    }
+    if (next->unit) {
+        // TODO make units traversing in opposite direction pass each other
+        return FAILURE;
+    }
+    unit->location->unit = NULL;
+    unit->location = next;
+    unit->location->unit = unit;
+    unit->move_direction = dir;
+    return SUCCESS;
 }
 
 void clear_unit_list(ListUnit * list) {
@@ -166,7 +184,7 @@ void render_units(ListUnit *const units) {
             DrawCircleV(unit->position, 5.0f, BLACK);
         }
         else {
-            DrawCircleV(unit->position, 5.0f, VIOLET);
+            DrawCircleV(unit->position, 5.0f, ORANGE);
         }
     }
 }
