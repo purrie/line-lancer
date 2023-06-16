@@ -80,9 +80,17 @@ Result move_unit_forward (Unit * unit) {
     }
     if (next->unit) {
         // TODO make units traversing in opposite direction pass each other
+        if (next->unit->player_owned == unit->player_owned) {
+            if (next->unit->move_direction != unit->move_direction) {
+                unit->location->unit = next->unit;
+                next->unit->location = unit->location;
+                goto move;
+            }
+        }
         return FAILURE;
     }
     unit->location->unit = NULL;
+    move:
     unit->location = next;
     unit->location->unit = unit;
     unit->move_direction = dir;
