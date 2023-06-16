@@ -112,6 +112,7 @@ Result bridge_region (Region * region) {
             path.bridge = MemAlloc(sizeof(Bridge));
             if(bridge_nodes(a, b, path.bridge)) {
                 MemFree(path.bridge);
+                TraceLog(LOG_ERROR, "Failed to bridge internal paths of a region");
                 return FAILURE;
             }
 
@@ -121,6 +122,7 @@ Result bridge_region (Region * region) {
         }
 
         if (bridge_castle_and_path(from_entry, &region->castle)) {
+            TraceLog(LOG_ERROR, "Failed to bridge path and castle of a region");
             return FAILURE;
         }
     }
