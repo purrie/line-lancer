@@ -317,20 +317,35 @@ float path_length(Path *const path) {
 /* Region Functions **********************************************************/
 void region_update_paths (Region * region) {
     for (usize e = 0; e < region->paths.len; e++) {
-      PathEntry * entry = &region->paths.items[e];
-      Movement dir;
-      Node * start = path_start_node(entry->path, region, &dir);
-      Node * connect;
+        PathEntry * entry = &region->paths.items[e];
+        Movement dir;
+        Node * start = path_start_node(entry->path, region, &dir);
+        Node * connect;
+        bool is_owner_same = entry->path->region_a->player_id == entry->path->region_b->player_id;
 
-      if (entry->path->region_a->player_id == entry->path->region_b->player_id)
-        connect = entry->redirects.items[entry->active_redirect].bridge->start;
-      else
-        connect = entry->castle_path.start;
+        if (is_owner_same) {
+            Node * s = entry->redirects.items[entry->active_redirect].bridge->start;
+            Node * e = entry->redirects.items[entry->active_redirect].bridge->end;
 
-      if (dir == MOVEMENT_DIR_FORWARD)
-        start->previous = connect;
-      else
-        start->next = connect;
+            connect = Vector2DistanceSqr(start->position, s->position) >
+                      Vector2DistanceSqr(start->position, e->position) ?
+                      e : s;
+        }
+        else
+            connect = entry->castle_path.start;
+
+        if (dir == MOVEMENT_DIR_FORWARD)
+            start->previous = connect;
+        else
+            start->next = connect;
+
+        if (is_owner_same) {
+            usize next = (e + 1) % region->paths.len;
+            entry->castle_path.end->next = region->paths.items[next].castle_path.end;
+        }
+        else {
+            entry->castle_path.end->next = &region->castle.guardian_spot;
+        }
     }
 }
 
