@@ -4,6 +4,7 @@
 #include <raylib.h>
 #include "level.h"
 
+Test   can_unit_progress  (Unit *const unit);
 Unit * unit_from_building (Building *const building);
 void   unit_guardian      (Region * region);
 void   clear_unit_list    (ListUnit * list);

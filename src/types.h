@@ -27,6 +27,7 @@ typedef enum PlayerState PlayerState;
 typedef enum UnitType UnitType;
 typedef enum UnitState UnitState;
 typedef enum Result Result;
+typedef enum Test Test;
 
 typedef unsigned char uchar;
 typedef unsigned int uint;
@@ -40,6 +41,11 @@ typedef void ( * Deallocator )(void * ptr);
 enum Result {
     SUCCESS = 0,
     FAILURE,
+};
+
+enum Test {
+    NO = 0,
+    YES,
 };
 
 #ifndef NULL
@@ -188,6 +194,7 @@ struct Map {
     ListRegion regions;
     ListPath   paths;
 };
+
 enum PlayerState {
     INPUT_NONE = 0,
     INPUT_OPEN_BUILDING,

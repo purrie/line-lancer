@@ -25,7 +25,7 @@ void spawn_units(GameState * state, float delta_time) {
 
             building->spawn_timer += delta_time;
 
-            if (building->spawn_timer >= 6.0f) {
+            if (building->spawn_timer >= BUILDING_SPAWN_INTERVAL) {
                 building->spawn_timer = 0.0f;
                 spawn_unit(state, building);
             }
@@ -48,8 +48,7 @@ void update_unit_state(GameState * state) {
 
         switch (unit->state) {
             case UNIT_STATE_MOVING: {
-                float distance = Vector2Distance(unit->position, unit->location->position);
-                if (distance < 0.1f) {
+                if (can_unit_progress(unit)) {
                     if (get_enemy_in_range(unit)) {
                         unit->state = UNIT_STATE_FIGHTING;
                     }

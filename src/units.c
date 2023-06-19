@@ -1,6 +1,7 @@
 #include "units.h"
 #include "std.h"
 #include "game.h"
+#include <raymath.h>
 
 Result move_node (Node ** from, Movement * direction) {
     Node * orig = *from;
@@ -71,6 +72,60 @@ Unit * get_enemy_in_range (Unit *const unit) {
     return NULL;
 }
 
+Test is_unit_on_building_path (Unit *const unit) {
+    if (unit->location->bridge->start->previous == NULL)
+        return YES;
+    return NO;
+}
+
+Test can_unit_progress (Unit *const unit) {
+    const float min = 0.1f * 0.1f;
+    if (Vector2DistanceSqr(unit->position, unit->location->position) < min) {
+        return YES;
+    }
+    return NO;
+}
+
+Result pass_units(Unit * a, Node * anext, Movement adir, Unit * b) {
+    if (is_unit_on_building_path(a)) {
+        // bugfix: this prevents units leaving building path from pushing oncoming other units to walk back towards the building
+        return FAILURE;
+    }
+    if (can_unit_progress(b) == NO) {
+        // if you want to see something funny, disable this check and give units high movement speed :3c
+        return FAILURE;
+    }
+
+    if (a->location->bridge == b->location->bridge) {
+        if (a->move_direction == b->move_direction) {
+            return FAILURE;
+        }
+        b->location = a->location;
+        a->location = anext;
+        b->location->unit = b;
+        a->location->unit = a;
+        return SUCCESS;
+    }
+    else {
+        bool direction_aligned = (a->location->bridge->start == a->location) == (b->location->bridge->end == b->location);
+        bool crossing = adir != b->move_direction;
+
+        if (crossing) {
+            b->location = a->location;
+            a->location = anext;
+            b->location->unit = b;
+            a->location->unit = a;
+            a->move_direction = adir;
+            if (! direction_aligned)
+                b->move_direction = b->move_direction == MOVEMENT_DIR_FORWARD ? MOVEMENT_DIR_BACKWARD : MOVEMENT_DIR_FORWARD;
+            return SUCCESS;
+        }
+        else {
+            return FAILURE;
+        }
+    }
+}
+
 Result move_unit_forward (Unit * unit) {
     Node * next = unit->location;
     Movement dir = unit->move_direction;
@@ -78,19 +133,12 @@ Result move_unit_forward (Unit * unit) {
         TraceLog(LOG_ERROR, "Failed to get next node for unit movement");
         return FAILURE;
     }
+
     if (next->unit) {
-        // TODO make units traversing in opposite direction pass each other
-        if (next->unit->player_owned == unit->player_owned) {
-            if (next->unit->move_direction != unit->move_direction) {
-                unit->location->unit = next->unit;
-                next->unit->location = unit->location;
-                goto move;
-            }
-        }
-        return FAILURE;
+        return pass_units(unit, next, dir, next->unit);
     }
+
     unit->location->unit = NULL;
-    move:
     unit->location = next;
     unit->location->unit = unit;
     unit->move_direction = dir;
@@ -148,10 +196,6 @@ Unit * unit_from_building(Building *const building) {
     }
     Unit * result = MemAlloc(sizeof(Unit));
     clear_memory(result, sizeof(Unit));
-    result->position     = building->position;
-    result->upgrade      = building->upgrades;
-    result->player_owned = building->region->player_id;
-    result->location     = spawn;
 
     switch (building->type) {
         case BUILDING_FIGHTER: {
@@ -177,8 +221,14 @@ Unit * unit_from_building(Building *const building) {
         } break;
     }
 
+    result->position        = building->position;
+    result->upgrade         = building->upgrades;
+    result->player_owned    = building->region->player_id;
+    result->location        = spawn;
+    result->move_direction  = MOVEMENT_DIR_FORWARD;
+    result->health         *= result->upgrade + 1;
+
     spawn->unit = result;
-    result->health *= result->upgrade + 1;
     return result;
 }
 
