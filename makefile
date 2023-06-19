@@ -24,6 +24,8 @@ build-debug:
 	make clean
 	FLAGS="$(FLAGS) $(DEBUG_FLAGS)" make build -e
 
+rerun: clean run
+
 run: build
 	$(BIN_FOLDER)/$(BIN)
 
