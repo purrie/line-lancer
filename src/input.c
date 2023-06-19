@@ -15,6 +15,11 @@ void upgrade_building(Building * building) {
     // TODO make proper building modification
 }
 
+void demolish_building (Building * building) {
+    building->type = BUILDING_EMPTY;
+    building->upgrades = 0;
+}
+
 void state_none(Map *const map, GameState * state) {
     if(IsMouseButtonPressed(MOUSE_BUTTON_LEFT) == false) {
         return;
@@ -33,24 +38,45 @@ void state_building(Map *const map, GameState * state) {
         return;
     }
 
-    Rectangle dialog = ui_empty_building_dialog_rect(state->selected_building->position);
     Vector2 cursor = GetMousePosition();
-    if (CheckCollisionPointRec(cursor, dialog)) {
-        BuildingType build = ui_get_empty_building_dialog_click(state->selected_building->position);
-
-        if (build != BUILDING_EMPTY) {
-            place_building(state->selected_building, build);
+    if (state->selected_building->type == BUILDING_EMPTY) {
+        BuildingType type;
+        if (ui_building_buy_click(state, cursor, &type)) {
             state->current_input = INPUT_NONE;
             state->selected_building = NULL;
+            return;
         }
+        place_building(state->selected_building, type);
+        state->current_input = INPUT_NONE;
+        state->selected_building = NULL;
     }
     else {
-        Building * b = get_building_by_position(map, cursor);
-        if (b) {
-            state->selected_building = b;
-        } else {
-            state->current_input = INPUT_NONE;
-            state->selected_building = NULL;
+        BuildingAction action;
+        if (ui_building_action_click(state, cursor, &action)) {
+            Building * b = get_building_by_position(map, cursor);
+            if (b) {
+                state->selected_building = b;
+            }
+            else {
+                state->current_input = INPUT_NONE;
+                state->selected_building = NULL;
+            }
+            return;
+        }
+
+        switch (action) {
+            case BUILDING_ACTION_NONE: {
+            } break;
+            case BUILDING_ACTION_UPGRADE: {
+                upgrade_building(state->selected_building);
+                state->current_input = INPUT_NONE;
+                state->selected_building = NULL;
+            } break;
+            case BUILDING_ACTION_DEMOLISH: {
+                demolish_building(state->selected_building);
+                state->current_input = INPUT_NONE;
+                state->selected_building = NULL;
+            } break;
         }
     }
 }
