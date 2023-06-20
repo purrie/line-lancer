@@ -235,16 +235,15 @@ bool area_contains_point(const Area *const area, const Vector2 point) {
 
     Vector2 a = { aabb.x - aabb.width, aabb.y - aabb.height };
     Line line = { a, point };
+    bool contains = false;
 
     if (lines_intersections(area->lines, line, &intersections)) {
-        if ((intersections.len % 2) == 0) {
-            return false;
-        } else {
-            return true;
+        if ((intersections.len % 2) != 0) {
+            contains = true;
         }
     }
 
-    return false;
+    return contains;
 }
 
 Test area_line_intersects (Area *const area, Line line) {
