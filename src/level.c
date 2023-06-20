@@ -73,7 +73,9 @@ usize lines_intersections (const ListLine lines, const Line line, ListVector2 * 
             }
 
             if (contains == false) {
-                listVector2Append(result, value);
+                if (listVector2Append(result, value)) {
+                    TraceLog(LOG_ERROR, "Failed to append to line intersections result list");
+                }
                 added++;
             }
         }
