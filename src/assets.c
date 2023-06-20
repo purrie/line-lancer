@@ -6,6 +6,7 @@
 #include "std.h"
 #include "bridge.h"
 #include "constants.h"
+#include "alloc.h"
 
 #define JSMN_PARENT_LINKS
 #include "../vendor/jsmn.h"
@@ -811,6 +812,7 @@ Test is_area_clockwise(Area *const area) {
 
 
 Model generate_area_mesh(Area *const area, const float layer) {
+  temp_free();
   Mesh mesh = {0};
   const ListLine lines = area->lines;
   const Test clockwise = is_area_clockwise(area);
