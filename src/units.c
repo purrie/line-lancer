@@ -133,6 +133,10 @@ Result move_unit_forward (Unit * unit) {
         TraceLog(LOG_ERROR, "Failed to get next node for unit movement");
         return FAILURE;
     }
+    if (dir == MOVEMENT_INVALID) {
+        TraceLog(LOG_WARNING, "Next node has invalid movement, it's not connected to a bridge");
+        return FAILURE;
+    }
 
     if (next->unit) {
         return pass_units(unit, next, dir, next->unit);
