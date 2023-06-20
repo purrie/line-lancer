@@ -18,7 +18,6 @@
 #define implementList(type, name) \
 List ## name list ## name ## Init(usize cap, Allocator alloc, Deallocator dealloc) {\
     List ## name r = {0};\
-    r.cap = cap;\
     r.alloc = alloc;\
     r.dealloc = dealloc;\
     list ## name ## Grow(&r, cap);\
@@ -26,7 +25,7 @@ List ## name list ## name ## Init(usize cap, Allocator alloc, Deallocator deallo
 }\
 \
 void list ## name ## Deinit(List ## name * list) {\
-    if (list->items != NULL) {\
+    if (list->items != NULL && list->dealloc != NULL) {\
         list->dealloc(list->items);\
         list->items = NULL;\
         list->cap = 0;\
@@ -35,13 +34,14 @@ void list ## name ## Deinit(List ## name * list) {\
 }\
 \
 int list ## name ## Grow(List ## name * list, usize new_cap) {\
-    if (new_cap < list->cap) {\
+    if (new_cap <= list->cap) {\
         return 1;\
     }\
     type * new_list = ( type * ) list->alloc(sizeof(type) * new_cap);\
     if (new_list == NULL) {\
         return 1;\
     }\
+    list->cap = new_cap;\
     if (list->items != NULL) {\
         copy_memory(new_list, list->items, sizeof(type) * list->len);\
         list->dealloc(list->items);\
