@@ -291,6 +291,25 @@ Building * get_building_by_position(Map *const map, Vector2 position) {
 }
 
 /* Path Functions **********************************************************/
+Path * path_on_point (Map *const map, Vector2 point, Movement * direction) {
+    for (usize i = 0; i < map->paths.len; i++) {
+        Path * path = &map->paths.items[i];
+        if (CheckCollisionPointCircle(point, path->bridge.start->position, 10.0f)) {
+            if (direction)
+                *direction = MOVEMENT_DIR_FORWARD;
+            return path;
+        }
+        if (CheckCollisionPointCircle(point, path->bridge.end->position, 10.0f)) {
+            if (direction)
+                *direction = MOVEMENT_DIR_BACKWARD;
+            return path;
+        }
+    }
+    if (direction)
+        *direction = MOVEMENT_INVALID;
+    return NULL;
+}
+
 Vector2 path_start_point(Path *const path, Region *const from) {
     if (path->region_a == from) {
         return path->lines.items[0].a;

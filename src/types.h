@@ -197,14 +197,16 @@ struct Map {
 
 enum PlayerState {
     INPUT_NONE = 0,
+    INPUT_CLICKED_BUILDING,
+    INPUT_CLICKED_PATH,
     INPUT_OPEN_BUILDING,
-    INPUT_START_SET_PATH,
-    INPUT_SET_PATH,
 };
 
 struct GameState {
     PlayerState   current_input;
     Building    * selected_building;
+    Path        * selected_path;
+    Region      * selected_region;
     Map         * current_map;
     ListUnit      units;
 };
