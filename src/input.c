@@ -2,24 +2,6 @@
 #include "ui.h"
 #include "level.h"
 
-void place_building(Building * building, BuildingType type) {
-    building->type = type;
-    // TODO make proper building modification
-    // update texture and whatnot
-}
-
-void upgrade_building(Building * building) {
-    if (building->upgrades >= 2) return;
-
-    building->upgrades ++;
-    // TODO make proper building modification
-}
-
-void demolish_building (Building * building) {
-    building->type = BUILDING_EMPTY;
-    building->upgrades = 0;
-}
-
 void state_none(Map *const map, GameState * state) {
     if(IsMouseButtonPressed(MOUSE_BUTTON_LEFT) == false) {
         return;

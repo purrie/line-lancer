@@ -3,7 +3,27 @@
 #include "level.h"
 #include "math.h"
 #include "alloc.h"
+#include "constants.h"
 #include <raymath.h>
+
+/* Building functions ********************************************************/
+void place_building(Building * building, BuildingType type) {
+    building->type = type;
+    // TODO make proper building modification
+    // update texture and whatnot
+}
+
+void upgrade_building(Building * building) {
+    if (building->upgrades >= 2) return;
+
+    building->upgrades ++;
+    // TODO make proper building modification
+}
+
+void demolish_building (Building * building) {
+    building->type = BUILDING_EMPTY;
+    building->upgrades = 0;
+}
 
 /* Line Functions **********************************************************/
 Result line_intersection (Line a, Line b, Vector2 * value) {

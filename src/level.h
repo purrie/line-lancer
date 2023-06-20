@@ -4,6 +4,11 @@
 #include <raylib.h>
 #include "types.h"
 
+/* Building Functions ********************************************************/
+void place_building    (Building * building, BuildingType type);
+void upgrade_building  (Building * building);
+void demolish_building (Building * building);
+
 /* Line Functions ***********************************************************/
 Line            make_line           (Vector2 a, Vector2 b);
 Test            line_intersects     (Line a, Line b);
