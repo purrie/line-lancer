@@ -6,16 +6,17 @@
 #include "input.h"
 #include "ui.h"
 #include "units.h"
+#include "alloc.h"
 
-const int WINDOW_WIDTH = 800;
-const int WINDOW_HEIGHT = 600;
+const int WINDOW_WIDTH = 1400;
+const int WINDOW_HEIGHT = 1200;
 
 int main(void) {
     SetTraceLogLevel(LOG_INFO);
     InitWindow(WINDOW_WIDTH, WINDOW_HEIGHT, "Hello!");
 
     Map map = {0};
-    if (load_level("./assets/maps/tiled.json", &map)) {
+    if (load_level("./assets/maps/hash.json", &map)) {
         TraceLog(LOG_ERROR, "Failed to load map");
         goto end;
     }
@@ -42,6 +43,7 @@ int main(void) {
 
         EndMode2D();
         EndDrawing();
+        temp_free();
     }
 
     clear_unit_list(&state.units);
