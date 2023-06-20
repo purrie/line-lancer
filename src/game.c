@@ -109,12 +109,33 @@ void units_fight(GameState * state, float delta_time) {
     }
 }
 
+void guardian_fight(GameState * state, float delta_time) {
+    for (usize i = 0; i < state->current_map->regions.len; i++) {
+        Region * region = &state->current_map->regions.items[i];
+
+        for (usize p = 0; p < region->paths.len; p++) {
+            PathEntry * entry = &region->paths.items[p];
+            Node * node = entry->castle_path.end;
+
+            while (node != entry->castle_path.start) {
+                if (node->unit && node->unit->player_owned != region->player_id) {
+                    node->unit->health -= get_unit_attack(&region->castle.guardian) * delta_time;
+                    if (node->unit->health <= 0.0f) {
+                        destroy_unit(&state->units, node->unit);
+                    }
+                }
+                node = node->previous;
+            }
+        }
+    }
+}
+
 void simulate_units(GameState * state) {
     float dt = GetFrameTime();
 
     spawn_units       (state, dt);
     move_units        (state, dt);
     units_fight       (state, dt);
-    // TODO handle guardians fighting
+    guardian_fight    (state, dt);
     update_unit_state (state);
 }

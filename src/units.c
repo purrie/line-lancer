@@ -184,6 +184,9 @@ float get_unit_attack(Unit * unit) {
         case UNIT_SPECIAL: {
             attack = 100.0f;
         } break;
+        case UNIT_GUARDIAN: {
+            attack = 10.0f;
+        } break;
         default: {
             TraceLog(LOG_ERROR, "Requested attack for unity with no valid type");
             return 1.0f;
