@@ -53,7 +53,11 @@ void update_unit_state(GameState * state) {
                         unit->state = UNIT_STATE_FIGHTING;
                     }
                     else {
-                        move_unit_forward(unit);
+                        if(move_unit_forward(unit)) {
+                            // TODO This fixes units getting stuck at friendly guardian but makes them bounce back instead of passing friendies
+                            // Leaving as is for now, if it causes issues, can change later
+                            unit->move_direction = ! unit->move_direction;
+                        }
                     }
                 }
             } break;
