@@ -1035,7 +1035,6 @@ Result load_level(char *path, Map * result) {
   jsmn_parser json_parser;
   jsmn_init(&json_parser);
 
-  // TODO make this dynamic to support large map sizes and complexity
   const usize token_len = jsmn_parse(&json_parser, (char *)(data), len, NULL, 0);
   jsmntok_t tokens[token_len];
   clear_memory(tokens, sizeof(jsmntok_t) * token_len);
