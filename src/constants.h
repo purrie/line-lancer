@@ -9,5 +9,9 @@
 #define LAYER_MAP -0.3f
 #define LAYER_PATH -0.2f
 #define LAYER_BUILDING -0.1f
+#define MAP_BEVEL 2
+
+//#define RENDER_DEBUG_BRIDGE
+//#define RENDER_PATHS
 
 #endif // CONSTANTS_H_

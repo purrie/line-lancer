@@ -178,7 +178,7 @@ usize load_region_objects(
       else if (compare_literal(key, "x") || compare_literal(key, "y")) {
         cursor ++;
         StringSlice num = make_slice(data, tokens[cursor].start, tokens[cursor].end);
-        float value = 0;
+        float value;
         if(convert_slice_float(num, &value)) {
           TraceLog(LOG_ERROR, "Couldn't parse region object coordinate");
           return 0;
@@ -211,12 +211,13 @@ usize load_region_objects(
           uchar c = data[tokens[point].start];
           point ++;
           StringSlice num = make_slice(data, tokens[point].start, tokens[point].end);
-          float value = 0;
+          float value;
           if (convert_slice_float(num, &value)) {
             log_slice(LOG_ERROR, "Couldn't convert region polygon x point", num);
             listLineDeinit(&area);
             return 0;
           }
+
           if (c == 'x') {
             v.x += value;
           }
@@ -700,7 +701,7 @@ Model generate_line_mesh(const ListLine lines, float thickness, ushort cap_resol
       };
 
       Vector2 intersection;
-      Result intersects = get_line_intersection(left, right, &intersection);
+      Result intersects = line_intersection(left, right, &intersection);
       usize intersections = 1;
       Vector2 center = Vector2Zero();
 
@@ -724,7 +725,7 @@ Model generate_line_mesh(const ListLine lines, float thickness, ushort cap_resol
         else {
           break;
         }
-        intersects = get_line_intersection(left, right, &intersection);
+        intersects = line_intersection(left, right, &intersection);
       }
 
       if (intersections > 1) {
@@ -786,10 +787,37 @@ Model generate_line_mesh(const ListLine lines, float thickness, ushort cap_resol
   return LoadModelFromMesh(mesh);
 }
 
-Model generate_area_mesh(const Area *const area, const float layer) {
+Test is_clockwise (Vector2 a, Vector2 b, Vector2 c) {
+  double val = 0.0;
+  val = (b.x * c.y + a.x * b.y + a.y * c.x) - (a.y * b.x + b.y * c.x + a.x * c.y);
+  return val > 0.0f ? YES : NO;
+}
+
+Test is_area_clockwise(Area *const area) {
+  unsigned int half = area->lines.len / 2;
+  unsigned int cl = 0;
+  unsigned int cc = 0;
+  for (usize i = 0; i < area->lines.len; i++) {
+    Vector2 a = area->lines.items[i].a;
+    Vector2 b = area->lines.items[(i + 1) % area->lines.len].a;
+    Vector2 c = area->lines.items[(i + 2) % area->lines.len].a;
+    if (is_clockwise(a, b, c))
+      cl ++;
+    else
+      cc ++;
+  }
+  return cl > cc ? YES : NO;
+}
+
+
+Model generate_area_mesh(Area *const area, const float layer) {
   Mesh mesh = {0};
   const ListLine lines = area->lines;
-
+  const Test clockwise = is_area_clockwise(area);
+  if (clockwise)
+    TraceLog(LOG_INFO, "  Area is clockwise");
+  else
+    TraceLog(LOG_INFO, "  Area is counter-clockwise");
   {
     mesh.vertexCount = lines.len;
     mesh.vertices    = MemAlloc(sizeof(float) * 3 * mesh.vertexCount);
@@ -803,8 +831,7 @@ Model generate_area_mesh(const Area *const area, const float layer) {
   }
 
   {
-    usize initial_cap  = lines.len * 2 * 3;
-    ListUshort indices = listUshortInit(initial_cap, &MemAlloc, &MemFree);
+    ListUshort indices = listUshortInit(3, &MemAlloc, &MemFree);
     ListUsize points   = listUsizeInit(lines.len, &MemAlloc, &MemFree);
     usize index   = 0;
     usize counter = 0;
@@ -814,18 +841,30 @@ Model generate_area_mesh(const Area *const area, const float layer) {
     }
 
     while (points.len > 2) {
-      usize index_m = (index + 1) % points.len;
-      usize index_e = (index + 2) % points.len;
+      usize index_m = (index + (clockwise ? points.len - 1 : 1)) % points.len;
+      usize index_e = (index + (clockwise ? points.len - 2 : 2)) % points.len;
 
       usize point_ib = points.items[index];
       usize point_im = points.items[index_m];
       usize point_ie = points.items[index_e];
 
       Vector2 start = lines.items[point_ib].a;
+      Vector2 mid   = lines.items[point_im].a;
       Vector2 end   = lines.items[point_ie].a;
-      Vector2 mid   = Vector2Lerp(start, end, 0.5f);
 
-      if (area_contains_point(area, mid) == false) {
+      Test tri_clockwise = is_clockwise(start, mid, end);
+      Vector2 test_point = Vector2Lerp(start, end, 0.5f);
+      Test outside = ! area_contains_point(area, test_point);
+      Line test_line = {
+        Vector2MoveTowards(start, end, 1.0f),
+        Vector2MoveTowards(end, start, 1.0f)
+      };
+      Test cuts_through = area_line_intersects(area, test_line);
+      Test invalid = tri_clockwise || outside || cuts_through;
+
+      if (invalid) {
+        TraceLog(LOG_WARNING, "   Failing triangle! [%.1f, %.1f] [%.1f, %.1f] [%.1f, %.1f] Clockwise = %d, Outside = %d, Cuts = %d", start.x, start.y, mid.x, mid.y, end.x, end.y, tri_clockwise, outside, cuts_through);
+
         if (counter > lines.len) {
           TraceLog(LOG_ERROR, "Failed to generate mesh for area");
           listUshortDeinit(&indices);
@@ -839,14 +878,18 @@ Model generate_area_mesh(const Area *const area, const float layer) {
         continue;
       }
       counter = 0;
+      TraceLog(LOG_INFO, "   Building triangle [%.1f, %.1f] [%.1f, %.1f] [%.1f, %.1f]", start.x, start.y, mid.x, mid.y, end.x, end.y);
 
       listUshortAppend(&indices, point_ib);
       listUshortAppend(&indices, point_im);
       listUshortAppend(&indices, point_ie);
       listUsizeRemove (&points , index_m);
+      if (index > index_m)
+        index--;
     }
 
     mesh.triangleCount = indices.len / 3;
+    TraceLog(LOG_INFO, "Built %d triangles", mesh.triangleCount);
     mesh.indices = MemAlloc(sizeof(ushort) * indices.len);
     copy_memory(mesh.indices, indices.items, sizeof(ushort) * indices.len);
 
@@ -957,7 +1000,7 @@ void subdivide_map_paths(Map * map) {
     }
     depth = sqrtf(depth) * 0.25f;
 
-    bevel_lines(&map->paths.items[i].lines, 5, depth, false);
+    bevel_lines(&map->paths.items[i].lines, MAP_BEVEL, depth, false);
   }
 
   for (usize i = 0; i < map->regions.len; i++) {
@@ -972,7 +1015,7 @@ void subdivide_map_paths(Map * map) {
     }
     depth = sqrtf(depth) * 0.25f;
 
-    bevel_lines(&map->regions.items[i].area.lines, 5, depth, true);
+    bevel_lines(&map->regions.items[i].area.lines, MAP_BEVEL, depth, true);
   }
 }
 
@@ -991,9 +1034,10 @@ Result load_level(char *path, Map * result) {
   jsmn_init(&json_parser);
 
   // TODO make this dynamic to support large map sizes and complexity
-  const usize token_len = 1024;
+  const usize token_len = jsmn_parse(&json_parser, (char *)(data), len, NULL, 0);
   jsmntok_t tokens[token_len];
   clear_memory(tokens, sizeof(jsmntok_t) * token_len);
+  jsmn_init(&json_parser);
 
   size_t tokenlen =
       jsmn_parse(&json_parser, (char *)(data), len, tokens, token_len);
@@ -1008,7 +1052,7 @@ Result load_level(char *path, Map * result) {
   result->paths   = listPathInit   (10, &MemAlloc, &MemFree);
 
   usize fields = tokens[0].size;
-  usize cursor = 2;
+  usize cursor = 1;
 
   TraceLog(LOG_INFO, "Starting loading");
 

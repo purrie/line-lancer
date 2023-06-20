@@ -2,11 +2,11 @@
 #include "bridge.h"
 #include "level.h"
 #include "math.h"
+#include "alloc.h"
 #include <raymath.h>
 
 /* Line Functions **********************************************************/
-Result get_line_intersection (Line a, Line b, Vector2 * value) {
-
+Result line_intersection (Line a, Line b, Vector2 * value) {
     const Vector2 sn = Vector2Subtract(a.a, a.b);
     const Vector2 wn = Vector2Subtract(b.a, b.b);
     const float d = sn.x * wn.y - sn.y * wn.x;
@@ -33,12 +33,35 @@ Result get_line_intersection (Line a, Line b, Vector2 * value) {
     return SUCCESS;
 }
 
-usize get_lines_intersections (const ListLine lines, const Line line, ListVector2 * result) {
+Test line_intersects (Line a, Line b) {
+    const Vector2 sn = Vector2Subtract(a.a, a.b);
+    const Vector2 wn = Vector2Subtract(b.a, b.b);
+    const float d = sn.x * wn.y - sn.y * wn.x;
+    if (FloatEquals(d, 0.0f)) {
+        return NO;
+    }
+
+    const float xd = a.a.x - b.a.x;
+    const float yd = a.a.y - b.a.y;
+
+    const float t = (xd * wn.y - yd * wn.x) / d;
+    const float u = (xd * sn.y - yd * sn.x) / d;
+
+    if (t < 0.0f || t > 1.0f) {
+        return NO;
+    }
+    if (u < 0.0f || u > 1.0f) {
+        return NO;
+    }
+    return YES;
+}
+
+usize lines_intersections (const ListLine lines, const Line line, ListVector2 * result) {
     usize added = 0;
     for (usize i = 0; i < lines.len; i++) {
         Vector2 value;
 
-        if(get_line_intersection(lines.items[i], line, &value) == SUCCESS) {
+        if(line_intersection(lines.items[i], line, &value) == SUCCESS) {
             if (result == NULL) return true;
 
             bool contains = false;
@@ -186,15 +209,12 @@ bool area_contains_point(const Area *const area, const Vector2 point) {
         return false;
     }
 
-    Vector2 intersections_raw[area->lines.len];
-    ListVector2 intersections = {0};
-    intersections.items = &intersections_raw[0];
-    intersections.cap = area->lines.len;
+    ListVector2 intersections = listVector2Init(area->lines.len, &temp_alloc, NULL);
 
     Vector2 a = { aabb.x - aabb.width, aabb.y - aabb.height };
     Line line = { a, point };
 
-    if (get_lines_intersections(area->lines, line, &intersections)) {
+    if (lines_intersections(area->lines, line, &intersections)) {
         if ((intersections.len % 2) == 0) {
             return false;
         } else {
@@ -203,6 +223,19 @@ bool area_contains_point(const Area *const area, const Vector2 point) {
     }
 
     return false;
+}
+
+Test area_line_intersects (Area *const area, Line line) {
+    for (usize i = 0; i < area->lines.len; i++) {
+        Line t = area->lines.items[i];
+        if (line_intersects(t, line)) {
+            return YES;
+        }
+    }
+    Line last = { area->lines.items[area->lines.len - 1].b, area->lines.items[0].a };
+    if (line_intersects(last, line))
+        return YES;
+    return NO;
 }
 
 /* Building Functions ******************************************************/
@@ -376,6 +409,7 @@ Region * region_by_guardian (ListRegion *const regions, Unit *const guardian) {
     TraceLog(LOG_ERROR, "Attempted to get region from a non-guardian unit");
     return NULL;
 }
+
 /* Map Functions ***********************************************************/
 void map_clamp(Map * map) {
     Vector2 map_size = { (float)map->width, (float)map->height };
@@ -417,7 +451,7 @@ void render_map_mesh(Map * map) {
     Color colors[4] = {PURPLE, VIOLET, DARKPURPLE, DARKBROWN};
     for (usize i = 0; i < map->regions.len; i++) {
         Region * region = &map->regions.items[i];
-        DrawModel(region->area.model, Vector3Zero(), 1.0f, colors[i]);
+        DrawModel(region->area.model, Vector3Zero(), 1.0f, colors[region->player_id]);
 
         ListBuilding * buildings = &region->buildings;
         for (usize b = 0; b < buildings->len; b++) {
@@ -458,17 +492,14 @@ void render_map_mesh(Map * map) {
         }
     }
 
+    #ifdef RENDER_PATHS
     for (usize i = 0; i < map->paths.len; i++) {
         Path * path = &map->paths.items[i];
-        usize start_region_index = 0;
-        for (; start_region_index < map->regions.len; start_region_index++) {
-            if (path->region_a == &map->regions.items[start_region_index])
-                break;
-        }
-        DrawModel(path->model, Vector3Zero(), 1.0f, colors[start_region_index]);
+        DrawModel(path->model, Vector3Zero(), 1.0f, ORANGE);
 
         render_bridge(&path->bridge, BLACK, RED, BLUE);
     }
+    #endif
 }
 
 Camera2D setup_camera(Map * map) {

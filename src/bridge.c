@@ -240,6 +240,7 @@ void clean_up_bridge(Bridge * b) {
 }
 
 void render_bridge(Bridge *const b, Color mid, Color start, Color end) {
+    #ifdef RENDER_DEBUG_BRIDGE
     DrawCircleV(b->start->position, 2.0f, start);
     DrawCircleV(b->end->position, 2.0f, end);
     Node * node = b->start;
@@ -248,4 +249,5 @@ void render_bridge(Bridge *const b, Color mid, Color start, Color end) {
         DrawCircleV(node->position, 1.0f, mid);
         node = node->next;
     }
+    #endif
 }
