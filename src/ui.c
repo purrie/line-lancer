@@ -109,7 +109,8 @@ Result ui_building_buy_click (GameState *const state, Vector2 cursor, BuildingTy
         return FAILURE;
     }
 
-    EmptyDialog dialog = empty_dialog(state->selected_building->position);
+    Vector2 ui_box = GetWorldToScreen2D(state->selected_building->position, state->camera);
+    EmptyDialog dialog = empty_dialog(ui_box);
     if (! CheckCollisionPointRec(cursor, dialog.area)) {
         return FAILURE;
     }
@@ -138,7 +139,8 @@ Result ui_building_buy_click (GameState *const state, Vector2 cursor, BuildingTy
 
 void render_empty_building_dialog(GameState *const state) {
     Vector2 cursor = GetMousePosition();
-    EmptyDialog dialog = empty_dialog(state->selected_building->position);
+    Vector2 ui_box = GetWorldToScreen2D(state->selected_building->position, state->camera);
+    EmptyDialog dialog = empty_dialog(ui_box);
 
     {
         Color dialog_bg;

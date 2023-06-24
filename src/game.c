@@ -174,6 +174,7 @@ void update_resources (GameState * state) {
 GameState create_game_state (Map * map) {
     GameState state   = {0};
     state.current_map = map;
+    state.camera      = setup_camera(map);
     state.units       = listUnitInit(120, &MemAlloc, &MemFree);
     state.players     = listPlayerDataInit(map->player_count + 1, &MemAlloc, &MemFree);
     state.players.len = map->player_count + 1;

@@ -4,6 +4,6 @@
 #include "game.h"
 
 // Returns whatever the state has changed
-void update_input_state(Map *const map, GameState * state);
+void update_input_state (GameState * state);
 
 #endif // INPUT_H_

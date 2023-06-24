@@ -206,10 +206,12 @@ enum PlayerState {
     INPUT_CLICKED_BUILDING,
     INPUT_CLICKED_PATH,
     INPUT_OPEN_BUILDING,
+    INPUT_MOVE_MAP,
 };
 
 struct GameState {
     PlayerState      current_input;
+    Vector2          selected_point;
     Building       * selected_building;
     Path           * selected_path;
     Region         * selected_region;
@@ -217,6 +219,7 @@ struct GameState {
     ListUnit         units;
     ListPlayerData   players;
     usize            turn;
+    Camera2D         camera;
 };
 
 typedef struct {

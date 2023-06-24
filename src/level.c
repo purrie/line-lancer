@@ -566,9 +566,3 @@ Camera2D setup_camera(Map * map) {
 
     return cam;
 }
-
-void set_cursor_to_camera_scale(Camera2D *const cam) {
-    SetMouseOffset(-cam->offset.x, -cam->offset.y);
-    float scale = 1.0f / cam->zoom;
-    SetMouseScale(scale, scale);
-}

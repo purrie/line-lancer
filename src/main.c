@@ -25,27 +25,27 @@ int main(void) {
 
     SetTargetFPS(FPS);
 
-    Camera2D cam = setup_camera(&map);
-    set_cursor_to_camera_scale(&cam);
 
     GameState state = create_game_state(&map);
 
     while (!WindowShouldClose()) {
         state.turn ++;
-        update_input_state(&map, &state);
+        update_input_state(&state);
         update_resources(&state);
         simulate_units(&state);
 
         BeginDrawing();
-        BeginMode2D(cam);
+        BeginMode2D(state.camera);
 
         ClearBackground(BLACK);
 
         render_map_mesh(&map);
         render_units(&state);
-        render_ui(&state);
 
         EndMode2D();
+
+        render_ui(&state);
+
         EndDrawing();
         temp_free();
     }

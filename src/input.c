@@ -1,14 +1,17 @@
 #include "input.h"
 #include "ui.h"
 #include "level.h"
+#include <raymath.h>
 
-void state_none(Map *const map, GameState * state) {
+
+void state_none (GameState * state) {
     if(IsMouseButtonPressed(MOUSE_BUTTON_LEFT) == false) {
         return;
     }
 
-    Vector2 cursor = GetMousePosition();
-    Building * b = get_building_by_position(map, cursor);
+    state->selected_point = GetMousePosition();
+    Vector2 cursor = GetScreenToWorld2D(state->selected_point, state->camera);
+    Building * b = get_building_by_position(state->current_map, cursor);
     if (b) {
         state->current_input = INPUT_CLICKED_BUILDING;
         state->selected_building = b;
@@ -16,7 +19,7 @@ void state_none(Map *const map, GameState * state) {
         return;
     }
     Movement dir;
-    Path * p = path_on_point(map, cursor, &dir);
+    Path * p = path_on_point(state->current_map, cursor, &dir);
     if (p) {
         state->selected_path = p;
         if (dir == MOVEMENT_DIR_FORWARD)
@@ -26,21 +29,23 @@ void state_none(Map *const map, GameState * state) {
         state->current_input = INPUT_CLICKED_PATH;
         return;
     }
+
+    state->current_input = INPUT_MOVE_MAP;
 }
 
-void state_clicked_building (Map *const map, GameState * state) {
+void state_clicked_building (GameState * state) {
     if (IsMouseButtonReleased(MOUSE_BUTTON_LEFT) == false) {
         return;
     }
 
-    Vector2 cursor = GetMousePosition();
-    Building * b = get_building_by_position(map, cursor);
+    Vector2 cursor = GetScreenToWorld2D(GetMousePosition(), state->camera);
+    Building * b = get_building_by_position(state->current_map, cursor);
     if (b && b == state->selected_building) {
         state->current_input = INPUT_OPEN_BUILDING;
         return;
     }
 
-    Path * path = path_on_point(map, cursor, NULL);
+    Path * path = path_on_point(state->current_map, cursor, NULL);
     if (path) {
         for (usize i = 0; i < state->selected_building->spawn_paths.len; i++) {
             Bridge bridge = state->selected_building->spawn_paths.items[i];
@@ -56,14 +61,14 @@ void state_clicked_building (Map *const map, GameState * state) {
     state->current_input = INPUT_NONE;
 }
 
-void state_clicked_path (Map *const map, GameState * state) {
+void state_clicked_path (GameState * state) {
     if (IsMouseButtonReleased(MOUSE_BUTTON_LEFT) == false) {
         return;
     }
 
     Vector2 cursor = GetMousePosition();
     Movement dir;
-    Path * path = path_on_point(map, cursor, &dir);
+    Path * path = path_on_point(state->current_map, cursor, &dir);
     if (path == NULL) {
         goto clear;
     }
@@ -97,7 +102,7 @@ void state_clicked_path (Map *const map, GameState * state) {
     state->current_input = INPUT_NONE;
 }
 
-void state_building(Map *const map, GameState * state) {
+void state_building (GameState * state) {
     if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT) == false) {
         return;
     }
@@ -117,7 +122,7 @@ void state_building(Map *const map, GameState * state) {
     else {
         BuildingAction action;
         if (ui_building_action_click(state, cursor, &action)) {
-            Building * b = get_building_by_position(map, cursor);
+            Building * b = get_building_by_position(state->current_map, cursor);
             if (b) {
                 state->selected_building = b;
             }
@@ -145,12 +150,25 @@ void state_building(Map *const map, GameState * state) {
     }
 }
 
-void update_input_state(Map *const map, GameState * state) {
+void state_map_movement (GameState * state) {
+    if (IsMouseButtonReleased(MOUSE_BUTTON_LEFT)) {
+        state->current_input = INPUT_NONE;
+        return;
+    }
+
+    Vector2 cursor = GetMousePosition();
+    Vector2 move = Vector2Subtract(cursor, state->selected_point);
+    state->camera.offset = Vector2Add(state->camera.offset, move);
+    state->selected_point = cursor;
+}
+
+void update_input_state (GameState * state) {
     switch (state->current_input) {
-        case INPUT_NONE:             return state_none             (map, state);
-        case INPUT_CLICKED_BUILDING: return state_clicked_building (map, state);
-        case INPUT_CLICKED_PATH:     return state_clicked_path     (map, state);
-        case INPUT_OPEN_BUILDING:    return state_building         (map, state);
+        case INPUT_NONE:             return state_none             (state);
+        case INPUT_CLICKED_BUILDING: return state_clicked_building (state);
+        case INPUT_CLICKED_PATH:     return state_clicked_path     (state);
+        case INPUT_OPEN_BUILDING:    return state_building         (state);
+        case INPUT_MOVE_MAP:         return state_map_movement     (state);
     }
 
     TraceLog(LOG_ERROR, "Encountered unknown game state while handling input");

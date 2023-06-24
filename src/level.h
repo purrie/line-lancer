@@ -47,7 +47,6 @@ void     region_update_paths     (Region * region);
 Region * region_by_guardian      (ListRegion *const regions, Unit *const guardian);
 
 /* Map Functions *********************************************************/
-void     set_cursor_to_camera_scale (Camera2D *const cam);
 void     map_clamp                  (Map * map);
 Camera2D setup_camera               (Map * map);
 void     render_map                 (Map * map);
