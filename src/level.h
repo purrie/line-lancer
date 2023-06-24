@@ -48,7 +48,6 @@ Region * region_by_guardian      (ListRegion *const regions, Unit *const guardia
 
 /* Map Functions *********************************************************/
 void     map_clamp                  (Map * map);
-Camera2D setup_camera               (Map * map);
 void     render_map                 (Map * map);
 void     render_map_mesh            (Map * map);
 

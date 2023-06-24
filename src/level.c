@@ -547,22 +547,3 @@ void render_map_mesh(Map * map) {
     #endif
 }
 
-Camera2D setup_camera(Map * map) {
-    Camera2D cam = {0};
-    Vector2 map_size;
-    float screen_w = GetScreenWidth();
-    float screen_h = GetScreenHeight();
-    map_size.x = ( screen_w - 10.0f ) / (float)map->width;
-    map_size.y = ( screen_h - 10.0f ) / (float)map->height;
-    cam.zoom = (map_size.x < map_size.y) ? map_size.x : map_size.y;
-    if (map_size.x > map_size.y) {
-        cam.offset.x = (1.0f - (map_size.y / map_size.x)) * screen_w * 0.5f;
-    }
-    if (map_size.y > map_size.x) {
-        cam.offset.y = (1.0f - (map_size.x / map_size.y)) * screen_h * 0.5f;
-    }
-    cam.offset.x += 5.0f;
-    cam.offset.y += 5.0f;
-
-    return cam;
-}

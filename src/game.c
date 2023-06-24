@@ -171,6 +171,19 @@ void update_resources (GameState * state) {
     }
 }
 
+Camera2D setup_camera(Map * map) {
+    Camera2D cam = {0};
+    Vector2 map_size;
+    map_size.x = (GetScreenWidth()  - 20.0f) / (float)map->width;
+    map_size.y = (GetScreenHeight() - 20.0f) / (float)map->height;
+    cam.zoom   = (map_size.x < map_size.y) ? map_size.x : map_size.y;
+
+    cam.offset = (Vector2) { GetScreenWidth() / 2 , GetScreenHeight() / 2 };
+    cam.target = (Vector2) { map->width / 2       , map->height / 2 };
+
+    return cam;
+}
+
 GameState create_game_state (Map * map) {
     GameState state   = {0};
     state.current_map = map;

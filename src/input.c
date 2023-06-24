@@ -150,6 +150,32 @@ void state_building (GameState * state) {
     }
 }
 
+void clamp_camera (GameState * state) {
+    Vector2 map = { state->current_map->width, state->current_map->height };
+    Vector2 limit_top    = map;
+    Vector2 limit_bottom = Vector2Zero();
+
+    Vector2 screen = (Vector2) { GetScreenWidth(), GetScreenHeight() };
+    Vector2 pixels = Vector2Divide(screen, (Vector2) { state->camera.zoom, state->camera.zoom });
+    Vector2 diff = Vector2Subtract(pixels, map);
+
+    diff.x = diff.x < 0.0f ? 0.0f : diff.x * 0.5f;
+    diff.y = diff.y < 0.0f ? 0.0f : diff.y * 0.5f;
+
+    limit_top = Vector2Add(limit_top, diff);
+    limit_bottom = Vector2Subtract(limit_bottom, diff);
+
+    if (state->camera.target.x > limit_top.x)
+        state->camera.target.x = limit_top.x;
+    if (state->camera.target.y > limit_top.y)
+        state->camera.target.y = limit_top.y;
+
+    if (state->camera.target.x < limit_bottom.x)
+        state->camera.target.x = limit_bottom.x;
+    if (state->camera.target.y < limit_bottom.y)
+        state->camera.target.y = limit_bottom.y;
+}
+
 void state_map_movement (GameState * state) {
     if (IsMouseButtonReleased(MOUSE_BUTTON_LEFT)) {
         state->current_input = INPUT_NONE;
@@ -158,11 +184,20 @@ void state_map_movement (GameState * state) {
 
     Vector2 cursor = GetMousePosition();
     Vector2 move = Vector2Subtract(cursor, state->selected_point);
-    state->camera.offset = Vector2Add(state->camera.offset, move);
+    state->camera.target = Vector2Subtract(state->camera.target, move);
     state->selected_point = cursor;
+
+    clamp_camera(state);
+}
+
+void camera_zoom (GameState * state) {
+    float wheel = GetMouseWheelMove();
+    state->camera.zoom += wheel * 0.1f;
+    clamp_camera(state);
 }
 
 void update_input_state (GameState * state) {
+    camera_zoom(state);
     switch (state->current_input) {
         case INPUT_NONE:             return state_none             (state);
         case INPUT_CLICKED_BUILDING: return state_clicked_building (state);
