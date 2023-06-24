@@ -20,6 +20,7 @@ typedef struct Map Map;
 typedef struct Area Area;
 typedef struct GameState GameState;
 typedef struct Unit Unit;
+typedef struct PlayerData PlayerData;
 
 typedef enum Movement Movement;
 typedef enum BuildingType BuildingType;
@@ -75,6 +76,7 @@ makeList(Region, Region);
 makeList(PathBridge, PathBridge);
 makeList(Unit*, Unit);
 makeList(Bridge, Bridge);
+makeList(PlayerData, PlayerData);
 
 enum UnitType {
     UNIT_FIGHTER,
@@ -140,7 +142,7 @@ struct Building {
     BuildingType   type;
     Model          model;
     ushort         upgrades;
-    float          spawn_timer;
+    usize          spawn_timer;
     ListBridge     spawn_paths;
     usize          active_spawn;
     Region       * region;
@@ -195,6 +197,10 @@ struct Map {
     ListPath   paths;
 };
 
+struct PlayerData {
+    usize resource_gold;
+};
+
 enum PlayerState {
     INPUT_NONE = 0,
     INPUT_CLICKED_BUILDING,
@@ -203,12 +209,14 @@ enum PlayerState {
 };
 
 struct GameState {
-    PlayerState   current_input;
-    Building    * selected_building;
-    Path        * selected_path;
-    Region      * selected_region;
-    Map         * current_map;
-    ListUnit      units;
+    PlayerState      current_input;
+    Building       * selected_building;
+    Path           * selected_path;
+    Region         * selected_region;
+    Map            * current_map;
+    ListUnit         units;
+    ListPlayerData   players;
+    usize            turn;
 };
 
 typedef struct {

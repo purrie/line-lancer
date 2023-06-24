@@ -199,6 +199,7 @@ float get_unit_attack(Unit * unit) {
 Unit * unit_from_building(Building *const building) {
     Node * spawn = building->spawn_paths.items[building->active_spawn].start;
     if (spawn->unit) {
+        TraceLog(LOG_WARNING, "Failed to spawn unit because spawn point is occupied by another unit");
         return NULL;
     }
     Unit * result = MemAlloc(sizeof(Unit));

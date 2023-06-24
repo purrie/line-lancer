@@ -1,11 +1,13 @@
 #include "game.h"
+#include "assets.h"
+#include "std.h"
 #include "units.h"
 #include "level.h"
 #include "constants.h"
 #include <raymath.h>
 
 
-void spawn_unit(GameState * state, Building * building) {
+void spawn_unit (GameState * state, Building * building) {
     Unit * unit = unit_from_building(building);
     if (unit == NULL) {
         return;
@@ -14,26 +16,35 @@ void spawn_unit(GameState * state, Building * building) {
     TraceLog(LOG_INFO, "Unit spawned for player %zu", unit->player_owned);
 }
 
-void spawn_units(GameState * state, float delta_time) {
+void spawn_units (GameState * state) {
     for (usize r = 0; r < state->current_map->regions.len; r++) {
-        ListBuilding * buildings = &state->current_map->regions.items[r].buildings;
+        Region * region = &state->current_map->regions.items[r];
+        if (region->player_id == 0)
+            continue;
+
+        PlayerData * player = &state->players.items[region->player_id];
+        ListBuilding * buildings = &region->buildings;
 
         for (usize b = 0; b < buildings->len; b++) {
             Building * building = &buildings->items[b];
             if (building->type == BUILDING_EMPTY)
                 continue;
 
-            building->spawn_timer += delta_time;
+            building->spawn_timer += 1;
+            usize cost_to_spawn   = 1 + building->upgrades;
+            bool is_time_to_spawn = building->spawn_timer >= FPS * BUILDING_SPAWN_INTERVAL;
+            bool can_afford       = player->resource_gold >= cost_to_spawn;
 
-            if (building->spawn_timer >= BUILDING_SPAWN_INTERVAL) {
-                building->spawn_timer = 0.0f;
+            if (is_time_to_spawn && can_afford) {
+                player->resource_gold -= cost_to_spawn;
+                building->spawn_timer  = 0;
                 spawn_unit(state, building);
             }
         }
     }
 }
 
-usize find_unit(ListUnit * units, Unit * unit) {
+usize find_unit (ListUnit * units, Unit * unit) {
     for (usize a = 0; a < units->len; a++) {
         if (units->items[a] == unit) {
             return a;
@@ -42,7 +53,7 @@ usize find_unit(ListUnit * units, Unit * unit) {
     return units->len;
 }
 
-void update_unit_state(GameState * state) {
+void update_unit_state (GameState * state) {
     for (usize u = 0; u < state->units.len; u++) {
         Unit * unit = state->units.items[u];
 
@@ -73,7 +84,7 @@ void update_unit_state(GameState * state) {
     }
 }
 
-void move_units(GameState * state, float delta_time) {
+void move_units (GameState * state, float delta_time) {
     for (usize u = 0; u < state->units.len; u++) {
         Unit * unit = state->units.items[u];
 
@@ -86,7 +97,7 @@ void move_units(GameState * state, float delta_time) {
     }
 }
 
-void units_fight(GameState * state, float delta_time) {
+void units_fight (GameState * state, float delta_time) {
     for (usize i = 0; i < state->units.len; i++) {
         Unit * unit = state->units.items[i];
         if (unit->state != UNIT_STATE_FIGHTING)
@@ -109,7 +120,7 @@ void units_fight(GameState * state, float delta_time) {
     }
 }
 
-void guardian_fight(GameState * state, float delta_time) {
+void guardian_fight (GameState * state, float delta_time) {
     for (usize i = 0; i < state->current_map->regions.len; i++) {
         Region * region = &state->current_map->regions.items[i];
 
@@ -130,12 +141,50 @@ void guardian_fight(GameState * state, float delta_time) {
     }
 }
 
-void simulate_units(GameState * state) {
+void simulate_units (GameState * state) {
     float dt = GetFrameTime();
 
-    spawn_units       (state, dt);
+    spawn_units       (state);
     move_units        (state, dt);
     units_fight       (state, dt);
     guardian_fight    (state, dt);
     update_unit_state (state);
+}
+
+void update_resources (GameState * state) {
+    if (state->turn % (FPS * BUILDING_RESOURCE_INTERVAL))
+        return;
+
+    for (usize i = 0; i < state->current_map->regions.len; i++) {
+        Region * region = &state->current_map->regions.items[i];
+        if (region->player_id == 0)
+            continue;
+        usize gold = 6;
+
+        for (usize b = 0; b < region->buildings.len; b++) {
+            if (region->buildings.items[b].type == BUILDING_RESOURCE) {
+                gold += 3 * (region->buildings.items[b].upgrades + 1);
+            }
+        }
+
+        state->players.items[region->player_id].resource_gold += gold;
+    }
+}
+
+GameState create_game_state (Map * map) {
+    GameState state   = {0};
+    state.current_map = map;
+    state.units       = listUnitInit(120, &MemAlloc, &MemFree);
+    state.players     = listPlayerDataInit(map->player_count + 1, &MemAlloc, &MemFree);
+    state.players.len = map->player_count + 1;
+
+    clear_memory(state.players.items, sizeof(PlayerData) * state.players.len);
+
+    return state;
+}
+
+void destroy_game_state (GameState state) {
+    clear_unit_list(&state.units);
+    listPlayerDataDeinit(&state.players);
+    level_unload(state.current_map);
 }

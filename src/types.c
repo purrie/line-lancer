@@ -12,6 +12,7 @@ implementList(Building, Building)
 implementList(Line, Line)
 implementList(PathBridge, PathBridge)
 implementList(Bridge, Bridge)
+implementList(PlayerData, PlayerData)
 
 StringSlice make_slice(uchar * from, usize start, usize end) {
     StringSlice s;

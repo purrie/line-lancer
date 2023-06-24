@@ -1,12 +1,14 @@
 #include <stdio.h>
 #include <raylib.h>
 #include <raymath.h>
-#include "level.h"
+#include "alloc.h"
 #include "assets.h"
+#include "constants.h"
+#include "game.h"
+#include "level.h"
 #include "input.h"
 #include "ui.h"
 #include "units.h"
-#include "alloc.h"
 
 const int WINDOW_WIDTH = 1400;
 const int WINDOW_HEIGHT = 1200;
@@ -18,18 +20,20 @@ int main(void) {
     Map map = {0};
     if (load_level("./assets/maps/hash.json", &map)) {
         TraceLog(LOG_ERROR, "Failed to load map");
-        goto end;
+        goto error;
     }
+
+    SetTargetFPS(FPS);
 
     Camera2D cam = setup_camera(&map);
     set_cursor_to_camera_scale(&cam);
 
-    GameState state = {0};
-    state.current_map = &map;
-    state.units = listUnitInit(120, &MemAlloc, &MemFree);
+    GameState state = create_game_state(&map);
 
     while (!WindowShouldClose()) {
+        state.turn ++;
         update_input_state(&map, &state);
+        update_resources(&state);
         simulate_units(&state);
 
         BeginDrawing();
@@ -49,8 +53,12 @@ int main(void) {
     clear_unit_list(&state.units);
     listUnitDeinit(&state.units);
 
-    end:
-    level_unload(&map);
+    destroy_game_state(state);
     CloseWindow();
     return 0;
+
+    error:
+    level_unload(&map);
+    CloseWindow();
+    return 1;
 }

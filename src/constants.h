@@ -1,10 +1,13 @@
 #ifndef CONSTANTS_H_
 #define CONSTANTS_H_
 
+#define FPS 60
+
 #define UNIT_SIZE 6.0f
 #define UNIT_SPEED 20.0f
 
-#define BUILDING_SPAWN_INTERVAL 6.0f
+#define BUILDING_SPAWN_INTERVAL 5
+#define BUILDING_RESOURCE_INTERVAL 10
 
 #define LAYER_MAP -0.3f
 #define LAYER_PATH -0.2f
