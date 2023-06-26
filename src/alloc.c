@@ -4,8 +4,8 @@
 #define ALLOC_MEMORY_SIZE 16777216
 #endif
 
-char mem[ALLOC_MEMORY_SIZE];
-unsigned long long int cursor = 0;
+static char mem[ALLOC_MEMORY_SIZE];
+static unsigned long long int cursor = 0;
 
 void * temp_alloc (unsigned int size) {
     if (cursor + size > ALLOC_MEMORY_SIZE) return (void*)0;
