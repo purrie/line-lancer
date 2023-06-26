@@ -79,27 +79,29 @@ Rectangle cake_margin_all (Rectangle rect, float all) {
 
 CAKE_RECT cake_cut_horizontal (CAKE_RECT * rect, float spacing, float ratio) {
     CAKE_RECT result = *rect;
-    float spacing_half = spacing * 0.5f;
 
     if (ratio >= 0.0f && ratio <= 1.0f) {
-        result.height = result.height * (1.0f - ratio) - spacing_half;
-        rect->height = rect->height * ratio - spacing_half;
-        result.y += rect->height + spacing;
+        float spacing_half = spacing * 0.5f;
+        result.height = result.height * ratio - spacing_half;
+        rect->height = rect->height * (1.0f - ratio) - spacing_half;
+        rect->y += result.height + spacing;
     }
     else if (ratio < 0.0f && ratio >= -1.0f) {
-        ratio *= -1.0f;
-        result.height = result.height * ratio - spacing_half;
-        rect->height  = rect->height * ( 1.0f - ratio ) - spacing_half;
+        float spacing_half = spacing * 0.5f;
+        ratio = -ratio;
+        result.height = result.height * (1.0f - ratio) - spacing_half;
+        rect->height  = rect->height * ratio - spacing_half;
         result.y += rect->height + spacing;
     }
     else if (ratio > 1.0f && ratio < rect->height) {
-        result.height -= ratio + spacing_half;
-        rect->height = ratio - spacing_half;
-        result.y += rect->height + spacing;
+        result.height = ratio;
+        rect->height -= ratio + spacing;
+        rect->y += result.height + spacing;
     }
     else if (ratio < -1.0f && ratio > -rect->height) {
-        result.height = ratio - spacing_half;
-        rect->height -= ratio + spacing_half;
+        ratio = -ratio;
+        result.height = ratio;
+        rect->height -= ratio + spacing;
         result.y += rect->height + spacing;
     }
 
