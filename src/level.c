@@ -492,11 +492,30 @@ void render_map(Map * map) {
     }
 }
 
+Color get_player_color (usize player_id) {
+    switch (player_id) {
+        case 0: return LIGHTGRAY;
+        case 1: return RED;
+        case 2: return BLUE;
+        case 3: return YELLOW;
+        case 4: return GREEN;
+        case 5: return LIME;
+        case 6: return BEIGE;
+        case 7: return BLACK;
+        case 8: return DARKPURPLE;
+        default: return PINK;
+    }
+}
+
 void render_map_mesh(Map * map) {
-    Color colors[4] = {PURPLE, VIOLET, DARKPURPLE, DARKBROWN};
     for (usize i = 0; i < map->regions.len; i++) {
         Region * region = &map->regions.items[i];
-        DrawModel(region->area.model, Vector3Zero(), 1.0f, colors[region->player_id]);
+        DrawModel(region->area.model, Vector3Zero(), 1.0f, WHITE);
+
+        for (usize l = 0; l < region->area.lines.len; l++) {
+            Line line = region->area.lines.items[l];
+            DrawLineEx(line.a, line.b, 4.0f, get_player_color(region->player_id));
+        }
 
         ListBuilding * buildings = &region->buildings;
         for (usize b = 0; b < buildings->len; b++) {
