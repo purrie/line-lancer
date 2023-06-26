@@ -1,4 +1,7 @@
 #include "ui.h"
+#include "std.h"
+#include "alloc.h"
+#include "constants.h"
 #define CAKE_LAYOUT_IMPLEMENTATION
 #include "cake.h"
 
@@ -18,7 +21,7 @@ typedef struct {
     Rectangle demolish;
 } BuildingDialog;
 
-void draw_button(
+void draw_button (
     char      * text,
     Rectangle   area,
     Vector2     cursor,
@@ -36,26 +39,27 @@ void draw_button(
         DrawRectangleLinesEx(area, 1.0f, frame);
     }
 
-    DrawText(text, area.x + padding, area.y + padding, 10, frame);
+    DrawText(text, area.x + padding, area.y + padding, UI_FONT_SIZE_BUTTON, frame);
 }
 
-float ui_button_size() {
-    return 50.0f;
-}
-float ui_margin() {
+float ui_margin () {
     return 5.0f;
 }
-float ui_spacing() {
+float ui_spacing () {
     return 2.0f;
 }
 
-EmptyDialog empty_dialog(Vector2 position) {
+EmptyDialog empty_dialog (Vector2 position) {
     EmptyDialog result;
     float margin = ui_margin();
     float spacing = ui_spacing();
 
-    result.area = cake_rect(150.0f + spacing * 2.0f + margin * 2.0f, 100.0f + margin * 2.0f + spacing);
+    Rectangle screen = cake_rect(GetScreenWidth(), GetScreenHeight());
+    cake_cut_horizontal(&screen, 0, UI_BAR_SIZE);
+
+    result.area = cake_rect(UI_DIALOG_BUILDING_WIDTH + spacing * 2.0f + margin * 2.0f, UI_DIALOG_BUILDING_HEIGHT + margin * 2.0f + spacing);
     result.area = cake_center_rect(result.area, position.x, position.y);
+    cake_clamp_inside(&result.area, screen);
 
     Rectangle butt = cake_margin_all(result.area, margin);
     Rectangle buttons[6];
@@ -70,13 +74,17 @@ EmptyDialog empty_dialog(Vector2 position) {
     return result;
 }
 
-BuildingDialog building_dialog(Vector2 position) {
+BuildingDialog building_dialog (Vector2 position) {
     BuildingDialog result;
     float margin  = ui_margin();
     float spacing = ui_spacing();
 
-    result.area = cake_rect(100.0f + margin * 2.0f, 150.0f + margin * 2.0f + spacing * 2.0f);
+    Rectangle screen = cake_rect(GetScreenWidth(), GetScreenHeight());
+    cake_cut_horizontal(&screen, 0, UI_BAR_SIZE);
+
+    result.area = cake_rect(UI_DIALOG_UPGRADE_WIDTH + margin * 2.0f, UI_DIALOG_UPGRADE_HEIGHT + margin * 2.0f + spacing * 2.0f);
     result.area = cake_center_rect(result.area, position.x, position.y);
+    cake_clamp_inside(&result.area, screen);
 
     Rectangle butt = cake_margin_all(result.area, margin);
     Rectangle buttons[3];
@@ -137,7 +145,7 @@ Result ui_building_buy_click (GameState *const state, Vector2 cursor, BuildingTy
     return SUCCESS;
 }
 
-void render_empty_building_dialog(GameState *const state) {
+void render_empty_building_dialog (GameState *const state) {
     Vector2 cursor = GetMousePosition();
     Vector2 ui_box = GetWorldToScreen2D(state->selected_building->position, state->camera);
     EmptyDialog dialog = empty_dialog(ui_box);
@@ -169,7 +177,7 @@ void render_empty_building_dialog(GameState *const state) {
     }
 }
 
-void render_upgrade_building_dialog(GameState *const state) {
+void render_upgrade_building_dialog (GameState *const state) {
     Vector2 cursor = GetMousePosition();
     BuildingDialog dialog = building_dialog(state->selected_building->position);
 
@@ -229,7 +237,24 @@ void render_upgrade_building_dialog(GameState *const state) {
     draw_button("Demolish", dialog.demolish, cursor, margin, color_bg, color_hover, color_frame);
 }
 
-void render_ui(GameState *const state) {
+void render_resource_bar (GameState *const state) {
+    PlayerData * player = get_local_player(state);
+    Rectangle bar = cake_rect(GetScreenWidth(), UI_BAR_SIZE);
+    Rectangle mbar = cake_margin_all(bar, UI_BAR_MARGIN);
+
+    char * gold_label = "Gold: ";
+    int gold_label_width = MeasureText(gold_label, UI_FONT_SIZE_BAR);
+
+    char * gold = convert_int_to_ascii(player->resource_gold, &temp_alloc);
+
+    Rectangle label_rect = cake_cut_vertical(&mbar, 0, gold_label_width);
+
+    DrawRectangleRec(bar, DARKGRAY);
+    DrawText(gold_label, label_rect.x, label_rect.y, UI_FONT_SIZE_BAR, WHITE);
+    DrawText(gold, mbar.x, mbar.y, UI_FONT_SIZE_BAR, WHITE);
+}
+
+void render_ui (GameState *const state) {
     if (state->current_input == INPUT_OPEN_BUILDING) {
         if (state->selected_building->type == BUILDING_EMPTY) {
             render_empty_building_dialog(state);
@@ -238,4 +263,5 @@ void render_ui(GameState *const state) {
             render_upgrade_building_dialog(state);
         }
     }
+    render_resource_bar(state);
 }
