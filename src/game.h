@@ -3,6 +3,8 @@
 
 #include "types.h"
 
+PlayerData * get_local_player (GameState * state);
+
 void      simulate_units     (GameState * state);
 void      update_resources   (GameState * state);
 GameState create_game_state  ();

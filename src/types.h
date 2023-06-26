@@ -197,8 +197,14 @@ struct Map {
     ListPath   paths;
 };
 
+typedef enum PlayerType {
+    PLAYER_NEUTRAL,
+    PLAYER_LOCAL,
+} PlayerType;
+
 struct PlayerData {
     usize resource_gold;
+    PlayerType type;
 };
 
 enum PlayerState {

@@ -6,6 +6,16 @@
 #include "constants.h"
 #include <raymath.h>
 
+PlayerData * get_local_player (GameState * state) {
+    for (usize i = 0; i < state->players.len; i++) {
+        PlayerData * player = &state->players.items[i];
+        if (player->type == PLAYER_LOCAL) {
+            return player;
+        }
+    }
+    TraceLog(LOG_ERROR, "Couldn't find local player!");
+    return NULL;
+}
 
 void spawn_unit (GameState * state, Building * building) {
     Unit * unit = unit_from_building(building);
@@ -159,7 +169,7 @@ void update_resources (GameState * state) {
         Region * region = &state->current_map->regions.items[i];
         if (region->player_id == 0)
             continue;
-        usize gold = 6;
+        usize gold = 3;
 
         for (usize b = 0; b < region->buildings.len; b++) {
             if (region->buildings.items[b].type == BUILDING_RESOURCE) {
@@ -193,6 +203,8 @@ GameState create_game_state (Map * map) {
     state.players.len = map->player_count + 1;
 
     clear_memory(state.players.items, sizeof(PlayerData) * state.players.len);
+    // TODO make better way to set which is the local player, especially after implementing multiplayer
+    state.players.items[1].type = PLAYER_LOCAL;
 
     return state;
 }
