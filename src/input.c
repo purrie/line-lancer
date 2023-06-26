@@ -66,7 +66,7 @@ void state_clicked_path (GameState * state) {
         return;
     }
 
-    Vector2 cursor = GetMousePosition();
+    Vector2 cursor = GetScreenToWorld2D(GetMousePosition(), state->camera);
     Movement dir;
     Path * path = path_on_point(state->current_map, cursor, &dir);
     if (path == NULL) {
