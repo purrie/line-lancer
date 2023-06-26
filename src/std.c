@@ -107,6 +107,47 @@ Result convert_slice_float(StringSlice slice, float * value) {
     return SUCCESS;
 }
 
+char * convert_int_to_ascii (int number, Allocator alloc) {
+    char buffer[64];
+    char count = 0;
+    int test = number;
+    char negative = number < 0;
+    if (negative) {
+        count ++;
+        buffer[0] = '-';
+    }
+
+    while (test != 0) {
+        char num = test % 10;
+        if (num < 0) num = -num;
+        buffer[count++] = '0' + num;
+        test /= 10;
+    }
+
+    if (count == 0) {
+        buffer[0] = '0';
+        count = 1;
+    }
+
+    {
+        char total = count;
+        char length = (total - negative) / 2;
+        char last = negative ? 0 : 1;
+
+        for (char start = negative; start < length; start++) {
+            char other = total - start - last;
+            char temp = buffer[start];
+            buffer[start] = buffer[other];
+            buffer[other] = temp;
+        }
+    }
+
+    char * result = alloc(sizeof(char) * (count + 1));
+    copy_memory(result + negative, buffer, count);
+    result[count] = '\0';
+    return result;
+}
+
 void log_slice(TraceLogLevel log_level, char * text, StringSlice slice) {
     char s[slice.len + 1];
     copy_memory(s, slice.start, sizeof(char) * slice.len);

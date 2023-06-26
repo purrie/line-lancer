@@ -1,7 +1,6 @@
 #ifndef STD_H_
 #define STD_H_
 
-#include <raylib.h>
 #include "types.h"
 
 /// Copies memory from source to dest starting from end of the array
@@ -22,6 +21,8 @@ bool compare_literal(StringSlice slice, char *const literal);
 
 Result convert_slice_usize(StringSlice slice, usize * out_value);
 Result convert_slice_float(StringSlice slice, float * out_value);
+
+char * convert_int_to_ascii (int number, Allocator alloc);
 
 void log_slice(TraceLogLevel log_level, char * text, StringSlice slice);
 
