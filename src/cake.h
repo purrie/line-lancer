@@ -34,6 +34,7 @@ CAKE_RECT cake_center_rect      (CAKE_RECT rect, float x, float y);
 CAKE_RECT cake_margin           (CAKE_RECT rect, float top, float, float bottom, float left, float right);
 CAKE_RECT cake_margin_all       (CAKE_RECT rect, float all);
 CAKE_RECT cake_cut_horizontal   (CAKE_RECT * rect, float spacing, float ratio);
+CAKE_RECT cake_cut_vertical     (CAKE_RECT * rect, float spacing, float ratio);
 void      cake_split_horizontal (CAKE_RECT area, float spacing, unsigned int row_count, CAKE_RECT * rows_result);
 void      cake_split_grid       (CAKE_RECT area, float spacing, unsigned int cols, unsigned int rows, CAKE_RECT * result);
 
@@ -103,6 +104,37 @@ CAKE_RECT cake_cut_horizontal (CAKE_RECT * rect, float spacing, float ratio) {
         result.height = ratio;
         rect->height -= ratio + spacing;
         result.y += rect->height + spacing;
+    }
+
+    return result;
+}
+
+CAKE_RECT cake_cut_vertical (CAKE_RECT * rect, float spacing, float ratio) {
+    CAKE_RECT result = *rect;
+
+    if (ratio >= 0.0f && ratio <= 1.0f) {
+        float spacing_half = spacing * 0.5f;
+        result.width = result.width * ratio - spacing_half;
+        rect->width = rect->width * (1.0f - ratio) - spacing_half;
+        rect->x += result.width + spacing;
+    }
+    else if (ratio < 0.0f && ratio >= -1.0f) {
+        float spacing_half = spacing * 0.5f;
+        ratio = -ratio;
+        result.width = result.width * (1.0f - ratio) - spacing_half;
+        rect->width  = rect->width * ratio - spacing_half;
+        result.x += rect->width + spacing;
+    }
+    else if (ratio > 1.0f && ratio < rect->width) {
+        result.width = ratio;
+        rect->width -= ratio + spacing;
+        rect->x += result.width + spacing;
+    }
+    else if (ratio < -1.0f && ratio > -rect->width) {
+        ratio = -ratio;
+        result.width = ratio;
+        rect->width -= ratio + spacing;
+        result.x += rect->width + spacing;
     }
 
     return result;
