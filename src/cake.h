@@ -37,6 +37,7 @@ CAKE_RECT cake_cut_horizontal   (CAKE_RECT * rect, float spacing, float ratio);
 CAKE_RECT cake_cut_vertical     (CAKE_RECT * rect, float spacing, float ratio);
 void      cake_split_horizontal (CAKE_RECT area, float spacing, unsigned int row_count, CAKE_RECT * rows_result);
 void      cake_split_grid       (CAKE_RECT area, float spacing, unsigned int cols, unsigned int rows, CAKE_RECT * result);
+void      cake_clamp_inside     (CAKE_RECT * area, CAKE_RECT inside);
 
 #ifdef CAKE_LAYOUT_IMPLEMENTATION
 
@@ -173,6 +174,26 @@ void cake_split_grid (CAKE_RECT area, float spacing, unsigned int cols, unsigned
             result[i].height = h;
         }
     }
+}
+
+void cake_clamp_inside (CAKE_RECT * area, CAKE_RECT inside) {
+    if (area->width > inside.width)
+        area->width = inside.width;
+    if (area->height > inside.height)
+        area->height = inside.height;
+
+    if (area->x < inside.x)
+        area->x = inside.x;
+    if (area->y < inside.y)
+        area->y = inside.y;
+
+    float diff_x = (area->x + area->width) - (inside.x + inside.width);
+    float diff_y = (area->y + area->height) - (inside.y + inside.height);
+
+    if (diff_x > 0.0f)
+        area->x -= diff_x;
+    if (diff_y > 0.0f)
+        area->y -= diff_y;
 }
 #endif
 
