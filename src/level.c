@@ -4,6 +4,7 @@
 #include "math.h"
 #include "alloc.h"
 #include "constants.h"
+#include "game.h"
 #include <raymath.h>
 
 /* Building functions ********************************************************/
@@ -489,21 +490,6 @@ void render_map(Map * map) {
         for (usize l = 0; l < lines->len; l++) {
             DrawLineV(lines->items[l].a, lines->items[l].b, ORANGE);
         }
-    }
-}
-
-Color get_player_color (usize player_id) {
-    switch (player_id) {
-        case 0: return LIGHTGRAY;
-        case 1: return RED;
-        case 2: return BLUE;
-        case 3: return YELLOW;
-        case 4: return GREEN;
-        case 5: return LIME;
-        case 6: return BEIGE;
-        case 7: return BLACK;
-        case 8: return DARKPURPLE;
-        default: return PINK;
     }
 }
 

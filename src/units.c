@@ -255,21 +255,47 @@ void render_units(GameState *const state) {
     ListUnit * units = &state->units;
     for (usize i = 0; i < units->len; i ++) {
         Unit * unit = units->items[i];
-        Color col = BLACK;
+        Color col;
+        switch (unit->type) {
+            case UNIT_FIGHTER: {
+                col = RED;
+            } break;
+            case UNIT_ARCHER: {
+                col = GREEN;
+            } break;
+            case UNIT_SUPPORT: {
+                col = YELLOW;
+            } break;
+            case UNIT_SPECIAL: {
+                col = BLUE;
+            } break;
+            default: {
+                col = BLACK;
+            } break;
+        }
+
+        Color player = get_player_color(unit->player_owned);
+        Color state = GREEN;
+
         switch (unit->state) {
             case UNIT_STATE_FIGHTING: {
-                col.r = 255;
+                state = RED;
             } break;
             case UNIT_STATE_MOVING: {
-                col.g = 255;
+                state = LIME;
             } break;
             case UNIT_STATE_GUARDING: {
                 TraceLog(LOG_ERROR, "Unit is in guard state, that shouldn't happen!");
             } break;
+            default: {
+                state = PINK;
+            } break;
         }
         col.b = unit->player_owned * 127;
 
-        DrawCircleV(unit->position, 5.0f, col);
+        DrawCircleV(unit->position, 7.0f, player);
+        DrawCircleV(unit->position, 5.0f, state);
+        DrawCircleV(unit->position, 3.0f, col);
     }
 
     for (usize i = 0; i < state->current_map->regions.len; i++) {
