@@ -115,7 +115,12 @@ void state_building (GameState * state) {
             state->selected_building = NULL;
             return;
         }
-        place_building(state->selected_building, type);
+        usize cost = building_buy_cost(type);
+        PlayerData * player = &state->players.items[state->selected_building->region->player_id];
+        if (player->resource_gold >= cost) {
+            place_building(state->selected_building, type);
+            player->resource_gold -= cost;
+        }
         state->current_input = INPUT_NONE;
         state->selected_building = NULL;
     }
@@ -137,7 +142,12 @@ void state_building (GameState * state) {
             case BUILDING_ACTION_NONE: {
             } break;
             case BUILDING_ACTION_UPGRADE: {
-                upgrade_building(state->selected_building);
+                usize cost = building_upgrade_cost(state->selected_building);
+                PlayerData * player = &state->players.items[state->selected_building->region->player_id];
+                if (player->resource_gold >= cost) {
+                    upgrade_building(state->selected_building);
+                    player->resource_gold -= cost;
+                }
                 state->current_input = INPUT_NONE;
                 state->selected_building = NULL;
             } break;

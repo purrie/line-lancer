@@ -8,13 +8,13 @@
 #include <raymath.h>
 
 /* Building functions ********************************************************/
-void place_building(Building * building, BuildingType type) {
+void place_building (Building * building, BuildingType type) {
     building->type = type;
     // TODO make proper building modification
     // update texture and whatnot
 }
 
-void upgrade_building(Building * building) {
+void upgrade_building (Building * building) {
     if (building->upgrades >= 2) return;
 
     building->upgrades ++;
@@ -24,6 +24,23 @@ void upgrade_building(Building * building) {
 void demolish_building (Building * building) {
     building->type = BUILDING_EMPTY;
     building->upgrades = 0;
+}
+
+usize building_buy_cost (BuildingType type) {
+    switch (type) {
+        case BUILDING_FIGHTER:  return 10;
+        case BUILDING_ARCHER:   return 15;
+        case BUILDING_SUPPORT:  return 15;
+        case BUILDING_SPECIAL:  return 20;
+        case BUILDING_RESOURCE: return 10;
+        default: {
+            TraceLog(LOG_ERROR, "Attempted to get cost of unbuildable building type");
+        } return 10000;
+    }
+}
+
+usize building_upgrade_cost (Building *const building) {
+    return building_buy_cost(building->type) * (building->upgrades + 2);
 }
 
 /* Line Functions **********************************************************/

@@ -220,6 +220,9 @@ GameState create_game_state (Map * map) {
     clear_memory(state.players.items, sizeof(PlayerData) * state.players.len);
     // TODO make better way to set which is the local player, especially after implementing multiplayer
     state.players.items[1].type = PLAYER_LOCAL;
+    for (usize i = 1; i < state.players.len; i++) {
+        state.players.items[i].resource_gold = 20;
+    }
 
     return state;
 }
