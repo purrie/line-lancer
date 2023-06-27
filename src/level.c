@@ -514,6 +514,14 @@ void render_map_mesh(Map * map) {
 
         for (usize l = 0; l < region->area.lines.len; l++) {
             Line line = region->area.lines.items[l];
+
+            Vector2 grow = Vector2Subtract(line.a, line.b);
+            grow = Vector2Normalize(grow);
+            grow = Vector2Scale(grow, 0.5f);
+            line.a = Vector2Add(line.a, grow);
+            grow = Vector2Scale(grow, -1.0f);
+            line.b = Vector2Add(line.b, grow);
+
             DrawLineEx(line.a, line.b, 4.0f, get_player_color(region->player_id));
         }
 
