@@ -84,12 +84,23 @@ void state_clicked_path (GameState * state) {
             if (entry->redirects.items[s].to == path) {
                 entry->active_redirect = s;
                 Node * node = path_start_node(entry->path, state->selected_region, &dir);
-                if (dir == MOVEMENT_DIR_FORWARD) {
-                    node->previous = entry->redirects.items[s].bridge->start;
+                Node * next = NULL;
+                Node * start = entry->redirects.items[s].bridge->start;
+
+                if (start->previous == node) {
+                    next = start;
                 }
                 else {
-                    node->next = entry->redirects.items[s].bridge->start;
+                    next = entry->redirects.items[s].bridge->end;
                 }
+
+                if (dir == MOVEMENT_DIR_FORWARD) {
+                    node->previous = next;
+                }
+                else {
+                    node->next = next;
+                }
+
                 goto clear;
             }
         }
