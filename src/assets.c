@@ -958,7 +958,7 @@ Result connect_map(Map * map) {
     }
 
     region_update_paths(region);
-    unit_guardian(region);
+    setup_unit_guardian(region);
   }
 
   return SUCCESS;

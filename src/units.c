@@ -240,7 +240,7 @@ Unit * unit_from_building(Building *const building) {
     return result;
 }
 
-void unit_guardian (Region * region) {
+void setup_unit_guardian (Region * region) {
     region->castle.guardian.health       = 500.0f;
     region->castle.guardian.player_owned = region->player_id;
     region->castle.guardian.position     = region->castle.guardian_spot.position;

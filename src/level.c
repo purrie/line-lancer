@@ -454,7 +454,7 @@ void region_change_ownership (Region * region, usize player_id) {
         }
         region_update_paths(other);
     }
-    unit_guardian(region);
+    setup_unit_guardian(region);
 
     for (usize i = 0; i < region->buildings.len; i++) {
         Building * b = &region->buildings.items[i];
