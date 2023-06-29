@@ -15,7 +15,7 @@ void place_building (Building * building, BuildingType type) {
 }
 
 void upgrade_building (Building * building) {
-    if (building->upgrades >= 2) return;
+    if (building->upgrades >= BUILDING_MAX_UPGRADES) return;
 
     building->upgrades ++;
     // TODO make proper building modification
