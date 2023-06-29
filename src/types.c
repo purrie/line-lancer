@@ -4,7 +4,6 @@
 implementList(ushort, Ushort)
 implementList(usize, Usize)
 implementList(Vector2, Vector2)
-implementList(Unit*, Unit)
 implementList(Region, Region)
 implementList(Path, Path)
 implementList(PathEntry, PathEntry)
@@ -13,6 +12,9 @@ implementList(Line, Line)
 implementList(PathBridge, PathBridge)
 implementList(Bridge, Bridge)
 implementList(PlayerData, PlayerData)
+
+implementList(Unit*, Unit)
+implementList(Region*, RegionP)
 
 StringSlice make_slice(uchar * from, usize start, usize end) {
     StringSlice s;

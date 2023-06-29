@@ -9,6 +9,7 @@
 #include "input.h"
 #include "ui.h"
 #include "units.h"
+#include "ai.h"
 
 const int WINDOW_WIDTH = 1400;
 const int WINDOW_HEIGHT = 1200;
@@ -25,19 +26,20 @@ int main(void) {
 
     SetTargetFPS(FPS);
 
-
+    Color black = (Color) {18, 18, 18, 255};
     GameState state = create_game_state(&map);
 
     while (!WindowShouldClose()) {
         state.turn ++;
         update_input_state(&state);
         update_resources(&state);
+        simulate_ai(&state);
         simulate_units(&state);
 
         BeginDrawing();
         BeginMode2D(state.camera);
 
-        ClearBackground(BLACK);
+        ClearBackground(black);
 
         render_map_mesh(&map);
         render_units(&state);

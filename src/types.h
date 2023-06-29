@@ -74,9 +74,11 @@ makeList(PathEntry, PathEntry);
 makeList(Building, Building);
 makeList(Region, Region);
 makeList(PathBridge, PathBridge);
-makeList(Unit*, Unit);
 makeList(Bridge, Bridge);
 makeList(PlayerData, PlayerData);
+
+makeList(Unit*, Unit);
+makeList(Region*, RegionP);
 
 enum UnitType {
     UNIT_FIGHTER,
@@ -200,6 +202,7 @@ struct Map {
 typedef enum PlayerType {
     PLAYER_NEUTRAL,
     PLAYER_LOCAL,
+    PLAYER_AI,
 } PlayerType;
 
 struct PlayerData {
