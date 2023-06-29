@@ -224,6 +224,9 @@ GameState create_game_state (Map * map) {
     for (usize i = 1; i < state.players.len; i++) {
         state.players.items[i].resource_gold = 20;
     }
+    for (usize i = 1; i < state.players.len; i++) {
+        state.players.items[i].type = PLAYER_AI;
+    }
 
     return state;
 }
