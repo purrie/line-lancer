@@ -39,8 +39,34 @@ usize building_buy_cost (BuildingType type) {
     }
 }
 
+usize building_upgrade_cost_raw (BuildingType type, usize level) {
+    return building_buy_cost(type) * (level + 2);
+}
+
 usize building_upgrade_cost (Building *const building) {
-    return building_buy_cost(building->type) * (building->upgrades + 2);
+    return building_upgrade_cost_raw(building->type, building->upgrades);
+}
+
+usize building_cost_to_spawn (Building *const building) {
+    switch (building->type) {
+        case BUILDING_EMPTY:
+        case BUILDING_RESOURCE:
+            return 0;
+        case BUILDING_ARCHER:
+        case BUILDING_FIGHTER:
+        case BUILDING_SUPPORT:
+        case BUILDING_SPECIAL:
+            return 1 + building->upgrades;
+        default:
+            TraceLog(LOG_ERROR, "Attempted to get unit spawn cost from unhandled building type");
+            return 0;
+    }
+}
+
+usize building_generated_income (Building *const building) {
+    if (building->type == BUILDING_RESOURCE)
+        return 3 * ( building->upgrades + 1);
+    return 0;
 }
 
 /* Line Functions **********************************************************/
@@ -577,3 +603,25 @@ void render_map_mesh(Map * map) {
     #endif
 }
 
+size get_expected_income (Map *const map, size player) {
+    size income = 0;
+
+    size spawn_cost = BUILDING_SPAWN_INTERVAL / BUILDING_RESOURCE_INTERVAL;
+
+    for (usize i = 0; i < map->regions.len; i++) {
+        Region * region = &map->regions.items[i];
+        if (region->player_id != player)
+            continue;
+
+        income += REGION_INCOME;
+        for (usize b = 0; b < region->buildings.len; b++) {
+            Building * building = &region->buildings.items[b];
+            if (building->type == BUILDING_RESOURCE)
+                income += building_generated_income(building);
+            else
+                income -= building_cost_to_spawn(building) * spawn_cost;
+        }
+    }
+
+    return income;
+}

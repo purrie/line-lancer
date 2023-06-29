@@ -56,7 +56,7 @@ void spawn_units (GameState * state) {
                 continue;
 
             building->spawn_timer += 1;
-            usize cost_to_spawn   = 1 + building->upgrades;
+            usize cost_to_spawn   = building_cost_to_spawn(building);
             bool is_time_to_spawn = building->spawn_timer >= FPS * BUILDING_SPAWN_INTERVAL;
             bool can_afford       = player->resource_gold >= cost_to_spawn;
 
@@ -184,11 +184,12 @@ void update_resources (GameState * state) {
         Region * region = &state->current_map->regions.items[i];
         if (region->player_id == 0)
             continue;
-        usize gold = 3;
+        usize gold = REGION_INCOME;
 
         for (usize b = 0; b < region->buildings.len; b++) {
-            if (region->buildings.items[b].type == BUILDING_RESOURCE) {
-                gold += 3 * (region->buildings.items[b].upgrades + 1);
+            Building * building = &region->buildings.items[b];
+            if (building->type == BUILDING_RESOURCE) {
+                gold += building_generated_income(building);
             }
         }
 

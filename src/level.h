@@ -5,11 +5,14 @@
 #include "types.h"
 
 /* Building Functions ********************************************************/
-void   place_building        (Building * building, BuildingType type);
-void   upgrade_building      (Building * building);
-void   demolish_building     (Building * building);
-usize  building_buy_cost     (BuildingType type);
-usize  building_upgrade_cost (Building *const building);
+void   place_building            (Building * building, BuildingType type);
+void   upgrade_building          (Building * building);
+void   demolish_building         (Building * building);
+usize  building_buy_cost         (BuildingType type);
+usize  building_upgrade_cost     (Building *const building);
+usize  building_upgrade_cost_raw (BuildingType type, usize level);
+usize  building_cost_to_spawn    (Building *const building);
+usize  building_generated_income (Building *const building);
 
 /* Line Functions ***********************************************************/
 Line      make_line           (Vector2 a, Vector2 b);
@@ -49,8 +52,9 @@ void     region_update_paths     (Region * region);
 Region * region_by_guardian      (ListRegion *const regions, Unit *const guardian);
 
 /* Map Functions *********************************************************/
-void     map_clamp                  (Map * map);
-void     render_map                 (Map * map);
-void     render_map_mesh            (Map * map);
+void  map_clamp           (Map * map);
+void  render_map          (Map * map);
+void  render_map_mesh     (Map * map);
+size  get_expected_income (Map *const map, size player);
 
 #endif // GEOMETRY_H_
