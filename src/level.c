@@ -334,6 +334,17 @@ Building * get_building_by_position(Map *const map, Vector2 position) {
     return NULL;
 }
 
+Result building_set_spawn_path (Building * building, Path *const path) {
+    for (usize i = 0; i < building->spawn_paths.len; i++) {
+        Bridge bridge = building->spawn_paths.items[i];
+        if (bridge.end->next == path->bridge.end || bridge.end->next == path->bridge.start) {
+            building->active_spawn = i;
+            return SUCCESS;
+        }
+    }
+    return FAILURE;
+}
+
 /* Path Functions **********************************************************/
 Path * path_on_point (Map *const map, Vector2 point, Movement * direction) {
     for (usize i = 0; i < map->paths.len; i++) {
@@ -497,6 +508,44 @@ Region * region_by_guardian (ListRegion *const regions, Unit *const guardian) {
     }
     TraceLog(LOG_ERROR, "Attempted to get region from a non-guardian unit");
     return NULL;
+}
+
+Result region_connect_paths (Region * region, Path * from, Path * to) {
+    for (usize f = 0; f < region->paths.len; f++) {
+        PathEntry * entry = &region->paths.items[f];
+
+        if (entry->path != from) {
+            continue;
+        }
+
+        for (usize s = 0; s < entry->redirects.len; s++) {
+            if (entry->redirects.items[s].to == to) {
+                entry->active_redirect = s;
+                Movement dir;
+                Node * node = path_start_node(entry->path, region, &dir);
+                Node * next = NULL;
+                Node * start = entry->redirects.items[s].bridge->start;
+
+                if (start->previous == node) {
+                    next = start;
+                }
+                else {
+                    next = entry->redirects.items[s].bridge->end;
+                }
+
+                if (dir == MOVEMENT_DIR_FORWARD) {
+                    node->previous = next;
+                }
+                else {
+                    node->next = next;
+                }
+
+                return SUCCESS;
+            }
+        }
+        break;
+    }
+    return FAILURE;
 }
 
 /* Map Functions ***********************************************************/

@@ -45,10 +45,12 @@ Rectangle area_bounds             (const Area *const area);
 float       building_size            ();
 Rectangle   building_bounds          (Building *const building);
 Building  * get_building_by_position (Map * map, Vector2 position);
+Result      building_set_spawn_path  (Building * building, Path *const path);
 
 /* Region Functions ********************************************************/
 void     region_change_ownership (Region * region, usize player_id);
 void     region_update_paths     (Region * region);
+Result   region_connect_paths    (Region * region, Path * from, Path * to);
 Region * region_by_guardian      (ListRegion *const regions, Unit *const guardian);
 
 /* Map Functions *********************************************************/

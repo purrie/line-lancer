@@ -47,13 +47,7 @@ void state_clicked_building (GameState * state) {
 
     Path * path = path_on_point(state->current_map, cursor, NULL);
     if (path) {
-        for (usize i = 0; i < state->selected_building->spawn_paths.len; i++) {
-            Bridge bridge = state->selected_building->spawn_paths.items[i];
-            if (bridge.end->next == path->bridge.end || bridge.end->next == path->bridge.start) {
-                state->selected_building->active_spawn = i;
-                break;
-            }
-        }
+        building_set_spawn_path(state->selected_building, path);
     }
 
     state->selected_region = NULL;
@@ -73,38 +67,8 @@ void state_clicked_path (GameState * state) {
         goto clear;
     }
 
-    for (usize f = 0; f < state->selected_region->paths.len; f++) {
-        PathEntry * entry = &state->selected_region->paths.items[f];
-
-        if (entry->path != state->selected_path) {
-            continue;
-        }
-
-        for (usize s = 0; s < entry->redirects.len; s++) {
-            if (entry->redirects.items[s].to == path) {
-                entry->active_redirect = s;
-                Node * node = path_start_node(entry->path, state->selected_region, &dir);
-                Node * next = NULL;
-                Node * start = entry->redirects.items[s].bridge->start;
-
-                if (start->previous == node) {
-                    next = start;
-                }
-                else {
-                    next = entry->redirects.items[s].bridge->end;
-                }
-
-                if (dir == MOVEMENT_DIR_FORWARD) {
-                    node->previous = next;
-                }
-                else {
-                    node->next = next;
-                }
-
-                goto clear;
-            }
-        }
-        break;
+    if (region_connect_paths(state->selected_region, state->selected_path, path)) {
+        TraceLog(LOG_ERROR, "Couldn't connect paths");
     }
 
     clear:
