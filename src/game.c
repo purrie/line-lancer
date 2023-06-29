@@ -13,7 +13,6 @@ PlayerData * get_local_player (GameState * state) {
             return player;
         }
     }
-    TraceLog(LOG_ERROR, "Couldn't find local player!");
     return NULL;
 }
 

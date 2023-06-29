@@ -239,6 +239,10 @@ void render_upgrade_building_dialog (GameState *const state) {
 
 void render_resource_bar (GameState *const state) {
     PlayerData * player = get_local_player(state);
+    if (player == NULL) {
+        // setting player 1 to be rendered just to render something when there's no local players
+        player = &state->players.items[1];
+    }
     Rectangle bar = cake_rect(GetScreenWidth(), UI_BAR_SIZE);
     Rectangle mbar = cake_margin_all(bar, UI_BAR_MARGIN);
 
