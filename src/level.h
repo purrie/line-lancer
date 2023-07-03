@@ -13,6 +13,7 @@ usize  building_upgrade_cost     (Building *const building);
 usize  building_upgrade_cost_raw (BuildingType type, usize level);
 usize  building_cost_to_spawn    (Building *const building);
 usize  building_generated_income (Building *const building);
+float  building_trigger_interval (Building *const building);
 
 /* Line Functions ***********************************************************/
 Line      make_line           (Vector2 a, Vector2 b);
@@ -48,7 +49,7 @@ Building  * get_building_by_position (Map * map, Vector2 position);
 Result      building_set_spawn_path  (Building * building, Path *const path);
 
 /* Region Functions ********************************************************/
-void     region_change_ownership (Region * region, usize player_id);
+void     region_change_ownership (GameState * state, Region * region, usize player_id);
 void     region_update_paths     (Region * region);
 Result   region_connect_paths    (Region * region, Path * from, Path * to);
 Region * region_by_guardian      (ListRegion *const regions, Unit *const guardian);

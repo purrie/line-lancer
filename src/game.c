@@ -42,16 +42,16 @@ Color get_player_color (usize player_id) {
     }
 }
 
-void spawn_unit (GameState * state, Building * building) {
+Test spawn_unit (GameState * state, Building * building) {
     Unit * unit = unit_from_building(building);
     if (unit == NULL) {
-        return;
+        return NO;
     }
     listUnitAppend(&state->units, unit);
-    TraceLog(LOG_INFO, "Unit spawned for player %zu", unit->player_owned);
+    return YES;
 }
 
-void spawn_units (GameState * state) {
+void spawn_units (GameState * state, float delta_time) {
     for (usize r = 0; r < state->current_map->regions.len; r++) {
         Region * region = &state->current_map->regions.items[r];
         if (region->player_id == 0)
@@ -65,15 +65,28 @@ void spawn_units (GameState * state) {
             if (building->type == BUILDING_EMPTY)
                 continue;
 
-            building->spawn_timer += 1;
-            usize cost_to_spawn   = building_cost_to_spawn(building);
-            bool is_time_to_spawn = building->spawn_timer >= FPS * BUILDING_SPAWN_INTERVAL;
-            bool can_afford       = player->resource_gold >= cost_to_spawn;
+            building->spawn_timer += delta_time;
+            float interval = building_trigger_interval(building);
+            if (building->spawn_timer < interval)
+                continue;
+            building->spawn_timer = 0.0f;
 
-            if (is_time_to_spawn && can_afford) {
-                player->resource_gold -= cost_to_spawn;
-                building->spawn_timer  = 0;
-                spawn_unit(state, building);
+            switch (building->type) {
+                case BUILDING_EMPTY:
+                case BUILDING_TYPE_COUNT:
+                    break;
+                case BUILDING_RESOURCE: {
+                    player->resource_gold += building_generated_income(building);
+                } break;
+                case BUILDING_FIGHTER:
+                case BUILDING_ARCHER:
+                case BUILDING_SUPPORT:
+                case BUILDING_SPECIAL: {
+                    usize cost_to_spawn = building_cost_to_spawn(building);
+                    bool can_afford     = player->resource_gold >= cost_to_spawn;
+                    if (can_afford && spawn_unit(state, building))
+                        player->resource_gold -= cost_to_spawn;
+                } break;
             }
         }
     }
@@ -145,7 +158,7 @@ void units_fight (GameState * state, float delta_time) {
             }
             if (target->state == UNIT_STATE_GUARDING) {
                 Region * region = region_by_guardian(&state->current_map->regions, target);
-                region_change_ownership(region, unit->player_owned);
+                region_change_ownership(state, region, unit->player_owned);
             }
             else {
                 usize target_index = destroy_unit(&state->units, target);
@@ -179,7 +192,7 @@ void guardian_fight (GameState * state, float delta_time) {
 void simulate_units (GameState * state) {
     float dt = GetFrameTime();
 
-    spawn_units       (state);
+    spawn_units       (state, dt);
     move_units        (state, dt);
     units_fight       (state, dt);
     guardian_fight    (state, dt);
@@ -187,23 +200,15 @@ void simulate_units (GameState * state) {
 }
 
 void update_resources (GameState * state) {
-    if (state->turn % (FPS * BUILDING_RESOURCE_INTERVAL))
+    if (state->turn % (FPS * REGION_INCOME_INTERVAL))
         return;
 
     for (usize i = 0; i < state->current_map->regions.len; i++) {
         Region * region = &state->current_map->regions.items[i];
         if (region->player_id == 0)
             continue;
-        usize gold = REGION_INCOME;
 
-        for (usize b = 0; b < region->buildings.len; b++) {
-            Building * building = &region->buildings.items[b];
-            if (building->type == BUILDING_RESOURCE) {
-                gold += building_generated_income(building);
-            }
-        }
-
-        state->players.items[region->player_id].resource_gold += gold;
+        state->players.items[region->player_id].resource_gold += REGION_INCOME;
     }
 }
 
@@ -236,6 +241,11 @@ GameState create_game_state (Map * map) {
     }
     for (usize i = 1; i < state.players.len; i++) {
         state.players.items[i].type = PLAYER_AI;
+    }
+
+    for (usize r = 0; r < map->regions.len; r++) {
+        Region * region = &map->regions.items[r];
+        region->faction = state.players.items[region->player_id].faction;
     }
 
     return state;

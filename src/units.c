@@ -14,12 +14,10 @@ Result move_node (Node ** from, Movement * direction) {
             next = orig->previous;
         } break;
         default: {
-            TraceLog(LOG_ERROR, "Node movement has unexpected value");
             return FAILURE;
         }
     }
     if (next == NULL) {
-        TraceLog(LOG_ERROR, "Failed to move node");
         return FAILURE;
     }
 
@@ -41,6 +39,7 @@ Result move_node (Node ** from, Movement * direction) {
     return SUCCESS;
 }
 
+/* Combat ********************************************************************/
 usize get_unit_range (Unit *const unit) {
     switch(unit->type) {
         case UNIT_FIGHTER:
@@ -50,10 +49,112 @@ usize get_unit_range (Unit *const unit) {
         case UNIT_SUPPORT:
             return 1 + unit->upgrade;
         case UNIT_SPECIAL:
-            return 2 + unit->upgrade;
+            switch (unit->faction) {
+                case FACTION_KNIGHTS: return 2;
+                case FACTION_MAGES: return 1;
+            }
         case UNIT_GUARDIAN:
-            return 3;
+            // TODO this probably won't be used since the guardian needs to always reach any attacker
+            // Otherwise some units will be able to defeat guardian without a fight
+            // This could be alievated if the guardian could move but that's not something I see happening
+            switch (unit->faction) {
+                case FACTION_KNIGHTS: return 2;
+                case FACTION_MAGES: return 5;
+            }
     }
+}
+
+float get_unit_attack (Unit * unit) {
+    float attack;
+    switch (unit->type) {
+        case UNIT_FIGHTER: {
+            switch (unit->faction) {
+                case FACTION_KNIGHTS: {
+                    attack = 60.0f * (unit->upgrade + 1);
+                } break;
+                case FACTION_MAGES: {
+                    attack = 60.0f * (unit->upgrade + 1);
+                } break;
+            }
+        } break;
+        case UNIT_ARCHER: {
+            switch (unit->faction) {
+                case FACTION_KNIGHTS: {
+                    attack = 50.0f * (unit->upgrade + 1);
+                } break;
+                case FACTION_MAGES: {
+                    attack = 50.0f * (unit->upgrade + 1);
+                } break;
+            }
+        } break;
+        case UNIT_SUPPORT: {
+            switch (unit->faction) {
+                case FACTION_KNIGHTS: {
+                    attack = 30.0f * (unit->upgrade + 1);
+                } break;
+                case FACTION_MAGES: {
+                    attack = 30.0f * (unit->upgrade + 1);
+                } break;
+            }
+        } break;
+        case UNIT_SPECIAL: {
+            switch (unit->faction) {
+                case FACTION_KNIGHTS: {
+                    attack = 100.0f * (unit->upgrade + 1);
+                } break;
+                case FACTION_MAGES: {
+                    attack = 100.0f * (unit->upgrade + 1);
+                } break;
+            }
+        } break;
+        case UNIT_GUARDIAN: {
+            switch (unit->faction) {
+                case FACTION_KNIGHTS: {
+                    attack = 10.0f * (unit->upgrade + 1);
+                } break;
+                case FACTION_MAGES: {
+                    attack = 10.0f * (unit->upgrade + 1);
+                } break;
+            }
+        } break;
+        default: {
+            TraceLog(LOG_ERROR, "Requested attack for unit with no valid type");
+            return 1.0f;
+        } break;
+    }
+    return attack;
+}
+
+float get_unit_health (UnitType type, FactionType faction, unsigned int upgrades) {
+    switch (type) {
+        case UNIT_FIGHTER:
+            switch (faction) {
+                case FACTION_KNIGHTS: return 100.0f * (upgrades + 1);
+                case FACTION_MAGES:   return 140.0f * (upgrades + 1);
+            }
+        case UNIT_ARCHER:
+            switch (faction) {
+                case FACTION_KNIGHTS: return 80.0f * (upgrades + 1);
+                case FACTION_MAGES:   return 70.0f * (upgrades + 1);
+            }
+        case UNIT_SUPPORT:
+            switch (faction) {
+                case FACTION_KNIGHTS: return 60.0f * (upgrades + 1);
+                case FACTION_MAGES:   return 60.0f * (upgrades + 1);
+            }
+        case UNIT_SPECIAL:
+            switch (faction) {
+                case FACTION_KNIGHTS: return 120.0f * (upgrades + 1);
+                case FACTION_MAGES:   return 50.0f * (upgrades + 1);
+            }
+        case UNIT_GUARDIAN:
+            switch (faction) {
+                case FACTION_KNIGHTS: return 500.0f * (upgrades + 1);
+                case FACTION_MAGES:   return 500.0f * (upgrades + 1);
+            }
+    }
+    TraceLog(LOG_ERROR, "Tried to obtain health of unsupported unit type");
+    return 1.0f;
 }
 
 Unit * get_enemy_in_range (Unit *const unit) {
@@ -62,7 +163,6 @@ Unit * get_enemy_in_range (Unit *const unit) {
     Movement direction = unit->move_direction;
     while (range --> 0) {
         if (move_node(&node, &direction)) {
-            TraceLog(LOG_ERROR, "Failed to move node to get enemy in range [%d]", range);
             return NULL;
         }
         if (node->unit && node->unit->player_owned != unit->player_owned) {
@@ -72,6 +172,7 @@ Unit * get_enemy_in_range (Unit *const unit) {
     return NULL;
 }
 
+/* Movement ******************************************************************/
 Test is_unit_on_building_path (Unit *const unit) {
     if (unit->location->bridge->start->previous == NULL)
         return YES;
@@ -86,7 +187,7 @@ Test can_unit_progress (Unit *const unit) {
     return NO;
 }
 
-Result pass_units(Unit * a, Node * anext, Movement adir, Unit * b) {
+Result pass_units (Unit * a, Node * anext, Movement adir, Unit * b) {
     if (is_unit_on_building_path(a)) {
         // bugfix: this prevents units leaving building path from pushing oncoming other units to walk back towards the building
         return FAILURE;
@@ -149,14 +250,15 @@ Result move_unit_forward (Unit * unit) {
     return SUCCESS;
 }
 
-void clear_unit_list(ListUnit * list) {
+/* Setup *********************************************************************/
+void clear_unit_list (ListUnit * list) {
     for(usize i = 0; i < list->len; i++) {
         MemFree(list->items[i]);
     }
     list->len = 0;
 }
 
-usize destroy_unit(ListUnit * list, Unit * unit) {
+usize destroy_unit (ListUnit * list, Unit * unit) {
     for (usize i = 0; i < list->len; i++) {
         if (list->items[i] == unit) {
             unit->location->unit = NULL;
@@ -169,37 +271,10 @@ usize destroy_unit(ListUnit * list, Unit * unit) {
     return list->cap;
 }
 
-float get_unit_attack(Unit * unit) {
-    float attack;
-    switch (unit->type) {
-        case UNIT_FIGHTER: {
-            attack = 60.0f;
-        } break;
-        case UNIT_ARCHER: {
-            attack = 50.0f;
-        } break;
-        case UNIT_SUPPORT: {
-            attack = 30.0f;
-        } break;
-        case UNIT_SPECIAL: {
-            attack = 100.0f;
-        } break;
-        case UNIT_GUARDIAN: {
-            attack = 10.0f;
-        } break;
-        default: {
-            TraceLog(LOG_ERROR, "Requested attack for unity with no valid type");
-            return 1.0f;
-        } break;
-    }
-    attack *= unit->upgrade + 1;
-    return attack;
-}
-
-Unit * unit_from_building(Building *const building) {
+Unit * unit_from_building (Building *const building) {
     Node * spawn = building->spawn_paths.items[building->active_spawn].start;
     if (spawn->unit) {
-        TraceLog(LOG_WARNING, "Failed to spawn unit because spawn point is occupied by another unit");
+        // no spawn because the path is blocked. gotta wait until the unit moves
         return NULL;
     }
     Unit * result = MemAlloc(sizeof(Unit));
@@ -208,22 +283,18 @@ Unit * unit_from_building(Building *const building) {
     switch (building->type) {
         case BUILDING_FIGHTER: {
             result->type = UNIT_FIGHTER;
-            result->health = 100.0f;
         } break;
         case BUILDING_ARCHER: {
             result->type = UNIT_ARCHER;
-            result->health = 80.0f;
         } break;
         case BUILDING_SUPPORT: {
             result->type = UNIT_SUPPORT;
-            result->health = 60.0f;
         } break;
         case BUILDING_SPECIAL: {
             result->type = UNIT_SPECIAL;
-            result->health = 120.0f;
         } break;
         default: {
-            TraceLog(LOG_ERROR, "Tried to spawn unit from a building that doesn't spawn units: %s", STRINGIFY_VALUE(building->type));
+            TraceLog(LOG_ERROR, "Tried to spawn unit from a building that doesn't spawn units");
             MemFree(result);
             return NULL;
         } break;
@@ -232,26 +303,29 @@ Unit * unit_from_building(Building *const building) {
     result->position        = building->position;
     result->upgrade         = building->upgrades;
     result->player_owned    = building->region->player_id;
+    result->faction         = building->region->faction;
     result->location        = spawn;
     result->move_direction  = MOVEMENT_DIR_FORWARD;
-    result->health         *= result->upgrade + 1;
+    result->health          = get_unit_health(result->type, result->faction, result->upgrade);
 
     spawn->unit = result;
     return result;
 }
 
 void setup_unit_guardian (Region * region) {
-    region->castle.guardian.health       = 500.0f;
+    region->castle.guardian.health       = get_unit_health(UNIT_GUARDIAN, region->faction, 0);
     region->castle.guardian.player_owned = region->player_id;
+    region->castle.guardian.faction      = region->faction;
     region->castle.guardian.position     = region->castle.guardian_spot.position;
     region->castle.guardian.state        = UNIT_STATE_GUARDING;
     region->castle.guardian.type         = UNIT_GUARDIAN;
-    region->castle.guardian.location     = &region->castle.guardian_spot;
 
+    region->castle.guardian.location     = &region->castle.guardian_spot;
     region->castle.guardian_spot.unit    = &region->castle.guardian;
 }
 
-void render_units(GameState *const state) {
+/* Visuals *******************************************************************/
+void render_units (GameState *const state) {
     ListUnit * units = &state->units;
     for (usize i = 0; i < units->len; i ++) {
         Unit * unit = units->items[i];

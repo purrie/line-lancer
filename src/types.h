@@ -80,6 +80,11 @@ makeList(PlayerData, PlayerData);
 makeList(Unit*, Unit);
 makeList(Region*, RegionP);
 
+typedef enum FactionType {
+    FACTION_KNIGHTS,
+    FACTION_MAGES,
+} FactionType;
+
 enum UnitType {
     UNIT_FIGHTER,
     UNIT_ARCHER,
@@ -109,6 +114,7 @@ struct Unit {
     Node      * location;
     Movement    move_direction;
     usize       player_owned;
+    FactionType faction;
 };
 
 struct Node {
@@ -144,7 +150,7 @@ struct Building {
     BuildingType   type;
     Model          model;
     ushort         upgrades;
-    usize          spawn_timer;
+    float          spawn_timer;
     ListBridge     spawn_paths;
     usize          active_spawn;
     Region       * region;
@@ -189,6 +195,7 @@ struct Region {
     Castle        castle;
     ListBuilding  buildings;
     ListPathEntry paths;
+    FactionType   faction;
 };
 
 struct Map {
@@ -208,6 +215,7 @@ typedef enum PlayerType {
 struct PlayerData {
     usize resource_gold;
     PlayerType type;
+    FactionType faction;
 };
 
 enum PlayerState {

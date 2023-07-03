@@ -69,6 +69,41 @@ usize building_generated_income (Building *const building) {
     return 0;
 }
 
+float building_trigger_interval (Building *const building) {
+    switch (building->type) {
+        case BUILDING_TYPE_COUNT:
+        case BUILDING_EMPTY:
+            break;
+        case BUILDING_RESOURCE:
+            switch (building->region->faction) {
+                case FACTION_KNIGHTS: return 10.0f - building->upgrades;
+                case FACTION_MAGES:   return 10.0f - building->upgrades;
+            }
+        case BUILDING_FIGHTER:
+            switch (building->region->faction) {
+                case FACTION_KNIGHTS: return 5.0f - building->upgrades;
+                case FACTION_MAGES:   return 5.0f - building->upgrades;
+            }
+        case BUILDING_ARCHER:
+            switch (building->region->faction) {
+                case FACTION_KNIGHTS: return 5.0f - building->upgrades;
+                case FACTION_MAGES:   return 5.0f - building->upgrades;
+            }
+        case BUILDING_SUPPORT:
+            switch (building->region->faction) {
+                case FACTION_KNIGHTS: return 5.0f - building->upgrades;
+                case FACTION_MAGES:   return 5.0f - building->upgrades;
+            }
+        case BUILDING_SPECIAL:
+            switch (building->region->faction) {
+                case FACTION_KNIGHTS: return 5.0f - building->upgrades;
+                case FACTION_MAGES:   return 5.0f - building->upgrades;
+            }
+    }
+    TraceLog(LOG_WARNING, "Attempted to obtain spawn interval from non-spawning building");
+    return 0.0f;
+}
+
 /* Line Functions **********************************************************/
 Result line_intersection (Line a, Line b, Vector2 * value) {
     const Vector2 sn = Vector2Subtract(a.a, a.b);
@@ -477,8 +512,9 @@ void region_update_paths (Region * region) {
     }
 }
 
-void region_change_ownership (Region * region, usize player_id) {
+void region_change_ownership (GameState * state, Region * region, usize player_id) {
     region->player_id = player_id;
+    region->faction = state->players.items[player_id].faction;
     region_update_paths(region);
     for (usize i = 0; i < region->paths.len; i++) {
         Region * other;
@@ -656,24 +692,22 @@ void render_map_mesh(Map * map) {
 }
 
 size get_expected_income (Map *const map, usize player) {
-    size income = 0;
-
-    size spawn_cost = BUILDING_RESOURCE_INTERVAL / BUILDING_SPAWN_INTERVAL;
+    float income = 0.0f;
 
     for (usize i = 0; i < map->regions.len; i++) {
         Region * region = &map->regions.items[i];
         if (region->player_id != player)
             continue;
 
-        income += REGION_INCOME;
+        income += (float)REGION_INCOME;
         for (usize b = 0; b < region->buildings.len; b++) {
             Building * building = &region->buildings.items[b];
             if (building->type == BUILDING_RESOURCE)
-                income += building_generated_income(building);
-            else
-                income -= building_cost_to_spawn(building) * spawn_cost;
+                income += ( building_generated_income(building) / building_trigger_interval(building) ) * REGION_INCOME_INTERVAL;
+            else if (building->type != BUILDING_EMPTY)
+                income -= ( building_cost_to_spawn(building) / building_trigger_interval(building) ) * REGION_INCOME_INTERVAL;
         }
     }
 
-    return income;
+    return (size)income;
 }
