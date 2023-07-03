@@ -1,6 +1,8 @@
 #ifndef CONSTANTS_H_
 #define CONSTANTS_H_
 
+#define DEBUG
+
 #define FPS 60
 
 #define UNIT_SIZE 6.0f

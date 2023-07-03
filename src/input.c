@@ -1,6 +1,7 @@
 #include "input.h"
 #include "ui.h"
 #include "level.h"
+#include "constants.h"
 #include <raymath.h>
 
 
@@ -92,10 +93,18 @@ void state_building (GameState * state) {
         }
         usize cost = building_buy_cost(type);
         PlayerData * player = &state->players.items[state->selected_building->region->player_id];
+        #ifdef DEBUG
+        if (player->resource_gold >= cost || IsKeyDown(KEY_LEFT_SHIFT)) {
+            place_building(state->selected_building, type);
+            if (IsKeyDown(KEY_LEFT_SHIFT) == false)
+                player->resource_gold -= cost;
+        }
+        #else
         if (player->resource_gold >= cost) {
             place_building(state->selected_building, type);
             player->resource_gold -= cost;
         }
+        #endif
         state->current_input = INPUT_NONE;
         state->selected_building = NULL;
     }
