@@ -115,11 +115,11 @@ char * convert_int_to_ascii (int number, Allocator alloc) {
     if (negative) {
         count ++;
         buffer[0] = '-';
+        test = -test;
     }
 
     while (test != 0) {
         char num = test % 10;
-        if (num < 0) num = -num;
         buffer[count++] = '0' + num;
         test /= 10;
     }
@@ -143,7 +143,7 @@ char * convert_int_to_ascii (int number, Allocator alloc) {
     }
 
     char * result = alloc(sizeof(char) * (count + 1));
-    copy_memory(result + negative, buffer, count);
+    copy_memory(result, buffer, count);
     result[count] = '\0';
     return result;
 }
