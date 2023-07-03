@@ -511,6 +511,9 @@ Region * region_by_guardian (ListRegion *const regions, Unit *const guardian) {
 }
 
 Result region_connect_paths (Region * region, Path * from, Path * to) {
+    if (from->region_a->player_id != from->region_b->player_id)
+        return FAILURE;
+
     for (usize f = 0; f < region->paths.len; f++) {
         PathEntry * entry = &region->paths.items[f];
 
