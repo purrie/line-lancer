@@ -9,11 +9,29 @@ void state_none (GameState * state) {
     if(IsMouseButtonPressed(MOUSE_BUTTON_LEFT) == false) {
         return;
     }
+    usize player;
+    if (get_local_player_index(state, &player)) {
+        #ifdef DEBUG
+        if (IsKeyDown(KEY_LEFT_SHIFT))
+            player = 1;
+        else
+            return;
+        #else
+        return;
+        #endif
+    }
 
     state->selected_point = GetMousePosition();
     Vector2 cursor = GetScreenToWorld2D(state->selected_point, state->camera);
     Building * b = get_building_by_position(state->current_map, cursor);
     if (b) {
+        #ifdef DEBUG
+        if (b->region->player_id != player && IsKeyUp(KEY_LEFT_SHIFT))
+            return;
+        #else
+        if (b->region->player_id != player)
+            return;
+        #endif
         state->current_input = INPUT_CLICKED_BUILDING;
         state->selected_building = b;
         state->selected_region = b->region;
@@ -22,6 +40,27 @@ void state_none (GameState * state) {
     Movement dir;
     Path * p = path_on_point(state->current_map, cursor, &dir);
     if (p) {
+        usize owner;
+        switch (dir) {
+            case MOVEMENT_DIR_FORWARD: {
+                owner = p->region_a->player_id;
+            } break;
+            case MOVEMENT_DIR_BACKWARD: {
+                owner = p->region_b->player_id;
+            } break;
+            case MOVEMENT_INVALID: {
+                TraceLog(LOG_ERROR, "Clicked path has invalid movement direction");
+                return;
+            }
+        }
+        #ifdef DEBUG
+        if (owner != player && IsKeyUp(KEY_LEFT_SHIFT))
+            return;
+        #else
+        if (owner != player)
+            return;
+        #endif
+
         state->selected_path = p;
         if (dir == MOVEMENT_DIR_FORWARD)
             state->selected_region = p->region_a;
