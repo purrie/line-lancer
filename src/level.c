@@ -655,10 +655,10 @@ void render_map_mesh(Map * map) {
     #endif
 }
 
-size get_expected_income (Map *const map, size player) {
+size get_expected_income (Map *const map, usize player) {
     size income = 0;
 
-    size spawn_cost = BUILDING_SPAWN_INTERVAL / BUILDING_RESOURCE_INTERVAL;
+    size spawn_cost = BUILDING_RESOURCE_INTERVAL / BUILDING_SPAWN_INTERVAL;
 
     for (usize i = 0; i < map->regions.len; i++) {
         Region * region = &map->regions.items[i];

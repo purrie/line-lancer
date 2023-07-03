@@ -2,6 +2,7 @@
 #include "std.h"
 #include "alloc.h"
 #include "constants.h"
+#include "level.h"
 #define CAKE_LAYOUT_IMPLEMENTATION
 #include "cake.h"
 
@@ -238,24 +239,39 @@ void render_upgrade_building_dialog (GameState *const state) {
 }
 
 void render_resource_bar (GameState *const state) {
-    PlayerData * player = get_local_player(state);
-    if (player == NULL) {
-        // setting player 1 to be rendered just to render something when there's no local players
-        player = &state->players.items[1];
+    usize player_index;
+    if (get_local_player_index(state, &player_index)) {
+        player_index = 1;
     }
+    PlayerData * player = &state->players.items[player_index];
+
+    int income = get_expected_income(state->current_map, player_index);
+
     Rectangle bar = cake_rect(GetScreenWidth(), UI_BAR_SIZE);
     Rectangle mbar = cake_margin_all(bar, UI_BAR_MARGIN);
 
-    char * gold_label = "Gold: ";
-    int gold_label_width = MeasureText(gold_label, UI_FONT_SIZE_BAR);
+    char * gold_label   = "Gold: ";
+    char * gold         = convert_int_to_ascii(player->resource_gold, &temp_alloc);
+    char * income_label = convert_int_to_ascii(income, &temp_alloc);
 
-    char * gold = convert_int_to_ascii(player->resource_gold, &temp_alloc);
+    int gold_label_width = MeasureText(gold_label, UI_FONT_SIZE_BAR);
+    int gold_width       = MeasureText(gold, UI_FONT_SIZE_BAR);
 
     Rectangle label_rect = cake_cut_vertical(&mbar, 0, gold_label_width);
+    Rectangle gold_rect  = cake_cut_vertical(&mbar, 0, gold_width);
 
     DrawRectangleRec(bar, DARKGRAY);
-    DrawText(gold_label, label_rect.x, label_rect.y, UI_FONT_SIZE_BAR, WHITE);
-    DrawText(gold, mbar.x, mbar.y, UI_FONT_SIZE_BAR, WHITE);
+    DrawText(gold_label   , label_rect.x, label_rect.y, UI_FONT_SIZE_BAR, WHITE);
+    DrawText(gold         , gold_rect.x , gold_rect.y , UI_FONT_SIZE_BAR, WHITE);
+    cake_cut_vertical(&mbar, 0, UI_BAR_MARGIN);
+
+    if (income >= 0) {
+        int sign_width = MeasureText("+", UI_FONT_SIZE_BAR);
+        Rectangle sign = cake_cut_vertical(&mbar, 0, sign_width);
+        DrawText("+", sign.x, sign.y, UI_FONT_SIZE_BAR, WHITE);
+    }
+
+    DrawText(income_label, mbar.x, mbar.y, UI_FONT_SIZE_BAR, WHITE);
 }
 
 void render_ui (GameState *const state) {

@@ -6,7 +6,7 @@
 #include "constants.h"
 #include <raymath.h>
 
-PlayerData * get_local_player (GameState * state) {
+PlayerData * get_local_player (GameState *const state) {
     for (usize i = 0; i < state->players.len; i++) {
         PlayerData * player = &state->players.items[i];
         if (player->type == PLAYER_LOCAL) {
@@ -14,6 +14,17 @@ PlayerData * get_local_player (GameState * state) {
         }
     }
     return NULL;
+}
+
+Result get_local_player_index (GameState *const state, usize * result) {
+    for (usize i = 0; i < state->players.len; i++) {
+        PlayerData * player = &state->players.items[i];
+        if (player->type == PLAYER_LOCAL) {
+            *result = i;
+            return SUCCESS;
+        }
+    }
+    return FAILURE;
 }
 
 Color get_player_color (usize player_id) {

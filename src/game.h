@@ -3,8 +3,9 @@
 
 #include "types.h"
 
-PlayerData * get_local_player (GameState * state);
-Color        get_player_color (usize player_id);
+PlayerData * get_local_player       (GameState *const state);
+Result       get_local_player_index (GameState *const state, usize * result);
+Color        get_player_color       (usize player_id);
 
 void      simulate_units     (GameState * state);
 void      update_resources   (GameState * state);

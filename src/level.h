@@ -57,6 +57,6 @@ Region * region_by_guardian      (ListRegion *const regions, Unit *const guardia
 void  map_clamp           (Map * map);
 void  render_map          (Map * map);
 void  render_map_mesh     (Map * map);
-size  get_expected_income (Map *const map, size player);
+size  get_expected_income (Map *const map, usize player);
 
 #endif // GEOMETRY_H_
