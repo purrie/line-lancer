@@ -192,8 +192,19 @@ Result pass_units (Unit * a, Node * anext, Movement adir, Unit * b) {
         // bugfix: this prevents units leaving building path from pushing oncoming other units to walk back towards the building
         return FAILURE;
     }
+
+    // if you want to see something funny, disable this check and give units high movement speed :3c
     if (can_unit_progress(b) == NO) {
-        // if you want to see something funny, disable this check and give units high movement speed :3c
+        if (move_node(&anext, &adir)) {
+            return FAILURE;
+        }
+        if (anext->unit == NULL) {
+            a->location->unit = NULL;
+            a->location = anext;
+            a->location->unit = a;
+            a->move_direction = adir;
+            return SUCCESS;
+        }
         return FAILURE;
     }
 
