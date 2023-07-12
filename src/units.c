@@ -149,8 +149,8 @@ float get_unit_health (UnitType type, FactionType faction, unsigned int upgrades
             }
         case UNIT_GUARDIAN:
             switch (faction) {
-                case FACTION_KNIGHTS: return 500.0f * (upgrades + 1);
-                case FACTION_MAGES:   return 500.0f * (upgrades + 1);
+                case FACTION_KNIGHTS: return 2000.0f;
+                case FACTION_MAGES:   return 2000.0f;
             }
     }
     TraceLog(LOG_ERROR, "Tried to obtain health of unsupported unit type");
@@ -187,8 +187,34 @@ Test can_unit_progress (Unit *const unit) {
     return NO;
 }
 
+Result step_over_unit (Unit * a, Node * anext, Movement adir) {
+    Unit * b = anext->unit;
+    usize guard = get_unit_range(b);
+    while (b != NULL) {
+        if (guard == 0) {
+            return FAILURE;
+        }
+        if (b->state != UNIT_STATE_FIGHTING) {
+            return FAILURE;
+        }
+        if (b->player_owned != a->player_owned) {
+            return FAILURE;
+        }
+        if (move_node(&anext, &adir)) {
+            return FAILURE;
+        }
+        b = anext->unit;
+        guard--;
+    }
+    a->location->unit = NULL;
+    a->location = anext;
+    a->location->unit = a;
+    a->move_direction = adir;
+    return SUCCESS;
+}
+
 Result pass_units (Unit * a, Node * anext, Movement adir, Unit * b) {
-    if (is_unit_on_building_path(a)) {
+    if (is_unit_on_building_path(a) && is_unit_on_building_path(b) == NO) {
         // bugfix: this prevents units leaving building path from pushing oncoming other units to walk back towards the building
         return FAILURE;
     }
@@ -210,7 +236,7 @@ Result pass_units (Unit * a, Node * anext, Movement adir, Unit * b) {
 
     if (a->location->bridge == b->location->bridge) {
         if (a->move_direction == b->move_direction) {
-            return FAILURE;
+            return step_over_unit(a, anext, adir);
         }
         b->location = a->location;
         a->location = anext;
@@ -233,7 +259,7 @@ Result pass_units (Unit * a, Node * anext, Movement adir, Unit * b) {
             return SUCCESS;
         }
         else {
-            return FAILURE;
+            return step_over_unit(a, anext, adir);
         }
     }
 }
@@ -242,7 +268,6 @@ Result move_unit_forward (Unit * unit) {
     Node * next = unit->location;
     Movement dir = unit->move_direction;
     if (move_node(&next, &dir)) {
-        TraceLog(LOG_ERROR, "Failed to get next node for unit movement");
         return FAILURE;
     }
     if (dir == MOVEMENT_INVALID) {
