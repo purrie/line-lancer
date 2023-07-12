@@ -50,6 +50,7 @@ usize building_upgrade_cost (Building *const building) {
 
 usize building_cost_to_spawn (Building *const building) {
     switch (building->type) {
+        case BUILDING_TYPE_COUNT:
         case BUILDING_EMPTY:
         case BUILDING_RESOURCE:
             return 0;
@@ -183,7 +184,7 @@ usize lines_intersections (const ListLine lines, const Line line, ListVector2 * 
     return added;
 }
 
-void create_sublines(
+void create_sublines (
     ListLine * dest,
     const usize amount,
     const Vector2 from,
@@ -209,7 +210,7 @@ void create_sublines(
     listLineAppend(dest, line);
 }
 
-void bevel_lines(ListLine * lines, usize resolution, float depth, bool enclosed) {
+void bevel_lines (ListLine * lines, usize resolution, float depth, bool enclosed) {
     if (enclosed) {
         if (lines->len < 3) {
             TraceLog(LOG_ERROR, "Enclosed lines need to have at least 3 segments");
@@ -277,7 +278,7 @@ void bevel_lines(ListLine * lines, usize resolution, float depth, bool enclosed)
     (*lines) = beveled;
 }
 
-Rectangle get_line_bounds(const Line line) {
+Rectangle get_line_bounds (const Line line) {
     Rectangle result;
     result.x = line.a.x < line.b.x ? line.a.x : line.b.x;
     result.y = line.a.y < line.b.y ? line.a.y : line.b.y;
@@ -286,7 +287,7 @@ Rectangle get_line_bounds(const Line line) {
     return result;
 }
 
-Rectangle get_lines_bounds(const ListLine lines) {
+Rectangle get_lines_bounds (const ListLine lines) {
     Rectangle result = {0};
     if (lines.len == 0) return result;
 
@@ -301,11 +302,11 @@ Rectangle get_lines_bounds(const ListLine lines) {
 }
 
 /* Area Functions **********************************************************/
-Rectangle area_bounds(const Area *const area) {
+Rectangle area_bounds (const Area *const area) {
     return get_lines_bounds(area->lines);
 }
 
-bool area_contains_point(const Area *const area, const Vector2 point) {
+bool area_contains_point (const Area *const area, const Vector2 point) {
     Rectangle aabb = area_bounds(area);
     if (CheckCollisionPointRec(point, aabb) == false) {
         return false;
@@ -340,11 +341,11 @@ Test area_line_intersects (Area *const area, Line line) {
 }
 
 /* Building Functions ******************************************************/
-float building_size() {
+float building_size () {
     return 10.0f;
 }
 
-Rectangle building_bounds(Building *const building) {
+Rectangle building_bounds (Building *const building) {
     Rectangle bounds = {0};
     float size       = building_size();
     bounds.x         = building->position.x - size * 0.5f;
@@ -354,7 +355,7 @@ Rectangle building_bounds(Building *const building) {
     return bounds;
 }
 
-Building * get_building_by_position(Map *const map, Vector2 position) {
+Building * get_building_by_position (Map *const map, Vector2 position) {
     for (usize r = 0; r < map->regions.len; r++) {
         ListBuilding * buildings = &map->regions.items[r].buildings;
 
@@ -667,7 +668,7 @@ void region_deinit (Region * region) {
 }
 
 /* Map Functions ***********************************************************/
-void map_clamp(Map * map) {
+void map_clamp (Map * map) {
     Vector2 map_size = { (float)map->width, (float)map->height };
 
     for (usize i = 0; i < map->regions.len; i++) {
@@ -679,7 +680,7 @@ void map_clamp(Map * map) {
     }
 }
 
-void render_map(Map * map) {
+void render_map (Map * map) {
     for (usize i = 0; i < map->regions.len; i++) {
         ListLine * lines = &map->regions.items[i].area.lines;
         DrawCircleV(lines->items[0].a, 2.0f, BLUE);
@@ -703,7 +704,7 @@ void render_map(Map * map) {
     }
 }
 
-void render_map_mesh(Map * map) {
+void render_map_mesh (Map * map) {
     for (usize i = 0; i < map->regions.len; i++) {
         Region * region = &map->regions.items[i];
         DrawModel(region->area.model, Vector3Zero(), 1.0f, WHITE);
@@ -846,7 +847,7 @@ Result map_clone (Map * dest, Map *const src) {
     return FAILURE;
 }
 
-Result map_make_connections(Map * map) {
+Result map_make_connections (Map * map) {
   TraceLog(LOG_INFO, "Connecting map");
   // connect path <-> region
   for (usize i = 0; i < map->paths.len; i++) {
@@ -907,7 +908,7 @@ Result map_make_connections(Map * map) {
   return SUCCESS;
 }
 
-void map_subdivide_paths(Map * map) {
+void map_subdivide_paths (Map * map) {
   TraceLog(LOG_INFO, "Smoothing map meshes");
   for(usize i = 0; i < map->paths.len; i++) {
     Vector2 a = map->paths.items[i].lines.items[0].a;
