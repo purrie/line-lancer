@@ -1,6 +1,7 @@
 #include <raylib.h>
 #include <raymath.h>
 
+#include "mesh.h"
 #include "math.h"
 #include "assets.h"
 #include "std.h"
@@ -10,6 +11,95 @@
 
 #define JSMN_PARENT_LINKS
 #include "../vendor/jsmn.h"
+
+typedef struct {
+    uchar * start;
+    usize   len;
+} StringSlice;
+
+void log_slice(TraceLogLevel log_level, char * text, StringSlice slice) {
+    char s[slice.len + 1];
+    copy_memory(s, slice.start, sizeof(char) * slice.len);
+    s[slice.len] = '\0';
+    TraceLog(log_level, "%s %s", text, s);
+}
+StringSlice make_slice_u(uchar * from, usize start, usize end) {
+    StringSlice s;
+    s.start = from + start;
+    s.len = end - start;
+    return s;
+}
+bool compare_literal(StringSlice slice, char *const literal) {
+    usize i = 0;
+    for(; i < slice.len; i++) {
+        if (literal[i] == '\0') {
+            return false;
+        }
+        if (slice.start[i] != literal[i]) {
+            return false;
+        }
+    }
+    return literal[i] == '\0';
+}
+Result convert_slice_usize(StringSlice slice, usize * value) {
+    bool first = true;
+    for (usize i = 0; i < slice.len; i++) {
+        if (slice.start[i] >= '0' && slice.start[i] <= '9') {
+            if (first == false) {
+                *value *= 10;
+                *value += slice.start[i] - '0';
+            } else {
+                *value = slice.start[i] - '0';
+                first = false;
+            }
+        } else {
+            return FAILURE;
+        }
+    }
+    return SUCCESS;
+}
+Result convert_slice_float(StringSlice slice, float * value) {
+    int dot = -1;
+    bool neg = false;
+    bool first = true;
+    for (usize i = 0; i < slice.len; i++) {
+        uchar c = slice.start[i];
+        if (c >= '0' && c <= '9') {
+            float digit = (float)(c - '0');
+            if (dot >= 0) {
+                usize dot_spot = i - dot;
+                float scalar = 1.0f;
+                for (usize p = 0; p < dot_spot; p++) {
+                    scalar *= 10.0f;
+                }
+                *value += digit / scalar;
+            }
+            else if (first == false) {
+                *value *= 10.0f;
+                *value += digit;
+            }
+            else {
+                *value = digit;
+            }
+            first = false;
+        }
+        else if (c == '.') {
+            if (dot >= 0) {
+                return FAILURE;
+            } else {
+                dot = i;
+            }
+        }
+        else if (c == '-' && i == 0) {
+            neg = true;
+        }
+        else {
+            return FAILURE;
+        }
+    }
+    if (neg) { *value *= -1.0f; }
+    return SUCCESS;
+}
 
 usize skip_tokens(jsmntok_t *tokens, usize from) {
   usize skip = tokens[from].size;
@@ -27,7 +117,7 @@ bool load_paths(
   Vector2      layer_offset
 ) {
   if (tokens[path_pos].type != JSMN_ARRAY) {
-    StringSlice s = make_slice(data, tokens[path_pos].start, tokens[path_pos].end);
+    StringSlice s = make_slice_u(data, tokens[path_pos].start, tokens[path_pos].end);
     log_slice(LOG_ERROR, "Paths objects isn't an array = ", s);
     return 0;
   }
@@ -50,7 +140,7 @@ bool load_paths(
         goto fail;
       }
 
-      StringSlice key = make_slice(data, tokens[cursor].start, tokens[cursor].end);
+      StringSlice key = make_slice_u(data, tokens[cursor].start, tokens[cursor].end);
       if (compare_literal(key, "polyline")) {
         cursor ++;
         usize points = tokens[cursor].size;
@@ -66,7 +156,7 @@ bool load_paths(
           while ( coord_count --> 0 ) {
             char c = data[tokens[cursor].start];
             cursor ++;
-            StringSlice num = make_slice(data, tokens[cursor].start, tokens[cursor].end);
+            StringSlice num = make_slice_u(data, tokens[cursor].start, tokens[cursor].end);
 
             float value = 0;
             if(convert_slice_float(num, &value)) {
@@ -96,7 +186,7 @@ bool load_paths(
 
       else if (compare_literal(key, "x") || compare_literal(key, "y")) {
         cursor ++;
-        StringSlice val = make_slice(data, tokens[cursor].start, tokens[cursor].end);
+        StringSlice val = make_slice_u(data, tokens[cursor].start, tokens[cursor].end);
         float value = 0;
         if(convert_slice_float(val, &value)) {
           log_slice(LOG_ERROR, "Failed to convert path offset", val);
@@ -167,7 +257,7 @@ usize load_region_objects(
         return 0;
       }
 
-      StringSlice key = make_slice(data, tokens[cursor].start, tokens[cursor].end);
+      StringSlice key = make_slice_u(data, tokens[cursor].start, tokens[cursor].end);
       if (compare_literal(key, "polygon")) {
         polygon = ++cursor;
       }
@@ -178,7 +268,7 @@ usize load_region_objects(
 
       else if (compare_literal(key, "x") || compare_literal(key, "y")) {
         cursor ++;
-        StringSlice num = make_slice(data, tokens[cursor].start, tokens[cursor].end);
+        StringSlice num = make_slice_u(data, tokens[cursor].start, tokens[cursor].end);
         float value;
         if(convert_slice_float(num, &value)) {
           TraceLog(LOG_ERROR, "Couldn't parse region object coordinate");
@@ -194,7 +284,7 @@ usize load_region_objects(
       cursor = skip_tokens(tokens, cursor);
     }
 
-    StringSlice region_object_type = make_slice(data, tokens[type].start, tokens[type].end);
+    StringSlice region_object_type = make_slice_u(data, tokens[type].start, tokens[type].end);
     if (compare_literal(region_object_type, "region")) {
       TraceLog(LOG_INFO, "Saving region");
       usize number_of_points = tokens[polygon].size;
@@ -211,7 +301,7 @@ usize load_region_objects(
         while (points --> 0) {
           uchar c = data[tokens[point].start];
           point ++;
-          StringSlice num = make_slice(data, tokens[point].start, tokens[point].end);
+          StringSlice num = make_slice_u(data, tokens[point].start, tokens[point].end);
           float value;
           if (convert_slice_float(num, &value)) {
             log_slice(LOG_ERROR, "Couldn't convert region polygon x point", num);
@@ -296,7 +386,7 @@ usize load_region_properties(
     usize property_children = tokens[cursor].size;
     cursor ++;
     while (property_children --> 0) {
-      StringSlice s = make_slice(data, tokens[cursor].start, tokens[cursor].end);
+      StringSlice s = make_slice_u(data, tokens[cursor].start, tokens[cursor].end);
       if (compare_literal(s, "name")) {
         name = ++cursor;
       }
@@ -306,9 +396,9 @@ usize load_region_properties(
       cursor = skip_tokens(tokens, cursor);
     }
 
-    StringSlice s = make_slice(data, tokens[name].start, tokens[name].end);
+    StringSlice s = make_slice_u(data, tokens[name].start, tokens[name].end);
     if (compare_literal(s, "player_id")) {
-      StringSlice v = make_slice(data, tokens[value].start, tokens[value].end);
+      StringSlice v = make_slice_u(data, tokens[value].start, tokens[value].end);
       usize value;
       if (convert_slice_usize(v, &value)) {
         value = 0;
@@ -350,7 +440,7 @@ usize load_region(
         goto fail;
     }
 
-    StringSlice s = make_slice(data, tokens[region_pos].start, tokens[region_pos].end);
+    StringSlice s = make_slice_u(data, tokens[region_pos].start, tokens[region_pos].end);
 
     if (compare_literal(s, "properties")) {
       region_pos = load_region_properties(&region, data, tokens, region_pos + 1);
@@ -361,7 +451,7 @@ usize load_region(
     }
     else if (compare_literal(s, "x") || compare_literal(s, "y")) {
       region_pos ++;
-      StringSlice s = make_slice(data, tokens[region_pos].start, tokens[region_pos].end);
+      StringSlice s = make_slice_u(data, tokens[region_pos].start, tokens[region_pos].end);
       float value = 0.0f;
       if (convert_slice_float(s, &value)) {
         TraceLog(LOG_ERROR, "Failed to convert region offset position");
@@ -458,12 +548,12 @@ usize load_map_layers(
     while (children_count --> 0) {
 
       if (tokens[cursor].type != JSMN_STRING) {
-        StringSlice s = make_slice(data, tokens[cursor].start, tokens[cursor].end);
+        StringSlice s = make_slice_u(data, tokens[cursor].start, tokens[cursor].end);
         log_slice(LOG_ERROR, "Encountered unexpected token:", s);
         return 0;
       }
 
-      StringSlice s = make_slice(data, tokens[cursor].start, tokens[cursor].end);
+      StringSlice s = make_slice_u(data, tokens[cursor].start, tokens[cursor].end);
 
       if (compare_literal(s, "layers") || compare_literal(s, "objects")) {
         log_slice(LOG_INFO, "Found :", s);
@@ -481,7 +571,7 @@ usize load_map_layers(
         TraceLog(LOG_INFO, "Found x offset");
         cursor++;
         StringSlice num =
-          make_slice(data, tokens[cursor].start, tokens[cursor].end);
+          make_slice_u(data, tokens[cursor].start, tokens[cursor].end);
         float value = 0.0f;
         if (convert_slice_float(num, &value)) {
           log_slice(LOG_ERROR,
@@ -497,7 +587,7 @@ usize load_map_layers(
         TraceLog(LOG_INFO, "Found y offset");
         cursor++;
         StringSlice num =
-          make_slice(data, tokens[cursor].start, tokens[cursor].end);
+          make_slice_u(data, tokens[cursor].start, tokens[cursor].end);
         float value = 0.0f;
         if (convert_slice_float(num, &value)) {
           log_slice(LOG_ERROR,
@@ -521,7 +611,7 @@ usize load_map_layers(
     }
 
     StringSlice layer_type =
-      make_slice(data, tokens[type].start, tokens[type].end);
+      make_slice_u(data, tokens[type].start, tokens[type].end);
 
     if (compare_literal(layer_type, "Regions")) {
       bool r = load_regions(map, data, tokens, collection, offset);
@@ -544,484 +634,7 @@ usize load_map_layers(
   return cursor;
 }
 
-Model generate_building_mesh(const Vector2 pos, const float size, const float layer) {
-  Mesh mesh = {0};
-
-  {
-    mesh.vertexCount = 4;
-    mesh.vertices = MemAlloc(sizeof(float) * 3 * mesh.vertexCount);
-
-    for (usize i = 0; i < mesh.vertexCount; i++) {
-      mesh.vertices[i * 3 + 2] = layer;
-    }
-    float half_size = size * 0.5f;
-
-    mesh.vertices[0] = pos.x - half_size;
-    mesh.vertices[1] = pos.y - half_size;
-
-    mesh.vertices[3] = pos.x + half_size;
-    mesh.vertices[4] = pos.y - half_size;
-
-    mesh.vertices[6] = pos.x - half_size;
-    mesh.vertices[7] = pos.y + half_size;
-
-    mesh.vertices[9]  = pos.x + half_size;
-    mesh.vertices[10] = pos.y + half_size;
-  }
-
-  {
-    mesh.texcoords = MemAlloc(sizeof(float) * 2 * mesh.vertexCount);
-    mesh.texcoords[0] = 0.0f;
-    mesh.texcoords[1] = 0.0f;
-
-    mesh.texcoords[2] = 1.0f;
-    mesh.texcoords[3] = 0.0f;
-
-    mesh.texcoords[4] = 0.0f;
-    mesh.texcoords[5] = 1.0f;
-
-    mesh.texcoords[6] = 1.0f;
-    mesh.texcoords[7] = 1.0f;
-  }
-
-  {
-    mesh.triangleCount = 2;
-    mesh.indices = MemAlloc(sizeof(ushort) * 3 * mesh.triangleCount);
-
-    mesh.indices[0] = 0;
-    mesh.indices[1] = 2;
-    mesh.indices[2] = 1;
-
-    mesh.indices[3] = 1;
-    mesh.indices[4] = 2;
-    mesh.indices[5] = 3;
-  }
-
-  UploadMesh(&mesh, false);
-
-  return LoadModelFromMesh(mesh);
-}
-
-Model generate_line_mesh(const ListLine lines, float thickness, ushort cap_resolution, const float layer) {
-  Mesh mesh = {0};
-
-  const float thickness_half = thickness * 0.5f;
-  const usize points = lines.len + 1 + cap_resolution * 2;
-
-  // generating vertex positions
-  {
-    mesh.vertexCount = points * 2;
-    mesh.vertices = MemAlloc(sizeof(float) * 3 * mesh.vertexCount);
-
-    TraceLog(LOG_INFO, "  Generating verticle positions");
-    for (usize i = 0; i < points; i++) {
-      // modifying 2 vertex positions at a time, each with 3 components
-      const usize vert = i * 2 * 3;
-      Vector2 v, a;
-      Vector2 line;
-
-      if (i < cap_resolution) {
-        usize index = 0;
-        a = lines.items[index].a;
-        line = Vector2Subtract(lines.items[index].b, lines.items[index].a);
-        line = Vector2Normalize(line);
-
-        float step = (float)(cap_resolution - i) / (float)cap_resolution;
-        float thick = 1.0f - (step * step * 0.9f);
-
-        Vector2 offset = Vector2Scale(line, step);
-        offset = Vector2Scale(offset, thickness_half);
-
-        a = Vector2Subtract(a, offset);
-        line = Vector2Scale(line, thick);
-      }
-
-      else if (i >= lines.len + cap_resolution) {
-        usize index = lines.len - 1;
-        a = lines.items[index].b;
-        line = Vector2Subtract(lines.items[index].b, lines.items[index].a);
-        line = Vector2Normalize(line);
-
-        float step = (float)(i - lines.len - cap_resolution) / (float)cap_resolution;
-        float thick = 1.0f - (step * step * 0.9f);
-
-        Vector2 offset = Vector2Scale(line, step);
-        offset = Vector2Scale(offset, thickness_half);
-
-        a = Vector2Add(a, offset);
-        line = Vector2Scale(line, thick);
-      }
-
-      else {
-        usize index = i - cap_resolution;
-        a = lines.items[index].a;
-        line = Vector2Subtract(lines.items[index].b, a);
-
-        usize last = lines.len ;
-        if (index < last && index > 0 ) {
-          v = Vector2Subtract(lines.items[index - 1].b, lines.items[index - 1].a);
-          line = Vector2Slerp(line, v, Vector2Zero(), 0.5f);
-        }
-
-        line = Vector2Normalize(line);
-      }
-
-      line = Vector2Scale(line, thickness_half);
-
-      v = Vector2PerpCounter(line);
-      v = Vector2Add(v, a);
-      mesh.vertices[vert] = v.x;
-      mesh.vertices[vert + 1] = v.y;
-      mesh.vertices[vert + 2] = layer;
-
-      v = Vector2Perp(line);
-      v = Vector2Add(v, a);
-      mesh.vertices[vert + 3] = v.x;
-      mesh.vertices[vert + 4] = v.y;
-      mesh.vertices[vert + 5] = layer;
-
-    }
-  }
-  // resolving mesh collisions
-  if (false){
-    // make sure none of the lines cross each other
-    TraceLog(LOG_INFO, "  Resolving mesh collisions");
-
-    usize cursor = 1;
-    for (usize i = 1; i < points - 1; i++) {
-      usize right_index = i * 2 * 3;
-      usize left_index = (i - cursor) * 2 * 3;
-
-      Line right = {
-        .a = { .x = mesh.vertices[right_index], .y = mesh.vertices[right_index + 1]},
-        .b = { .x = mesh.vertices[right_index + 3], .y = mesh.vertices[right_index + 4]}
-      };
-      Line left = {
-        .a = { .x = mesh.vertices[left_index], .y = mesh.vertices[left_index + 1]},
-        .b = { .x = mesh.vertices[left_index + 3], .y = mesh.vertices[left_index + 4]}
-      };
-
-      Vector2 intersection;
-      Result intersects = line_intersection(left, right, &intersection);
-      usize intersections = 1;
-      Vector2 center = Vector2Zero();
-
-      while (intersects == SUCCESS) {
-        if (Vector2DistanceSqr(left.a, intersection) > Vector2DistanceSqr(left.b, intersection)) {
-          center = Vector2Add(center, left.a);
-        }
-        else {
-          center = Vector2Add(center, left.b);
-        }
-        intersections ++;
-        cursor ++;
-
-        if (cursor <= i) {
-          left_index = ( i - cursor ) * 2 * 3;
-          left = (Line){
-            .a = { .x = mesh.vertices[left_index], .y = mesh.vertices[left_index + 1]},
-            .b = { .x = mesh.vertices[left_index + 3], .y = mesh.vertices[left_index + 4]}
-          };
-        }
-        else {
-          break;
-        }
-        intersects = line_intersection(left, right, &intersection);
-      }
-
-      if (intersections > 1) {
-        if (Vector2DistanceSqr(center, right.a) > Vector2DistanceSqr(center, right.b)) {
-          center = Vector2Add(center, right.a);
-          center.x /= (float)intersections;
-          center.y /= (float)intersections;
-          mesh.vertices[right_index] = center.x;
-          mesh.vertices[right_index + 1] = center.y;
-        }
-        else {
-          center = Vector2Add(center, right.b);
-          center.x /= (float)intersections;
-          center.y /= (float)intersections;
-          mesh.vertices[right_index + 3] = center.x;
-          mesh.vertices[right_index + 4] = center.y;
-        }
-
-        while (cursor --> 1) {
-          left_index = ( i - cursor ) * 2 * 3;
-          left = (Line){
-            .a = { .x = mesh.vertices[left_index], .y = mesh.vertices[left_index + 1]},
-            .b = { .x = mesh.vertices[left_index + 3], .y = mesh.vertices[left_index + 4]}
-          };
-
-          if (Vector2DistanceSqr(center, left.a) > Vector2DistanceSqr(center, left.b)) {
-            mesh.vertices[left_index] = center.x;
-            mesh.vertices[left_index + 1] = center.y;
-          }
-          else {
-            mesh.vertices[left_index + 3] = center.x;
-            mesh.vertices[left_index + 4] = center.y;
-          }
-        }
-      }
-    }
-  }
-  // generating triangles
-  {
-    TraceLog(LOG_INFO, "  Generating indices");
-    mesh.triangleCount = lines.len * 2 + cap_resolution * 4;
-    mesh.indices = MemAlloc(sizeof(ushort) * 3 * mesh.triangleCount);
-
-    usize quads = mesh.triangleCount / 2;
-    for (usize i = 0; i < quads; i++) {
-      usize tris = i * 6;
-      ushort verts = i * 2;
-      mesh.indices[tris] = verts;
-      mesh.indices[tris + 1] = verts + 2;
-      mesh.indices[tris + 2] = verts + 1;
-
-      mesh.indices[tris + 3] = verts + 1;
-      mesh.indices[tris + 4] = verts + 2;
-      mesh.indices[tris + 5] = verts + 3;
-    }
-  }
-
-  UploadMesh(&mesh, false);
-  return LoadModelFromMesh(mesh);
-}
-
-Test is_clockwise (Vector2 a, Vector2 b, Vector2 c) {
-  double val = 0.0;
-  val = (b.x * c.y + a.x * b.y + a.y * c.x) - (a.y * b.x + b.y * c.x + a.x * c.y);
-  return val > 0.0f ? YES : NO;
-}
-
-Test is_area_clockwise(Area *const area) {
-  unsigned int half = area->lines.len / 2;
-  unsigned int cl = 0;
-  unsigned int cc = 0;
-  for (usize i = 0; i < area->lines.len; i++) {
-    Vector2 a = area->lines.items[i].a;
-    Vector2 b = area->lines.items[(i + 1) % area->lines.len].a;
-    Vector2 c = area->lines.items[(i + 2) % area->lines.len].a;
-    if (is_clockwise(a, b, c))
-      cl ++;
-    else
-      cc ++;
-  }
-  return cl > cc ? YES : NO;
-}
-
-
-Model generate_area_mesh(Area *const area, const float layer) {
-  temp_free();
-  Mesh mesh = {0};
-  const ListLine lines = area->lines;
-  const Test clockwise = is_area_clockwise(area);
-  if (clockwise)
-    TraceLog(LOG_INFO, "  Area is clockwise");
-  else
-    TraceLog(LOG_INFO, "  Area is counter-clockwise");
-  {
-    mesh.vertexCount = lines.len;
-    mesh.vertices    = MemAlloc(sizeof(float) * 3 * mesh.vertexCount);
-
-    for (usize i = 0; i < lines.len; i++) {
-      usize vert = i * 3;
-      mesh.vertices[vert]     = lines.items[i].a.x;
-      mesh.vertices[vert + 1] = lines.items[i].a.y;
-      mesh.vertices[vert + 2] = layer;
-    }
-  }
-
-  {
-    ListUshort indices = listUshortInit(3, &MemAlloc, &MemFree);
-    ListUsize points   = listUsizeInit(lines.len, &MemAlloc, &MemFree);
-    usize index   = 0;
-    usize counter = 0;
-
-    for (usize i = 0; i < lines.len; i ++) {
-      listUsizeAppend(&points, i);
-    }
-
-    while (points.len > 2) {
-      usize index_m = (index + (clockwise ? points.len - 1 : 1)) % points.len;
-      usize index_e = (index + (clockwise ? points.len - 2 : 2)) % points.len;
-
-      usize point_ib = points.items[index];
-      usize point_im = points.items[index_m];
-      usize point_ie = points.items[index_e];
-
-      Vector2 start = lines.items[point_ib].a;
-      Vector2 mid   = lines.items[point_im].a;
-      Vector2 end   = lines.items[point_ie].a;
-
-      Test tri_clockwise = is_clockwise(start, mid, end);
-      Vector2 test_point = Vector2Lerp(start, end, 0.5f);
-      Test outside = ! area_contains_point(area, test_point);
-      Line test_line = {
-        Vector2MoveTowards(start, end, 1.0f),
-        Vector2MoveTowards(end, start, 1.0f)
-      };
-      Test cuts_through = area_line_intersects(area, test_line);
-      Test invalid = tri_clockwise || outside || cuts_through;
-
-      if (invalid) {
-        TraceLog(LOG_WARNING, "   Failing triangle! [%.1f, %.1f] [%.1f, %.1f] [%.1f, %.1f] Clockwise = %d, Outside = %d, Cuts = %d", start.x, start.y, mid.x, mid.y, end.x, end.y, tri_clockwise, outside, cuts_through);
-
-        if (counter > lines.len) {
-          TraceLog(LOG_ERROR, "Failed to generate mesh for area");
-          listUshortDeinit(&indices);
-          listUsizeDeinit(&points);
-          MemFree(mesh.vertices);
-          // TODO do proper error handling
-          return (Model){0};
-        }
-        counter ++;
-        index = index_m;
-        continue;
-      }
-      counter = 0;
-      TraceLog(LOG_INFO, "   Building triangle [%.1f, %.1f] [%.1f, %.1f] [%.1f, %.1f]", start.x, start.y, mid.x, mid.y, end.x, end.y);
-
-      listUshortAppend(&indices, point_ib);
-      listUshortAppend(&indices, point_im);
-      listUshortAppend(&indices, point_ie);
-      listUsizeRemove (&points , index_m);
-      if (index > index_m)
-        index--;
-    }
-
-    mesh.triangleCount = indices.len / 3;
-    TraceLog(LOG_INFO, "Built %d triangles", mesh.triangleCount);
-    mesh.indices = MemAlloc(sizeof(ushort) * indices.len);
-    copy_memory(mesh.indices, indices.items, sizeof(ushort) * indices.len);
-
-    listUshortDeinit(&indices);
-    listUsizeDeinit(&points);
-  }
-
-  UploadMesh(&mesh, false);
-  return LoadModelFromMesh(mesh);
-}
-
-Result connect_map(Map * map) {
-  TraceLog(LOG_INFO, "Connecting map");
-  // connect path <-> region
-  for (usize i = 0; i < map->paths.len; i++) {
-    Path * path = &map->paths.items[i];
-
-    for (usize r = 0; r < map->regions.len; r++) {
-      Region * region = &map->regions.items[r];
-
-      Vector2 a = path->lines.items[0].a;
-      Vector2 b = path->lines.items[path->lines.len - 1].b;
-
-      if (area_contains_point(&region->area, a)) {
-        path->region_a = region;
-        TraceLog(LOG_INFO, "Connecting region %d to start of path %d", r, i);
-      }
-      if (area_contains_point(&region->area, b)) {
-        path->region_b = region;
-        TraceLog(LOG_INFO, "Connecting region %d to end of path %d", r, i);
-      }
-
-      if (path->region_a && path->region_b) {
-        if (path->region_a == path->region_b) {
-          return FAILURE;
-        }
-
-        if (bridge_over_path(path)) {
-          return FAILURE;
-        }
-
-        PathEntry a = { .path = path, .redirects = listPathBridgeInit(6, &MemAlloc, &MemFree) };
-        PathEntry b = { .path = path, .redirects = listPathBridgeInit(6, &MemAlloc, &MemFree) };
-        listPathEntryAppend(&path->region_a->paths, a);
-        listPathEntryAppend(&path->region_b->paths, b);
-        TraceLog(LOG_INFO, "Path connected");
-        break;
-      }
-    }
-  }
-
-  for (usize i = 0; i < map->regions.len; i++) {
-    Region * region = &map->regions.items[i];
-
-    for (usize b = 0; b < region->buildings.len; b++) {
-      region->buildings.items[b].region = region;
-      region->buildings.items[b].spawn_paths = listBridgeInit(region->paths.len, &MemAlloc, &MemFree);
-    }
-
-    region->castle.region = region;
-
-    if (bridge_region(region)) {
-      return FAILURE;
-    }
-
-    region_update_paths(region);
-    setup_unit_guardian(region);
-  }
-
-  return SUCCESS;
-}
-
-void generate_map_mesh(Map * map) {
-  // TODO sizes and thickness will depend on the map size I imagine
-  TraceLog(LOG_INFO, "Generating meshes");
-  for (usize i = 0; i < map->paths.len; i++) {
-    TraceLog(LOG_INFO, "  Generating path mesh #%d", i);
-    map->paths.items[i].model = generate_line_mesh(map->paths.items[i].lines, 20.0f, 3, LAYER_PATH);
-  }
-  float size = building_size();
-  for (usize i = 0; i < map->regions.len; i++) {
-    TraceLog(LOG_INFO, "Generating region #%d", i);
-    TraceLog(LOG_INFO, "  Generating region mesh");
-    Region * region = &map->regions.items[i];
-    region->area.model = generate_area_mesh(&region->area, LAYER_MAP);
-
-    TraceLog(LOG_INFO, "  Generating castle mesh");
-    region->castle.model = generate_building_mesh(region->castle.position, size, LAYER_BUILDING);
-
-    for (usize b = 0; b < region->buildings.len; b++) {
-      TraceLog(LOG_INFO, "  Generating building mesh #%d", b);
-      region->buildings.items[b].model = generate_building_mesh(region->buildings.items[b].position, size, LAYER_BUILDING);
-    }
-  }
-}
-
-void subdivide_map_paths(Map * map) {
-  TraceLog(LOG_INFO, "Smoothing map meshes");
-  for(usize i = 0; i < map->paths.len; i++) {
-    Vector2 a = map->paths.items[i].lines.items[0].a;
-    Vector2 b = map->paths.items[i].lines.items[0].b;
-    float depth = Vector2DistanceSqr(a, b);
-    for (usize l = 1; l < map->paths.items[i].lines.len; l++) {
-      a = map->paths.items[i].lines.items[l].a;
-      b = map->paths.items[i].lines.items[l].b;
-      float test = Vector2DistanceSqr(a, b);
-      if (test < depth) depth = test;
-    }
-    depth = sqrtf(depth) * 0.25f;
-
-    bevel_lines(&map->paths.items[i].lines, MAP_BEVEL, depth, false);
-  }
-
-  for (usize i = 0; i < map->regions.len; i++) {
-    Vector2 a = map->regions.items[i].area.lines.items[0].a;
-    Vector2 b = map->regions.items[i].area.lines.items[0].b;
-    float depth = Vector2DistanceSqr(a, b);
-    for (usize l = 1; l < map->regions.items[i].area.lines.len; l++) {
-      a = map->regions.items[i].area.lines.items[l].a;
-      b = map->regions.items[i].area.lines.items[l].b;
-      float test = Vector2DistanceSqr(a, b);
-      if (test < depth) depth = test;
-    }
-    depth = sqrtf(depth) * 0.25f;
-
-    bevel_lines(&map->regions.items[i].area.lines, MAP_BEVEL, depth, true);
-  }
-}
-
-Result load_level(char *path, Map * result) {
+Result load_level(Map * result, char * path) {
   TraceLog(LOG_INFO, "Loading map: %s", path);
 
   uint    len;
@@ -1063,15 +676,15 @@ Result load_level(char *path, Map * result) {
         TraceLog(LOG_INFO, "Finished loading map");
         break;
       }
-      StringSlice s = make_slice(data, tokens[cursor].start, tokens[cursor].end);
+      StringSlice s = make_slice_u(data, tokens[cursor].start, tokens[cursor].end);
       log_slice(LOG_ERROR, "Got unexpected result:", s);
       goto fail;
     }
 
-    StringSlice map_key = make_slice(data, tokens[cursor].start, tokens[cursor].end);
+    StringSlice map_key = make_slice_u(data, tokens[cursor].start, tokens[cursor].end);
     if (compare_literal(map_key, "height") || compare_literal(map_key, "tileheight")) {
       cursor ++;
-      StringSlice num = make_slice(data, tokens[cursor].start, tokens[cursor].end);
+      StringSlice num = make_slice_u(data, tokens[cursor].start, tokens[cursor].end);
       usize value;
       if (convert_slice_usize(num, &value)) {
         TraceLog(LOG_ERROR, "Failed to parse map height");
@@ -1088,7 +701,7 @@ Result load_level(char *path, Map * result) {
 
     else if (compare_literal(map_key, "width") || compare_literal(map_key, "tilewidth")) {
       cursor ++;
-      StringSlice num = make_slice(data, tokens[cursor].start, tokens[cursor].end);
+      StringSlice num = make_slice_u(data, tokens[cursor].start, tokens[cursor].end);
       usize value;
       if (convert_slice_usize(num, &value)) {
         TraceLog(LOG_ERROR, "Failed to parse map width");
@@ -1117,7 +730,7 @@ Result load_level(char *path, Map * result) {
         usize count = tokens[cursor].size;
         cursor ++;
         while (count --> 0) {
-          StringSlice s = make_slice(data, tokens[cursor].start, tokens[cursor].end);
+          StringSlice s = make_slice_u(data, tokens[cursor].start, tokens[cursor].end);
           if (compare_literal(s, "name")) {
             name = ++cursor;
           }
@@ -1127,15 +740,21 @@ Result load_level(char *path, Map * result) {
           cursor = skip_tokens(tokens, cursor);
         }
 
-        StringSlice property_type = make_slice(data, tokens[name].start, tokens[name].end);
+        StringSlice property_type = make_slice_u(data, tokens[name].start, tokens[name].end);
         if (compare_literal(property_type, "player_count")) {
-          StringSlice num = make_slice(data, tokens[value].start, tokens[value].end);
+          StringSlice num = make_slice_u(data, tokens[value].start, tokens[value].end);
           usize value;
           if (convert_slice_usize(num, &value)) {
             log_slice(LOG_ERROR, "Couldn't parse player count:", num);
             goto fail;
           }
           result->player_count = value;
+        }
+        else if (compare_literal(property_type, "name")) {
+          usize len = tokens[value].end - tokens[value].start;
+          result->name = MemAlloc(len + 1);
+          copy_memory(result->name, &data[tokens[value].start], len);
+          result->name[len] = '\0';
         }
 
         else {
@@ -1154,60 +773,47 @@ Result load_level(char *path, Map * result) {
   }
 
   UnloadFileData(data);
-  TraceLog(LOG_INFO, "Loading map data succeeded");
 
-  map_clamp(result);
-  subdivide_map_paths(result);
-  generate_map_mesh(result);
-  if(connect_map(result)) {
-    goto fail;
-  }
-
-  TraceLog(LOG_INFO, "Map %s loaded successfully", path);
   return SUCCESS;
 
 fail:
-  TraceLog(LOG_ERROR, "Loading map %s failed", path);
   UnloadFileData(data);
-  level_unload(result);
+  map_deinit(result);
   return FAILURE;
 }
 
-void level_unload(Map * map) {
-    for (usize i = 0; i < map->regions.len; i++) {
-        Region * region = &map->regions.items[i];
-
-        for (usize e = 0; e < region->paths.len; e++) {
-            for (usize d = e; d < region->paths.items[e].redirects.len; d++) {
-                clean_up_bridge(&region->paths.items[e].castle_path);
-                clean_up_bridge(region->paths.items[e].redirects.items[d].bridge);
-                MemFree(region->paths.items[e].redirects.items[d].bridge);
-            }
-        }
-
-        for (usize b = 0; b < region->buildings.len; ++b) {
-            Building * building = &map->regions.items[i].buildings.items[b];
-            for (usize s = 0; s < building->spawn_paths.len; s++) {
-                clean_up_bridge(&building->spawn_paths.items[s]);
-            }
-            listBridgeDeinit(&building->spawn_paths);
-            UnloadModel(building->model);
-        }
-
-        listBuildingDeinit(&region->buildings);
-        listLineDeinit(&region->area.lines);
-
-        UnloadModel(region->castle.model);
-        UnloadModel(region->area.model);
+char * map_name_from_path (char * path, Allocator alloc) {
+  usize end = string_length(path);
+  while (end --> 0) {
+    if (path[end] == '.') {
+      break;
     }
-
-    for (usize i = 0; i < map->paths.len; i++) {
-        Path * path = &map->paths.items[i];
-        clean_up_bridge(&path->bridge);
-        UnloadModel(path->model);
-        listLineDeinit(&path->lines);
+  }
+  usize start = end;
+  while (start --> 0) {
+    if (path[start] == PATH_SEPARATOR) {
+      start ++;
+      break;
     }
+  }
+  if (start == 0 || end == 0) {
+    return NULL;
+  }
+  usize len = end - start;
+  char * name = alloc(len + 1);
+  if (name == NULL) {
+    return NULL;
+  }
+  copy_memory(name, &path[start], len);
+  name[len] = '\0';
 
-    listPathDeinit(&map->paths);
-    listRegionDeinit(&map->regions);
+  return name;
+}
+
+void assets_deinit (GameAssets * assets) {
+    for (usize i = 0; i < assets->maps.len; i++) {
+        map_deinit(&assets->maps.items[i]);
+    }
+    listMapDeinit(&assets->maps);
+    assets->maps = (ListMap){0};
 }

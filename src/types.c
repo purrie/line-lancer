@@ -12,13 +12,7 @@ implementList(Line, Line)
 implementList(PathBridge, PathBridge)
 implementList(Bridge, Bridge)
 implementList(PlayerData, PlayerData)
+implementList(Map, Map)
 
 implementList(Unit*, Unit)
 implementList(Region*, RegionP)
-
-StringSlice make_slice(uchar * from, usize start, usize end) {
-    StringSlice s;
-    s.start = from + start;
-    s.len = end - start;
-    return s;
-}

@@ -33,80 +33,6 @@ void * clear_memory(void * ptr, usize bytes) {
     return ptr;
 }
 
-bool compare_literal(StringSlice slice, char *const literal) {
-    usize i = 0;
-    for(; i < slice.len; i++) {
-        if (literal[i] == '\0') {
-            return false;
-        }
-        if (slice.start[i] != literal[i]) {
-            return false;
-        }
-    }
-    return literal[i] == '\0';
-}
-
-Result convert_slice_usize(StringSlice slice, usize * value) {
-    bool first = true;
-    for (usize i = 0; i < slice.len; i++) {
-        if (slice.start[i] >= '0' && slice.start[i] <= '9') {
-            if (first == false) {
-                *value *= 10;
-                *value += slice.start[i] - '0';
-            } else {
-                *value = slice.start[i] - '0';
-                first = false;
-            }
-        } else {
-            return FAILURE;
-        }
-    }
-    return SUCCESS;
-}
-
-Result convert_slice_float(StringSlice slice, float * value) {
-    int dot = -1;
-    bool neg = false;
-    bool first = true;
-    for (usize i = 0; i < slice.len; i++) {
-        uchar c = slice.start[i];
-        if (c >= '0' && c <= '9') {
-            float digit = (float)(c - '0');
-            if (dot >= 0) {
-                usize dot_spot = i - dot;
-                float scalar = 1.0f;
-                for (usize p = 0; p < dot_spot; p++) {
-                    scalar *= 10.0f;
-                }
-                *value += digit / scalar;
-            }
-            else if (first == false) {
-                *value *= 10.0f;
-                *value += digit;
-            } 
-            else {
-                *value = digit;
-            }
-            first = false;
-        }
-        else if (c == '.') {
-            if (dot >= 0) {
-                return FAILURE;
-            } else {
-                dot = i;
-            }
-        }
-        else if (c == '-' && i == 0) {
-            neg = true; 
-        }
-        else {
-            return FAILURE;
-        }
-    }
-    if (neg) { *value *= -1.0f; }
-    return SUCCESS;
-}
-
 char * convert_int_to_ascii (int number, Allocator alloc) {
     char buffer[64];
     char count = 0;
@@ -148,9 +74,15 @@ char * convert_int_to_ascii (int number, Allocator alloc) {
     return result;
 }
 
-void log_slice(TraceLogLevel log_level, char * text, StringSlice slice) {
-    char s[slice.len + 1];
-    copy_memory(s, slice.start, sizeof(char) * slice.len);
-    s[slice.len] = '\0';
-    TraceLog(log_level, "%s %s", text, s);
+usize string_length (char * string) {
+    usize guard = 2048;
+    usize len = 0;
+    while (--guard && string[len] != '\0') {
+        len ++;
+    }
+    if (guard == 0) {
+        return 0;
+    }
+
+    return len;
 }

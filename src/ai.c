@@ -265,7 +265,7 @@ void make_purchasing_decision (GameState * state, usize player_index, ListRegion
 
         BuildingType wanted_building = BUILDING_EMPTY;
         bool want_to_build;
-        size income = get_expected_income(state->current_map, player_index);
+        size income = get_expected_income(&state->map, player_index);
 
 
         if (income < 1) {
@@ -455,15 +455,15 @@ void simulate_ai (GameState * state) {
     }
     TraceLog(LOG_INFO, "AI tick");
 
-    ListRegionP ai_regions = listRegionPInit(state->current_map->regions.len, &temp_alloc, NULL);
+    ListRegionP ai_regions = listRegionPInit(state->map.regions.len, &temp_alloc, NULL);
 
     for (usize i = 1; i < state->players.len; i++) {
         if (state->players.items[i].type != PLAYER_AI)
             continue;
 
         ai_regions.len = 0;
-        for (usize r = 0; r < state->current_map->regions.len; r++) {
-            Region * region = &state->current_map->regions.items[r];
+        for (usize r = 0; r < state->map.regions.len; r++) {
+            Region * region = &state->map.regions.items[r];
             if (region->player_id == i) {
                 listRegionPAppend(&ai_regions, region);
             }

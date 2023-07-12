@@ -1,7 +1,9 @@
 #include "game.h"
 #include "assets.h"
 #include "std.h"
+#include "ai.h"
 #include "units.h"
+#include "input.h"
 #include "level.h"
 #include "constants.h"
 #include <raymath.h>
@@ -52,8 +54,8 @@ Test spawn_unit (GameState * state, Building * building) {
 }
 
 void spawn_units (GameState * state, float delta_time) {
-    for (usize r = 0; r < state->current_map->regions.len; r++) {
-        Region * region = &state->current_map->regions.items[r];
+    for (usize r = 0; r < state->map.regions.len; r++) {
+        Region * region = &state->map.regions.items[r];
         if (region->player_id == 0)
             continue;
 
@@ -157,7 +159,7 @@ void units_fight (GameState * state, float delta_time) {
                 continue;
             }
             if (target->state == UNIT_STATE_GUARDING) {
-                Region * region = region_by_guardian(&state->current_map->regions, target);
+                Region * region = region_by_guardian(&state->map.regions, target);
                 region_change_ownership(state, region, unit->player_owned);
             }
             else {
@@ -169,8 +171,8 @@ void units_fight (GameState * state, float delta_time) {
 }
 
 void guardian_fight (GameState * state, float delta_time) {
-    for (usize i = 0; i < state->current_map->regions.len; i++) {
-        Region * region = &state->current_map->regions.items[i];
+    for (usize i = 0; i < state->map.regions.len; i++) {
+        Region * region = &state->map.regions.items[i];
 
         for (usize p = 0; p < region->paths.len; p++) {
             PathEntry * entry = &region->paths.items[p];
@@ -203,8 +205,8 @@ void update_resources (GameState * state) {
     if (state->turn % (FPS * REGION_INCOME_INTERVAL))
         return;
 
-    for (usize i = 0; i < state->current_map->regions.len; i++) {
-        Region * region = &state->current_map->regions.items[i];
+    for (usize i = 0; i < state->map.regions.len; i++) {
+        Region * region = &state->map.regions.items[i];
         if (region->player_id == 0)
             continue;
 
@@ -225,34 +227,57 @@ Camera2D setup_camera(Map * map) {
     return cam;
 }
 
-GameState create_game_state (Map * map) {
-    GameState state   = {0};
-    state.current_map = map;
-    state.camera      = setup_camera(map);
-    state.units       = listUnitInit(120, &MemAlloc, &MemFree);
-    state.players     = listPlayerDataInit(map->player_count + 1, &MemAlloc, &MemFree);
-    state.players.len = map->player_count + 1;
+Result game_state_prepare (GameState * result, Map *const prefab) {
+    // TODO use map name
+    TraceLog(LOG_INFO, "Cloning map for gameplay");
+    if (map_clone(&result->map, prefab)) {
+        TraceLog(LOG_ERROR, "Failed to set up map %s, for gameplay", prefab->name);
+        return FAILURE;
+    }
+    TraceLog(LOG_INFO, "Preparing new map for gameplay");
+    if (map_prepare_to_play(&result->map)) {
+        TraceLog(LOG_ERROR, "Failed to finalize setup for map %s", prefab->name);
+        map_deinit(&result->map);
+        return FAILURE;
+    }
+    TraceLog(LOG_INFO, "Map ready to play");
 
-    clear_memory(state.players.items, sizeof(PlayerData) * state.players.len);
+    result->camera      = setup_camera(&result->map);
+    result->units       = listUnitInit(120, &MemAlloc, &MemFree);
+
+    result->players     = listPlayerDataInit(result->map.player_count + 1, &MemAlloc, &MemFree);
+    result->players.len = result->map.player_count + 1;
+    clear_memory(result->players.items, sizeof(PlayerData) * result->players.len);
+
     // TODO make better way to set which is the local player, especially after implementing multiplayer
-    state.players.items[1].type = PLAYER_LOCAL;
-    for (usize i = 1; i < state.players.len; i++) {
-        state.players.items[i].resource_gold = 20;
-    }
-    for (usize i = 1; i < state.players.len; i++) {
-        state.players.items[i].type = PLAYER_AI;
+    result->players.items[1].type = PLAYER_LOCAL;
+    for (usize i = 1; i < result->players.len; i++) {
+        result->players.items[i].type = PLAYER_AI;
     }
 
-    for (usize r = 0; r < map->regions.len; r++) {
-        Region * region = &map->regions.items[r];
-        region->faction = state.players.items[region->player_id].faction;
+    for (usize i = 1; i < result->players.len; i++) {
+        result->players.items[i].resource_gold = 20;
     }
 
-    return state;
+    for (usize r = 0; r < result->map.regions.len; r++) {
+        Region * region = &result->map.regions.items[r];
+        region->faction = result->players.items[region->player_id].faction;
+    }
+
+    return SUCCESS;
 }
 
-void destroy_game_state (GameState state) {
-    clear_unit_list(&state.units);
-    listPlayerDataDeinit(&state.players);
-    level_unload(state.current_map);
+void game_state_deinit (GameState * state) {
+    clear_unit_list(&state->units);
+    listPlayerDataDeinit(&state->players);
+    map_deinit(&state->map);
+    clear_memory(state, sizeof(GameState));
+}
+
+void game_tick (GameState * state) {
+    state->turn ++;
+    update_input_state(state);
+    update_resources(state);
+    simulate_ai(state);
+    simulate_units(state);
 }

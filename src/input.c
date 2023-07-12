@@ -23,7 +23,7 @@ void state_none (GameState * state) {
 
     state->selected_point = GetMousePosition();
     Vector2 cursor = GetScreenToWorld2D(state->selected_point, state->camera);
-    Building * b = get_building_by_position(state->current_map, cursor);
+    Building * b = get_building_by_position(&state->map, cursor);
     if (b) {
         #ifdef DEBUG
         if (b->region->player_id != player && IsKeyUp(KEY_LEFT_SHIFT))
@@ -38,7 +38,7 @@ void state_none (GameState * state) {
         return;
     }
     Movement dir;
-    Path * p = path_on_point(state->current_map, cursor, &dir);
+    Path * p = path_on_point(&state->map, cursor, &dir);
     if (p) {
         usize owner;
         switch (dir) {
@@ -79,13 +79,13 @@ void state_clicked_building (GameState * state) {
     }
 
     Vector2 cursor = GetScreenToWorld2D(GetMousePosition(), state->camera);
-    Building * b = get_building_by_position(state->current_map, cursor);
+    Building * b = get_building_by_position(&state->map, cursor);
     if (b && b == state->selected_building) {
         state->current_input = INPUT_OPEN_BUILDING;
         return;
     }
 
-    Path * path = path_on_point(state->current_map, cursor, NULL);
+    Path * path = path_on_point(&state->map, cursor, NULL);
     if (path) {
         building_set_spawn_path(state->selected_building, path);
     }
@@ -102,7 +102,7 @@ void state_clicked_path (GameState * state) {
 
     Vector2 cursor = GetScreenToWorld2D(GetMousePosition(), state->camera);
     Movement dir;
-    Path * path = path_on_point(state->current_map, cursor, &dir);
+    Path * path = path_on_point(&state->map, cursor, &dir);
     if (path == NULL) {
         goto clear;
     }
@@ -150,7 +150,7 @@ void state_building (GameState * state) {
     else {
         BuildingAction action;
         if (ui_building_action_click(state, cursor, &action)) {
-            Building * b = get_building_by_position(state->current_map, cursor);
+            Building * b = get_building_by_position(&state->map, cursor);
             if (b) {
                 state->selected_building = b;
             }
@@ -184,7 +184,7 @@ void state_building (GameState * state) {
 }
 
 void clamp_camera (GameState * state) {
-    Vector2 map = { state->current_map->width, state->current_map->height };
+    Vector2 map = { state->map.width, state->map.height };
     Vector2 limit_top    = map;
     Vector2 limit_bottom = Vector2Zero();
 

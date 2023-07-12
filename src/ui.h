@@ -9,8 +9,42 @@ typedef enum {
     BUILDING_ACTION_DEMOLISH,
 } BuildingAction;
 
+typedef struct {
+    Rectangle area;
+    Rectangle warrior;
+    Rectangle archer;
+    Rectangle support;
+    Rectangle special;
+    Rectangle resource;
+} EmptyDialog;
+
+typedef struct {
+    Rectangle area;
+    Rectangle label;
+    Rectangle upgrade;
+    Rectangle demolish;
+} BuildingDialog;
+
+typedef struct {
+    Rectangle new_game;
+    Rectangle quit;
+} MainMenuLayout;
+
+
+/* Input *********************************************************************/
 Result ui_building_action_click (GameState *const state, Vector2 cursor, BuildingAction * action);
 Result ui_building_buy_click    (GameState *const state, Vector2 cursor, BuildingType * result);
-void   render_ui                (GameState *const state);
+
+/* Layout ********************************************************************/
+MainMenuLayout main_menu_layout ();
+
+/* Rendering *****************************************************************/
+void          render_ingame_ui (GameState *const state);
+ExecutionMode render_main_menu ();
+
+/* Component Rendering *******************************************************/
+void render_simple_map_preview (Rectangle area, Map * map, float region_size, float path_thickness);
+int  render_map_list           (Rectangle area, ListMap * maps, usize from, usize len);
+void draw_button               (Rectangle area, char * text, Vector2 cursor, float padding, Color bg, Color hover, Color frame);
 
 #endif // UI_H_

@@ -335,6 +335,11 @@
  "orientation":"orthogonal",
  "properties":[
         {
+         "name":"name",
+         "type":"string",
+         "value":"Duel"
+        }, 
+        {
          "name":"player_count",
          "type":"int",
          "value":2

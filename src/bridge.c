@@ -34,7 +34,7 @@ Result bridge_points (Vector2 a, Vector2 b, Bridge * result) {
     while (count --> 1) {
         Node * next = MemAlloc(sizeof(Node)) ;
         if (next == NULL) {
-            clean_up_bridge(result);
+            bridge_deinit(result);
             TraceLog(LOG_ERROR, "Failed to allocate next node");
             return FAILURE;
         }
@@ -180,7 +180,7 @@ Result bridge_over_path (Path * path) {
     progress = leftover + step_size;
     while (progress + step_size < length) {
         if (path_follow(path, path->region_a, progress, &point)) {
-            clean_up_bridge(&path->bridge);
+            bridge_deinit(&path->bridge);
             TraceLog(LOG_ERROR, "Failed to create next point on a path");
             return FAILURE;
         }
@@ -188,7 +188,7 @@ Result bridge_over_path (Path * path) {
         Node * next = MemAlloc(sizeof(Node));
         if (next == NULL) {
             TraceLog(LOG_ERROR, "Failed to allocate memory for next node");
-            clean_up_bridge(&path->bridge);
+            bridge_deinit(&path->bridge);
             return FAILURE;
         }
 
@@ -206,13 +206,13 @@ Result bridge_over_path (Path * path) {
     node->next = MemAlloc(sizeof(Node));
     if (node->next == NULL) {
         TraceLog(LOG_ERROR, "Failed to allocate the last node");
-        clean_up_bridge(&path->bridge);
+        bridge_deinit(&path->bridge);
         return FAILURE;
     }
 
     if (path_follow(path, path->region_a, length - leftover, &point)) {
         TraceLog(LOG_ERROR, "Failed to get the last point of the path");
-        clean_up_bridge(&path->bridge);
+        bridge_deinit(&path->bridge);
         return FAILURE;
     }
 
@@ -228,7 +228,9 @@ Result bridge_over_path (Path * path) {
     return SUCCESS;
 }
 
-void clean_up_bridge(Bridge * b) {
+void bridge_deinit (Bridge * b) {
+    if (b->start == NULL && b->end == NULL)
+        return;
     Node * n = b->start;
     while (n != b->end) {
         n = n->next;

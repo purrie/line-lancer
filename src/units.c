@@ -372,8 +372,8 @@ void render_units (GameState *const state) {
         DrawCircleV(unit->position, 3.0f, col);
     }
 
-    for (usize i = 0; i < state->current_map->regions.len; i++) {
-        Region * region = &state->current_map->regions.items[i];
+    for (usize i = 0; i < state->map.regions.len; i++) {
+        Region * region = &state->map.regions.items[i];
         DrawCircleV(region->castle.guardian.position, 6.0f, RED);
     }
 }

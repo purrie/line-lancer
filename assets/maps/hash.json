@@ -1471,6 +1471,11 @@
  "orientation":"orthogonal",
  "properties":[
         {
+         "name":"name",
+         "type":"string",
+         "value":"Hash"
+        }, 
+        {
          "name":"player_count",
          "type":"int",
          "value":2

@@ -5,6 +5,7 @@
 #include "alloc.h"
 #include "constants.h"
 #include "game.h"
+#include "mesh.h"
 #include <raymath.h>
 
 /* Building functions ********************************************************/
@@ -477,6 +478,20 @@ float path_length(Path *const path) {
     return sum;
 }
 
+Result path_clone (Path * dest, Path *const src) {
+    dest->lines = listLineInit(src->lines.len, src->lines.alloc, src->lines.dealloc);
+    dest->lines.len = src->lines.len;
+    copy_memory(dest->lines.items, src->lines.items, sizeof(Line) * src->lines.len);
+    return SUCCESS;
+}
+
+void path_deinit (Path * path) {
+    bridge_deinit(&path->bridge);
+    UnloadModel(path->model);
+    listLineDeinit(&path->lines);
+    clear_memory(path, sizeof(Path));
+}
+
 /* Region Functions **********************************************************/
 void region_update_paths (Region * region) {
     for (usize e = 0; e < region->paths.len; e++) {
@@ -587,6 +602,70 @@ Result region_connect_paths (Region * region, Path * from, Path * to) {
     return FAILURE;
 }
 
+Result region_clone (Region * dest, Region *const src) {
+    dest->player_id = src->player_id;
+    dest->faction = src->faction;
+
+    dest->area.lines = listLineInit(src->area.lines.len, src->area.lines.alloc, src->area.lines.dealloc);
+    dest->area.lines.len = src->area.lines.len;
+    copy_memory(dest->area.lines.items, src->area.lines.items, sizeof(Line) * src->area.lines.len);
+
+    dest->castle.position = src->castle.position;
+    dest->castle.region = dest;
+
+    dest->castle.guardian_spot.position = src->castle.guardian_spot.position;
+    dest->castle.guardian_spot.unit = &dest->castle.guardian;
+
+    dest->buildings = listBuildingInit(src->buildings.len, src->buildings.alloc, src->buildings.dealloc);
+    dest->buildings.len = src->buildings.len;
+    for (usize b = 0; b < dest->buildings.len; b++) {
+        Building * to = &dest->buildings.items[b];
+        Building * from = &src->buildings.items[b];
+        clear_memory(to, sizeof(Building));
+        to->position = from->position;
+        to->region = dest;
+    }
+
+    dest->paths = listPathEntryInit(src->paths.len, src->paths.alloc, src->paths.dealloc);
+
+    return SUCCESS;
+}
+
+void region_deinit (Region * region) {
+    for (usize e = 0; e < region->paths.len; e++) {
+        PathEntry * entry = &region->paths.items[e];
+        bridge_deinit(&entry->castle_path);
+        for (usize r = 0; r < entry->redirects.len; r++) {
+            PathBridge * pb = &entry->redirects.items[r];
+            if (pb->bridge->start) {
+                bridge_deinit(pb->bridge);
+            }
+            else {
+                MemFree(pb->bridge);
+            }
+        }
+        listPathBridgeDeinit(&entry->redirects);
+    }
+    listPathEntryDeinit(&region->paths);
+
+    for (usize b = 0; b < region->buildings.len; b++) {
+        Building * building = &region->buildings.items[b];
+        UnloadModel(building->model);
+        for (usize p = 0; p < building->spawn_paths.len; p++) {
+            bridge_deinit(&building->spawn_paths.items[p]);
+        }
+        listBridgeDeinit(&building->spawn_paths);
+    }
+    listBuildingDeinit(&region->buildings);
+
+    listLineDeinit(&region->area.lines);
+    UnloadModel(region->area.model);
+
+    UnloadModel(region->castle.model);
+
+    clear_memory(region, sizeof(Region));
+}
+
 /* Map Functions ***********************************************************/
 void map_clamp(Map * map) {
     Vector2 map_size = { (float)map->width, (float)map->height };
@@ -665,6 +744,9 @@ void render_map_mesh(Map * map) {
                 case BUILDING_RESOURCE: {
                     DrawModel(building->model, Vector3Zero(), 1.0f, YELLOW);
                 } break;
+                case BUILDING_TYPE_COUNT: {
+                    TraceLog(LOG_ERROR, "Building count is not a valid building type to render");
+                } break;
             }
         }
 
@@ -710,4 +792,160 @@ size get_expected_income (Map *const map, usize player) {
     }
 
     return (size)income;
+}
+
+Region * map_get_region_at (Map *const map, Vector2 point) {
+    for (usize r = 0; r < map->regions.len; r++) {
+        Region * region = &map->regions.items[r];
+        if (area_contains_point(&region->area, point)) {
+            return region;
+        }
+    }
+    return NULL;
+}
+
+void map_deinit (Map * map) {
+    for (usize p = 0; p < map->paths.len; p++) {
+        path_deinit(&map->paths.items[p]);
+    }
+    for (usize r = 0; r < map->regions.len; r++) {
+        region_deinit(&map->regions.items[r]);
+    }
+    listPathDeinit(&map->paths);
+    listRegionDeinit(&map->regions);
+    clear_memory(map, sizeof(Map));
+}
+
+Result map_clone (Map * dest, Map *const src) {
+    clear_memory(dest, sizeof(Map));
+    dest->name = src->name;
+    dest->width = src->width;
+    dest->height = src->height;
+    dest->player_count = src->player_count;
+    dest->paths = listPathInit(src->paths.len, &MemAlloc, &MemFree);
+    dest->regions = listRegionInit(src->regions.len, &MemAlloc, &MemFree);
+
+    for (usize p = 0; p < src->paths.len; p++) {
+        dest->paths.len ++;
+        if (path_clone(&dest->paths.items[p], &src->paths.items[p])) {
+            goto fail;
+        }
+    }
+
+    for (usize r = 0; r < src->regions.len; r++) {
+        dest->regions.len ++;
+        if (region_clone(&dest->regions.items[r], &src->regions.items[r])) {
+            goto fail;
+        }
+    }
+
+    return SUCCESS;
+
+    fail:
+    map_deinit(dest);
+    return FAILURE;
+}
+
+Result map_make_connections(Map * map) {
+  TraceLog(LOG_INFO, "Connecting map");
+  // connect path <-> region
+  for (usize i = 0; i < map->paths.len; i++) {
+    Path * path = &map->paths.items[i];
+
+    for (usize r = 0; r < map->regions.len; r++) {
+      Region * region = &map->regions.items[r];
+
+      Vector2 a = path->lines.items[0].a;
+      Vector2 b = path->lines.items[path->lines.len - 1].b;
+
+      if (area_contains_point(&region->area, a)) {
+        path->region_a = region;
+        TraceLog(LOG_INFO, "Connecting region %d to start of path %d", r, i);
+      }
+      if (area_contains_point(&region->area, b)) {
+        path->region_b = region;
+        TraceLog(LOG_INFO, "Connecting region %d to end of path %d", r, i);
+      }
+
+      if (path->region_a && path->region_b) {
+        if (path->region_a == path->region_b) {
+          return FAILURE;
+        }
+
+        if (bridge_over_path(path)) {
+          return FAILURE;
+        }
+
+        PathEntry a = { .path = path, .redirects = listPathBridgeInit(6, &MemAlloc, &MemFree) };
+        PathEntry b = { .path = path, .redirects = listPathBridgeInit(6, &MemAlloc, &MemFree) };
+        listPathEntryAppend(&path->region_a->paths, a);
+        listPathEntryAppend(&path->region_b->paths, b);
+        TraceLog(LOG_INFO, "Path connected");
+        break;
+      }
+    }
+  }
+
+  for (usize i = 0; i < map->regions.len; i++) {
+    Region * region = &map->regions.items[i];
+
+    for (usize b = 0; b < region->buildings.len; b++) {
+      region->buildings.items[b].region = region;
+      region->buildings.items[b].spawn_paths = listBridgeInit(region->paths.len, &MemAlloc, &MemFree);
+    }
+
+    region->castle.region = region;
+
+    if (bridge_region(region)) {
+      return FAILURE;
+    }
+
+    region_update_paths(region);
+    setup_unit_guardian(region);
+  }
+
+  return SUCCESS;
+}
+
+void map_subdivide_paths(Map * map) {
+  TraceLog(LOG_INFO, "Smoothing map meshes");
+  for(usize i = 0; i < map->paths.len; i++) {
+    Vector2 a = map->paths.items[i].lines.items[0].a;
+    Vector2 b = map->paths.items[i].lines.items[0].b;
+    float depth = Vector2DistanceSqr(a, b);
+    for (usize l = 1; l < map->paths.items[i].lines.len; l++) {
+      a = map->paths.items[i].lines.items[l].a;
+      b = map->paths.items[i].lines.items[l].b;
+      float test = Vector2DistanceSqr(a, b);
+      if (test < depth) depth = test;
+    }
+    depth = sqrtf(depth) * 0.25f;
+
+    bevel_lines(&map->paths.items[i].lines, MAP_BEVEL, depth, false);
+  }
+
+  for (usize i = 0; i < map->regions.len; i++) {
+    Vector2 a = map->regions.items[i].area.lines.items[0].a;
+    Vector2 b = map->regions.items[i].area.lines.items[0].b;
+    float depth = Vector2DistanceSqr(a, b);
+    for (usize l = 1; l < map->regions.items[i].area.lines.len; l++) {
+      a = map->regions.items[i].area.lines.items[l].a;
+      b = map->regions.items[i].area.lines.items[l].b;
+      float test = Vector2DistanceSqr(a, b);
+      if (test < depth) depth = test;
+    }
+    depth = sqrtf(depth) * 0.25f;
+
+    bevel_lines(&map->regions.items[i].area.lines, MAP_BEVEL, depth, true);
+  }
+}
+
+Result map_prepare_to_play (Map * map) {
+  if(map_make_connections(map)) {
+    return FAILURE;
+  }
+  map_clamp(map);
+  map_subdivide_paths(map);
+  generate_map_mesh(map);
+  return SUCCESS;
 }

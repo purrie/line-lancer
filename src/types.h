@@ -76,6 +76,7 @@ makeList(Region, Region);
 makeList(PathBridge, PathBridge);
 makeList(Bridge, Bridge);
 makeList(PlayerData, PlayerData);
+makeList(Map, Map);
 
 makeList(Unit*, Unit);
 makeList(Region*, RegionP);
@@ -184,21 +185,22 @@ struct PathBridge {
 
 struct PathEntry {
     Path           * path;
-    ListPathBridge   redirects;
     usize            active_redirect;
+    ListPathBridge   redirects;
     Bridge           castle_path;
 };
 
 struct Region {
-    Area          area;
+    FactionType   faction;
     usize         player_id;
+    Area          area;
     Castle        castle;
     ListBuilding  buildings;
     ListPathEntry paths;
-    FactionType   faction;
 };
 
 struct Map {
+    char     * name;
     usize      width;
     usize      height;
     uchar      player_count;
@@ -218,6 +220,17 @@ struct PlayerData {
     FactionType faction;
 };
 
+typedef enum {
+    EXE_MODE_MAIN_MENU,
+    EXE_MODE_SINGLE_PLAYER_MAP_SELECT,
+    EXE_MODE_IN_GAME,
+    EXE_MODE_EXIT,
+} ExecutionMode;
+
+typedef struct {
+    ListMap maps;
+} GameAssets;
+
 enum PlayerState {
     INPUT_NONE = 0,
     INPUT_CLICKED_BUILDING,
@@ -232,18 +245,11 @@ struct GameState {
     Building       * selected_building;
     Path           * selected_path;
     Region         * selected_region;
-    Map            * current_map;
+    Map              map;
     ListUnit         units;
     ListPlayerData   players;
     usize            turn;
     Camera2D         camera;
 };
-
-typedef struct {
-    uchar * start;
-    usize   len;
-} StringSlice;
-
-StringSlice make_slice(uchar * from, usize start, usize end);
 
 #endif // TYPES_H_

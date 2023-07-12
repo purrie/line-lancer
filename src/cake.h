@@ -31,37 +31,56 @@ typedef struct Rectangle Rectangle;
 CAKE_RECT cake_rect             (float width, float height);
 CAKE_RECT cake_move_rect        (CAKE_RECT rect, float x, float y);
 CAKE_RECT cake_center_rect      (CAKE_RECT rect, float x, float y);
+
 CAKE_RECT cake_margin           (CAKE_RECT rect, float top, float, float bottom, float left, float right);
 CAKE_RECT cake_margin_all       (CAKE_RECT rect, float all);
-CAKE_RECT cake_cut_horizontal   (CAKE_RECT * rect, float spacing, float ratio);
-CAKE_RECT cake_cut_vertical     (CAKE_RECT * rect, float spacing, float ratio);
-void      cake_split_horizontal (CAKE_RECT area, float spacing, unsigned int row_count, CAKE_RECT * rows_result);
-void      cake_split_grid       (CAKE_RECT area, float spacing, unsigned int cols, unsigned int rows, CAKE_RECT * result);
+CAKE_RECT cake_carve_to         (CAKE_RECT rect, float width, float height);
+
+// TODO make those take ratio first, spacing last
+CAKE_RECT cake_cut_horizontal   (CAKE_RECT * rect, float ratio, float spacing);
+CAKE_RECT cake_cut_vertical     (CAKE_RECT * rect, float ratio, float spacing);
+
+// squish functions decrease height of the rectangle by or to specified height, resulting rect is aligned to the bottom of the original
+CAKE_RECT cake_squish_to        (CAKE_RECT rect, float height);
+CAKE_RECT cake_squish_by        (CAKE_RECT rect, float height);
+
+// Diet functions shrink the rect by or to specified amount, keeping the rect in center
+CAKE_RECT cake_diet_to          (CAKE_RECT rect, float width);
+CAKE_RECT cake_diet_by          (CAKE_RECT rect, float width);
+
+// those return leftovers
+CAKE_RECT cake_layers           (CAKE_RECT rect, unsigned int row_count, CAKE_RECT * rows_result, float row_height, float spacing);
+CAKE_RECT cake_slices           (CAKE_RECT rect, unsigned int col_count, CAKE_RECT * cols_result, float col_width, float spacing);
+
+void      cake_split_horizontal (CAKE_RECT area, unsigned int row_count, CAKE_RECT * rows_result, float spacing);
+void      cake_split_vertical   (CAKE_RECT area, unsigned int col_count, CAKE_RECT * columns_result, float spacing);
+void      cake_split_grid       (CAKE_RECT area, unsigned int col_count, unsigned int row_count, CAKE_RECT * result, float spacing);
+
 void      cake_clamp_inside     (CAKE_RECT * area, CAKE_RECT inside);
+
+#endif // CAKE_LAYOUT_H
 
 #ifdef CAKE_LAYOUT_IMPLEMENTATION
 
-Rectangle cake_rect (float width, float height) {
-    Rectangle result = { 0.0f, 0.0f, width, height };
+CAKE_RECT cake_rect (float width, float height) {
+    CAKE_RECT result = { 0.0f, 0.0f, width, height };
 
     return result;
 }
-
-Rectangle cake_move_rect (Rectangle rect, float x, float y) {
+CAKE_RECT cake_move_rect (CAKE_RECT rect, float x, float y) {
     rect.x += x;
     rect.y += y;
 
     return rect;
 }
-
-Rectangle cake_center_rect (Rectangle rect, float x, float y) {
+CAKE_RECT cake_center_rect (CAKE_RECT rect, float x, float y) {
     rect.x = x - rect.width * 0.5f;
     rect.y = y - rect.height * 0.5f;
 
     return rect;
 }
 
-Rectangle cake_margin (Rectangle rect, float top, float, float bottom, float left, float right) {
+CAKE_RECT cake_margin (CAKE_RECT rect, float top, float, float bottom, float left, float right) {
     rect.x += left;
     rect.y += top;
     rect.width  -= left + right;
@@ -69,8 +88,7 @@ Rectangle cake_margin (Rectangle rect, float top, float, float bottom, float lef
 
     return rect;
 }
-
-Rectangle cake_margin_all (Rectangle rect, float all) {
+CAKE_RECT cake_margin_all (CAKE_RECT rect, float all) {
     rect.x += all;
     rect.y += all;
     rect.width  -= all * 2.0f;
@@ -78,8 +96,22 @@ Rectangle cake_margin_all (Rectangle rect, float all) {
 
     return rect;
 }
+CAKE_RECT cake_carve_to (CAKE_RECT rect, float width, float height) {
+    CAKE_RECT result = rect;
+    if (result.width > width) {
+        float diff = result.width - width;
+        result.x += diff * 0.5f;
+        result.width -= diff;
+    }
+    if (result.height > height) {
+        float diff = result.height - height;
+        result.y += diff * 0.5f;
+        result.height -= diff;
+    }
+    return result;
+}
 
-CAKE_RECT cake_cut_horizontal (CAKE_RECT * rect, float spacing, float ratio) {
+CAKE_RECT cake_cut_horizontal (CAKE_RECT * rect, float ratio, float spacing) {
     CAKE_RECT result = *rect;
 
     if (ratio >= 0.0f && ratio <= 1.0f) {
@@ -109,8 +141,7 @@ CAKE_RECT cake_cut_horizontal (CAKE_RECT * rect, float spacing, float ratio) {
 
     return result;
 }
-
-CAKE_RECT cake_cut_vertical (CAKE_RECT * rect, float spacing, float ratio) {
+CAKE_RECT cake_cut_vertical (CAKE_RECT * rect, float ratio, float spacing) {
     CAKE_RECT result = *rect;
 
     if (ratio >= 0.0f && ratio <= 1.0f) {
@@ -141,7 +172,63 @@ CAKE_RECT cake_cut_vertical (CAKE_RECT * rect, float spacing, float ratio) {
     return result;
 }
 
-void cake_split_horizontal (Rectangle area, float spacing, unsigned int row_count, Rectangle * rows_result) {
+CAKE_RECT cake_squish_to (CAKE_RECT rect, float height) {
+    if (height >= rect.height) {
+        return rect;
+    }
+    if (height < 1.0f && height > -1.0f) {
+        height = rect.height * height;
+    }
+    float diff = rect.height - height;
+    return cake_squish_by(rect, diff);
+}
+CAKE_RECT cake_squish_by (CAKE_RECT rect, float height) {
+    if (height > rect.height) {
+        height = rect.height;
+    }
+    if (height < 1.0f && height > -1.0f) {
+        height = rect.height * height;
+    }
+    rect.height -= height;
+    rect.y += height;
+    return rect;
+}
+
+CAKE_RECT cake_diet_to (CAKE_RECT rect, float width) {
+    if (width >= rect.width) {
+        return rect;
+    }
+    if (width < 1.0f && width > -1.0f) {
+        width = rect.width * width;
+    }
+    float diff = rect.width - width;
+    return cake_diet_by(rect, diff);
+}
+CAKE_RECT cake_diet_by (CAKE_RECT rect, float width) {
+    if (width > rect.width) {
+        width = rect.width;
+    }
+    if (width < 1.0f && width > -1.0f) {
+        width = rect.width * width;
+    }
+    rect.x += width * 0.5f;
+    rect.width -= width;
+}
+
+CAKE_RECT cake_layers (CAKE_RECT rect, unsigned int row_count, CAKE_RECT * rows_result, float height, float spacing) {
+    for (unsigned int i = 0; i < row_count; i++) {
+        rows_result[i] = cake_cut_horizontal(&rect, height, spacing);
+    }
+    return rect;
+}
+CAKE_RECT cake_slices (CAKE_RECT rect, unsigned int col_count, CAKE_RECT * cols_result, float col_width, float spacing) {
+    for (unsigned int i = 0; i < col_count; i++) {
+        cols_result[i] = cake_cut_vertical(&rect, col_width, spacing);
+    }
+    return rect;
+}
+
+void cake_split_horizontal (CAKE_RECT area, unsigned int row_count, CAKE_RECT * rows_result, float spacing) {
     if (row_count == 0) return;
     if (row_count == 1) {
         rows_result[0] = area;
@@ -158,8 +245,24 @@ void cake_split_horizontal (Rectangle area, float spacing, unsigned int row_coun
         rows_result[i].height = h;
     }
 }
+void cake_split_vertical (CAKE_RECT area, unsigned int col_count, CAKE_RECT * columns_result, float spacing) {
+    if (col_count == 0) return;
+    if (col_count == 1) {
+        columns_result[0] = area;
+        return;
+    }
 
-void cake_split_grid (CAKE_RECT area, float spacing, unsigned int cols, unsigned int rows, CAKE_RECT * result) {
+    float w = area.width / col_count - spacing * ( (col_count - 1) / (float)col_count );
+
+    for (unsigned int i = 0; i < col_count; i++) {
+        columns_result[i].y = area.y;
+        columns_result[i].height = area.height;
+
+        columns_result[i].x = area.x + w * i + spacing * i;
+        columns_result[i].width = w;
+    }
+}
+void cake_split_grid (CAKE_RECT area, unsigned int cols, unsigned int rows, CAKE_RECT * result, float spacing) {
     if (rows == 0 || cols == 0) return;
 
     float w = area.width  / cols - spacing * ( (cols - 1) / (float)cols );
@@ -195,6 +298,5 @@ void cake_clamp_inside (CAKE_RECT * area, CAKE_RECT inside) {
     if (diff_y > 0.0f)
         area->y -= diff_y;
 }
-#endif
 
-#endif // CAKE_LAYOUT_H
+#endif // CAKE_LAYOUT_IMPLEMENTATION

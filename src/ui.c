@@ -5,26 +5,11 @@
 #include "level.h"
 #define CAKE_LAYOUT_IMPLEMENTATION
 #include "cake.h"
-
-typedef struct {
-    Rectangle area;
-    Rectangle warrior;
-    Rectangle archer;
-    Rectangle support;
-    Rectangle special;
-    Rectangle resource;
-} EmptyDialog;
-
-typedef struct {
-    Rectangle area;
-    Rectangle label;
-    Rectangle upgrade;
-    Rectangle demolish;
-} BuildingDialog;
+#include <raymath.h>
 
 void draw_button (
-    char      * text,
     Rectangle   area,
+    char      * text,
     Vector2     cursor,
     float       padding,
     Color       bg,
@@ -50,13 +35,14 @@ float ui_spacing () {
     return 2.0f;
 }
 
+/* In Game Menu **************************************************************/
 EmptyDialog empty_dialog (Vector2 position) {
     EmptyDialog result;
     float margin = ui_margin();
     float spacing = ui_spacing();
 
     Rectangle screen = cake_rect(GetScreenWidth(), GetScreenHeight());
-    cake_cut_horizontal(&screen, 0, UI_BAR_SIZE);
+    cake_cut_horizontal(&screen, UI_BAR_SIZE, 0);
 
     result.area = cake_rect(UI_DIALOG_BUILDING_WIDTH + spacing * 2.0f + margin * 2.0f, UI_DIALOG_BUILDING_HEIGHT + margin * 2.0f + spacing);
     result.area = cake_center_rect(result.area, position.x, position.y);
@@ -64,7 +50,7 @@ EmptyDialog empty_dialog (Vector2 position) {
 
     Rectangle butt = cake_margin_all(result.area, margin);
     Rectangle buttons[6];
-    cake_split_grid(butt, spacing, 3, 2, buttons);
+    cake_split_grid(butt, 3, 2, buttons, spacing);
 
     result.warrior  = buttons[0];
     result.archer   = buttons[1];
@@ -81,7 +67,7 @@ BuildingDialog building_dialog (Vector2 position) {
     float spacing = ui_spacing();
 
     Rectangle screen = cake_rect(GetScreenWidth(), GetScreenHeight());
-    cake_cut_horizontal(&screen, 0, UI_BAR_SIZE);
+    cake_cut_horizontal(&screen, UI_BAR_SIZE, 0);
 
     result.area = cake_rect(UI_DIALOG_UPGRADE_WIDTH + margin * 2.0f, UI_DIALOG_UPGRADE_HEIGHT + margin * 2.0f + spacing * 2.0f);
     result.area = cake_center_rect(result.area, position.x, position.y);
@@ -89,7 +75,7 @@ BuildingDialog building_dialog (Vector2 position) {
 
     Rectangle butt = cake_margin_all(result.area, margin);
     Rectangle buttons[3];
-    cake_split_horizontal(butt, spacing, 3, buttons);
+    cake_split_horizontal(butt, 3, buttons, spacing);
 
     result.label    = buttons[0];
     result.upgrade  = buttons[1];
@@ -169,12 +155,12 @@ void render_empty_building_dialog (GameState *const state) {
         Color color_hover = LIGHTGRAY;
         Color color_frame = BLACK;
 
-        draw_button("Fighter", dialog.warrior, cursor, margin, color_bg, color_hover, color_frame);
-        draw_button("Archer", dialog.archer, cursor, margin, color_bg, color_hover, color_frame);
-        draw_button("Support", dialog.support, cursor, margin, color_bg, color_hover, color_frame);
+        draw_button(dialog.warrior, "Fighter", cursor, margin, color_bg, color_hover, color_frame);
+        draw_button(dialog.archer, "Archer", cursor, margin, color_bg, color_hover, color_frame);
+        draw_button(dialog.support, "Support", cursor, margin, color_bg, color_hover, color_frame);
 
-        draw_button("Special", dialog.special, cursor, margin, color_bg, color_hover, color_frame);
-        draw_button("Cash", dialog.resource, cursor, margin, color_bg, color_hover, color_frame);
+        draw_button(dialog.special, "Special", cursor, margin, color_bg, color_hover, color_frame);
+        draw_button(dialog.resource, "Cash", cursor, margin, color_bg, color_hover, color_frame);
     }
 }
 
@@ -190,7 +176,7 @@ void render_upgrade_building_dialog (GameState *const state) {
     }
 
     DrawRectangleRec(dialog.area, dialog_bg);
-    Rectangle level = cake_cut_horizontal(&dialog.label, 2.0f, 0.6f);
+    Rectangle level = cake_cut_horizontal(&dialog.label, 0.6f, 2.0f);
     char * text;
     switch (state->selected_building->type) {
         case BUILDING_FIGHTER: {
@@ -208,6 +194,7 @@ void render_upgrade_building_dialog (GameState *const state) {
         case BUILDING_RESOURCE: {
             text = "Cash";
         } break;
+        case BUILDING_TYPE_COUNT:
         case BUILDING_EMPTY: {
             DrawText("Invalid", dialog.label.x, dialog.label.y, 20, WHITE);
         } return;
@@ -234,8 +221,8 @@ void render_upgrade_building_dialog (GameState *const state) {
     Color color_bg = DARKBLUE;
     Color color_hover = LIGHTGRAY;
     Color color_frame = BLACK;
-    draw_button("Upgrade", dialog.upgrade, cursor, margin, color_bg, color_hover, color_frame);
-    draw_button("Demolish", dialog.demolish, cursor, margin, color_bg, color_hover, color_frame);
+    draw_button(dialog.upgrade, "Upgrade", cursor, margin, color_bg, color_hover, color_frame);
+    draw_button(dialog.demolish, "Demolish", cursor, margin, color_bg, color_hover, color_frame);
 }
 
 void render_resource_bar (GameState *const state) {
@@ -245,7 +232,7 @@ void render_resource_bar (GameState *const state) {
     }
     PlayerData * player = &state->players.items[player_index];
 
-    int income = get_expected_income(state->current_map, player_index);
+    int income = get_expected_income(&state->map, player_index);
 
     Rectangle bar = cake_rect(GetScreenWidth(), UI_BAR_SIZE);
     Rectangle mbar = cake_margin_all(bar, UI_BAR_MARGIN);
@@ -257,24 +244,24 @@ void render_resource_bar (GameState *const state) {
     int gold_label_width = MeasureText(gold_label, UI_FONT_SIZE_BAR);
     int gold_width       = MeasureText(gold, UI_FONT_SIZE_BAR);
 
-    Rectangle label_rect = cake_cut_vertical(&mbar, 0, gold_label_width);
-    Rectangle gold_rect  = cake_cut_vertical(&mbar, 0, gold_width);
+    Rectangle label_rect = cake_cut_vertical(&mbar, gold_label_width, 0);
+    Rectangle gold_rect  = cake_cut_vertical(&mbar, gold_width, 0);
 
     DrawRectangleRec(bar, DARKGRAY);
     DrawText(gold_label   , label_rect.x, label_rect.y, UI_FONT_SIZE_BAR, WHITE);
     DrawText(gold         , gold_rect.x , gold_rect.y , UI_FONT_SIZE_BAR, WHITE);
-    cake_cut_vertical(&mbar, 0, UI_BAR_MARGIN);
+    cake_cut_vertical(&mbar, UI_BAR_MARGIN, 0);
 
     if (income >= 0) {
         int sign_width = MeasureText("+", UI_FONT_SIZE_BAR);
-        Rectangle sign = cake_cut_vertical(&mbar, 0, sign_width);
+        Rectangle sign = cake_cut_vertical(&mbar, sign_width, 0);
         DrawText("+", sign.x, sign.y, UI_FONT_SIZE_BAR, WHITE);
     }
 
     DrawText(income_label, mbar.x, mbar.y, UI_FONT_SIZE_BAR, WHITE);
 }
 
-void render_ui (GameState *const state) {
+void render_ingame_ui (GameState *const state) {
     if (state->current_input == INPUT_OPEN_BUILDING) {
         if (state->selected_building->type == BUILDING_EMPTY) {
             render_empty_building_dialog(state);
@@ -285,3 +272,93 @@ void render_ui (GameState *const state) {
     }
     render_resource_bar(state);
 }
+
+/* Main Menu *****************************************************************/
+MainMenuLayout main_menu_layout () {
+    Rectangle screen = cake_rect(GetScreenWidth(), GetScreenHeight());
+    Rectangle parts[3];
+    cake_split_vertical(screen, 3, parts, 0.0f);
+    cake_split_horizontal(parts[1], 3, parts, 0.0f);
+    cake_split_horizontal(parts[1], 2, parts, 0.0f);
+
+    MainMenuLayout result = {
+        .new_game = cake_carve_to(parts[0], 150.0f, 50.0f),
+        .quit     = cake_carve_to(parts[1], 150.0f, 50.0f),
+    };
+    return result;
+}
+
+void render_simple_map_preview (Rectangle area, Map * map, float region_size, float path_thickness) {
+    DrawRectangleRec(area, BLACK);
+    DrawRectangleLinesEx(area, UI_BORDER_SIZE, DARKGRAY);
+
+    if (map == NULL) {
+        DrawLine(area.x, area.y, area.x + area.width, area.y + area.height, RAYWHITE);
+        DrawLine(area.x + area.width, area.y, area.x, area.y + area.height, RAYWHITE);
+        return;
+    }
+
+    float scale_w = area.width / (float)(map->width);
+    float scale_h = area.height / (float)(map->height);
+
+    for (usize p = 0; p < map->paths.len; p++) {
+        Path * path = &map->paths.items[p];
+        Region * a = map_get_region_at(map, path->lines.items[0].a);
+        Region * b = map_get_region_at(map, path->lines.items[path->lines.len - 1].b);
+        if (a == NULL || b == NULL) {
+            TraceLog(LOG_ERROR, "Failed to get path endpoint for the prevew");
+            continue;
+        }
+        Vector2 from = a->castle.position;
+        Vector2 to   = b->castle.position;
+        from = Vector2Multiply (from, (Vector2){ scale_w, scale_h });
+        to   = Vector2Multiply (to,   (Vector2){ scale_w, scale_h });
+        from = Vector2Add      (from, (Vector2){ area.x, area.y });
+        to   = Vector2Add      (to,   (Vector2){ area.x, area.y });
+        DrawLineEx(from, to, path_thickness, ORANGE);
+    }
+
+    for (usize i = 0; i < map->regions.len; i++) {
+        Region * region = &map->regions.items[i];
+        Vector2 point = Vector2Multiply(region->castle.position, (Vector2){ scale_w, scale_h });
+        point = Vector2Add(point, (Vector2){ area.x, area.y });
+        Color col = get_player_color(region->player_id);
+        DrawCircleV(point, region_size, col);
+    }
+}
+
+int render_map_list (Rectangle area, ListMap * maps, usize from, usize len) {
+    int selected = -1;
+    DrawRectangleRec(area, BLACK);
+    DrawRectangleLinesEx(area, UI_BORDER_SIZE, DARKGRAY);
+
+    if (len == 0) {
+        TraceLog(LOG_WARNING, "No map entries to render");
+        return selected;
+    }
+    if ((from + len) > maps->len) {
+        TraceLog(LOG_ERROR, "Attempting to render more maps than there's in the list");
+        return selected;
+    }
+    Vector2 cursor = GetMousePosition();
+
+    Rectangle * boxes = temp_alloc(sizeof(Rectangle) * len);
+    if (boxes == NULL) {
+        TraceLog(LOG_ERROR, "Failed to allocate memory for map list");
+        return selected;
+    }
+
+    area = cake_margin_all(area, UI_BORDER_SIZE + 2);
+    cake_layers(area, len, boxes, UI_FONT_SIZE_BUTTON + ui_margin(), ui_spacing());
+    for (usize i = 0; i < len; i++) {
+        usize index = i + from;
+        draw_button(boxes[i], maps->items[index].name, cursor, 0, DARKBLUE, BLUE, RAYWHITE);
+        if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
+            if (CheckCollisionPointRec(cursor, boxes[i])) {
+                selected = index;
+            }
+        }
+    }
+    return selected;
+}
+

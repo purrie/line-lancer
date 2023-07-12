@@ -29,5 +29,12 @@
 #define UI_BAR_MARGIN 5
 #define UI_FONT_SIZE_BAR 20
 #define UI_FONT_SIZE_BUTTON 20
+#define UI_BORDER_SIZE 3
+
+#ifdef _WIN32
+#define PATH_SEPARATOR '\\'
+#else
+#define PATH_SEPARATOR '/'
+#endif
 
 #endif // CONSTANTS_H_

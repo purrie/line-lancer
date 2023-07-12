@@ -17,13 +17,8 @@ void * set_memory(void * ptr, uchar val, usize bytes);
 /// Zero initializes memory space
 void * clear_memory(void * ptr, usize bytes);
 
-bool compare_literal(StringSlice slice, char *const literal);
-
-Result convert_slice_usize(StringSlice slice, usize * out_value);
-Result convert_slice_float(StringSlice slice, float * out_value);
-
 char * convert_int_to_ascii (int number, Allocator alloc);
 
-void log_slice(TraceLogLevel log_level, char * text, StringSlice slice);
+usize string_length (char * string);
 
 #endif // STD_H_

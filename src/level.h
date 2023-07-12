@@ -55,9 +55,13 @@ Result   region_connect_paths    (Region * region, Path * from, Path * to);
 Region * region_by_guardian      (ListRegion *const regions, Unit *const guardian);
 
 /* Map Functions *********************************************************/
-void  map_clamp           (Map * map);
-void  render_map          (Map * map);
-void  render_map_mesh     (Map * map);
-size  get_expected_income (Map *const map, usize player);
+void     map_clamp           (Map * map);
+Result   map_clone           (Map * dst, Map *const src);
+Result   map_prepare_to_play (Map * map);
+void     map_deinit          (Map * map);
+void     render_map          (Map * map);
+void     render_map_mesh     (Map * map);
+Region * map_get_region_at   (Map *const map, Vector2 point);
+size     get_expected_income (Map *const map, usize player);
 
 #endif // GEOMETRY_H_
