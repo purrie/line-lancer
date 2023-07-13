@@ -9,6 +9,9 @@ void state_none (GameState * state) {
     if(IsMouseButtonPressed(MOUSE_BUTTON_LEFT) == false) {
         return;
     }
+    state->current_input = INPUT_MOVE_MAP;
+    state->selected_point = GetMousePosition();
+
     usize player;
     if (get_local_player_index(state, &player)) {
         #ifdef DEBUG
@@ -21,7 +24,6 @@ void state_none (GameState * state) {
         #endif
     }
 
-    state->selected_point = GetMousePosition();
     Vector2 cursor = GetScreenToWorld2D(state->selected_point, state->camera);
     Building * b = get_building_by_position(&state->map, cursor);
     if (b) {
@@ -69,8 +71,6 @@ void state_none (GameState * state) {
         state->current_input = INPUT_CLICKED_PATH;
         return;
     }
-
-    state->current_input = INPUT_MOVE_MAP;
 }
 
 void state_clicked_building (GameState * state) {
