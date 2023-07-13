@@ -85,7 +85,8 @@ BuildingDialog building_dialog (Vector2 position) {
 }
 
 Result ui_building_action_click (GameState *const state, Vector2 cursor, BuildingAction * action) {
-    BuildingDialog dialog = building_dialog(state->selected_building->position);
+    Vector2 building_pos = GetWorldToScreen2D(state->selected_building->position, state->camera);
+    BuildingDialog dialog = building_dialog(building_pos);
     if (CheckCollisionPointRec(cursor, dialog.demolish)) {
         *action = BUILDING_ACTION_DEMOLISH;
     }
@@ -166,7 +167,8 @@ void render_empty_building_dialog (GameState *const state) {
 
 void render_upgrade_building_dialog (GameState *const state) {
     Vector2 cursor = GetMousePosition();
-    BuildingDialog dialog = building_dialog(state->selected_building->position);
+    Vector2 building_pos = GetWorldToScreen2D(state->selected_building->position, state->camera);
+    BuildingDialog dialog = building_dialog(building_pos);
 
     Color dialog_bg;
     if (CheckCollisionPointRec(cursor, dialog.area)) {
