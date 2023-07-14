@@ -2,6 +2,7 @@
 #define CONSTANTS_H_
 
 #define DEBUG
+/* #define DEBUG_AI */
 
 #define FPS 60
 

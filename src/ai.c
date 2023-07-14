@@ -272,19 +272,27 @@ void make_purchasing_decision (GameState * state, usize player_index, ListRegion
             // TODO this is not ideal, improve by calculating wanted income in relation to expense
 
             wanted_building = BUILDING_RESOURCE;
-            TraceLog(LOG_INFO, "AI wants to build resource building");
+            #ifdef DEBUG_AI
+            TraceLog(LOG_INFO, "AI %zu wants to build resource building", player_index);
+            #endif
 
             if (( buildings_unupgraded[BUILDING_RESOURCE] && ai->resource_gold >= building_upgrade_cost_raw(BUILDING_RESOURCE, 0)) ||
                 ( buildings_first_level[BUILDING_RESOURCE] && ai->resource_gold >= building_upgrade_cost_raw(BUILDING_RESOURCE, 1))) {
                 want_to_build = false;
-                TraceLog(LOG_INFO, "AI decided to upgrade");
+                #ifdef DEBUG_AI
+                TraceLog(LOG_INFO, "AI %zu decided to upgrade", player_index);
+                #endif
             }
             else if (spread[BUILDING_EMPTY] && ai->resource_gold >= building_buy_cost(BUILDING_RESOURCE)) {
                 want_to_build = true;
-                TraceLog(LOG_INFO, "AI decided to buy");
+                #ifdef DEBUG_AI
+                TraceLog(LOG_INFO, "AI %zu decided to buy", player_index);
+                #endif
             }
             else {
-                TraceLog(LOG_INFO, "AI can't afford resources");
+                #ifdef DEBUG_AI
+                TraceLog(LOG_INFO, "AI %zu can't afford resources", player_index);
+                #endif
                 return;
             }
         }
@@ -318,25 +326,33 @@ void make_purchasing_decision (GameState * state, usize player_index, ListRegion
                     ( buildings_unupgraded[BUILDING_SPECIAL] && ai->resource_gold >= building_upgrade_cost_raw(BUILDING_SPECIAL, 0) )
                 ) {
                     wanted_building = BUILDING_SPECIAL;
-                    TraceLog(LOG_INFO, "AI decided to upgrade special units");
+                    #ifdef DEBUG_AI
+                    TraceLog(LOG_INFO, "AI %zu decided to upgrade special units", player_index);
+                    #endif
                 }
                 else if (( buildings_first_level[BUILDING_SUPPORT] && ai->resource_gold >= building_upgrade_cost_raw(BUILDING_SUPPORT, 1) ) ||
                             ( buildings_unupgraded[BUILDING_SUPPORT] && ai->resource_gold >= building_upgrade_cost_raw(BUILDING_SUPPORT, 0) )
                 ) {
                     wanted_building = BUILDING_SUPPORT;
-                    TraceLog(LOG_INFO, "AI decided to upgrade support units");
+                    #ifdef DEBUG_AI
+                    TraceLog(LOG_INFO, "AI %zu decided to upgrade support units", player_index);
+                    #endif
                 }
                 else if (( buildings_first_level[BUILDING_ARCHER] && ai->resource_gold >= building_upgrade_cost_raw(BUILDING_ARCHER, 1) ) ||
                             ( buildings_unupgraded[BUILDING_ARCHER] && ai->resource_gold >= building_upgrade_cost_raw(BUILDING_ARCHER, 0) )
                 ) {
                     wanted_building = BUILDING_ARCHER;
-                    TraceLog(LOG_INFO, "AI decided to upgrade archer units");
+                    #ifdef DEBUG_AI
+                    TraceLog(LOG_INFO, "AI %zu decided to upgrade archer units", player_index);
+                    #endif
                 }
                 else if (( buildings_first_level[BUILDING_FIGHTER] && ai->resource_gold >= building_upgrade_cost_raw(BUILDING_FIGHTER, 1) ) ||
                             ( buildings_unupgraded[BUILDING_FIGHTER] && ai->resource_gold >= building_upgrade_cost_raw(BUILDING_FIGHTER, 0) )
                 ) {
                     wanted_building = BUILDING_FIGHTER;
-                    TraceLog(LOG_INFO, "AI decided to upgrade fighter units");
+                    #ifdef DEBUG_AI
+                    TraceLog(LOG_INFO, "AI %zu decided to upgrade fighter units", player_index);
+                    #endif
                 }
             }
 
@@ -348,23 +364,33 @@ void make_purchasing_decision (GameState * state, usize player_index, ListRegion
 
                 if (spread[BUILDING_FIGHTER] <= combat_buildings / 2) {
                     wanted_building = BUILDING_FIGHTER;
-                    TraceLog(LOG_INFO, "AI decided to buy fighter building");
+                    #ifdef DEBUG_AI
+                    TraceLog(LOG_INFO, "AI %zu decided to buy fighter building", player_index);
+                    #endif
                 }
                 else if (spread[BUILDING_ARCHER] <= combat_buildings / 4) {
                     wanted_building = BUILDING_ARCHER;
-                    TraceLog(LOG_INFO, "AI decided to buy archer building");
+                    #ifdef DEBUG_AI
+                    TraceLog(LOG_INFO, "AI %zu decided to buy archer building", player_index);
+                    #endif
                 }
                 else if (spread[BUILDING_SUPPORT] <= combat_buildings / 4) {
                     wanted_building = BUILDING_SUPPORT;
-                    TraceLog(LOG_INFO, "AI decided to buy support building");
+                    #ifdef DEBUG_AI
+                    TraceLog(LOG_INFO, "AI %zu decided to buy support building", player_index);
+                    #endif
                 }
                 else {
                     wanted_building = BUILDING_SPECIAL;
-                    TraceLog(LOG_INFO, "AI decided to buy special building");
+                    #ifdef DEBUG_AI
+                    TraceLog(LOG_INFO, "AI %zu decided to buy special building", player_index);
+                    #endif
                 }
 
                 if (ai->resource_gold < building_buy_cost(wanted_building)) {
+                    #ifdef DEBUG_AI
                     TraceLog(LOG_INFO, "  but can't afford it...");
+                    #endif
                     return;
                 }
             }
@@ -430,21 +456,29 @@ void make_purchasing_decision (GameState * state, usize player_index, ListRegion
 
         if (want_to_build) {
             if (chosen_building == NULL) {
+                #ifdef DEBUG_AI
                 TraceLog(LOG_ERROR, "Wanted to buy a building but couldn't find empty spot for AI nr = %d", player_index);
+                #endif
                 return;
             }
             ai->resource_gold -= building_buy_cost(wanted_building);
             place_building(chosen_building, wanted_building);
-            TraceLog(LOG_INFO, "AI purchased a building");
+            #ifdef DEBUG_AI
+            TraceLog(LOG_INFO, "AI %zu purchased a building", player_index);
+            #endif
         }
         else {
             if (chosen_building == NULL) {
+                #ifdef DEBUG_AI
                 TraceLog(LOG_ERROR, "Wanted to upgrade a building but couldn't find empty spot for AI nr = %d", player_index);
+                #endif
                 return;
             }
             ai->resource_gold -= building_upgrade_cost(chosen_building);
             upgrade_building(chosen_building);
-            TraceLog(LOG_INFO, "AI purchased an upgrade");
+            #ifdef DEBUG_AI
+            TraceLog(LOG_INFO, "AI %zi purchased an upgrade", player_index);
+            #endif
         }
     }
 }
@@ -453,8 +487,6 @@ void simulate_ai (GameState * state) {
     if (state->turn % FPS != 0) {
         return;
     }
-    TraceLog(LOG_INFO, "AI tick");
-
     ListRegionP ai_regions = listRegionPInit(state->map.regions.len, &temp_alloc, NULL);
 
     for (usize i = 1; i < state->players.len; i++) {
@@ -470,8 +502,6 @@ void simulate_ai (GameState * state) {
         }
         if (ai_regions.len == 0)
             continue;
-
-        TraceLog(LOG_INFO, "Processing AI player #%zu", i);
 
         make_purchasing_decision(state, i, &ai_regions);
         redirect_region_paths(state, i, &ai_regions);
