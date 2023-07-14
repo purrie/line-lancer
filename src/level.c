@@ -535,6 +535,24 @@ Region * region_by_guardian (ListRegion *const regions, Unit *const guardian) {
     TraceLog(LOG_ERROR, "Attempted to get region from a non-guardian unit");
     return NULL;
 }
+PathEntry * region_path_entry (Region *const region, Path *const path) {
+    for (usize i = 0; i < region->paths.len; i++) {
+        PathEntry * entry = &region->paths.items[i];
+        if (entry->path == path) {
+            return entry;
+        }
+    }
+    return NULL;
+}
+PathEntry * region_path_entry_from_bridge (Region *const region, Bridge *const bridge) {
+    for (usize i = 0; i < region->paths.len; i++) {
+        PathEntry * entry = &region->paths.items[i];
+        if (&entry->path->bridge == bridge) {
+            return entry;
+        }
+    }
+    return NULL;
+}
 
 Result region_connect_paths (Region * region, Path * from, Path * to) {
     if (from->region_a->player_id != from->region_b->player_id)
@@ -617,6 +635,10 @@ void region_deinit (Region * region) {
                 MemFree(pb->bridge);
             }
         }
+        for (usize d = 0; d < entry->defensive_paths.len; d++) {
+            bridge_deinit(&entry->defensive_paths.items[d]);
+        }
+        listBridgeDeinit(&entry->defensive_paths);
         listPathBridgeDeinit(&entry->redirects);
     }
     listPathEntryDeinit(&region->paths);
@@ -626,8 +648,10 @@ void region_deinit (Region * region) {
         UnloadModel(building->model);
         for (usize p = 0; p < building->spawn_paths.len; p++) {
             bridge_deinit(&building->spawn_paths.items[p]);
+            bridge_deinit(&building->defend_paths.items[p]);
         }
         listBridgeDeinit(&building->spawn_paths);
+        listBridgeDeinit(&building->defend_paths);
     }
     listBuildingDeinit(&region->buildings);
 
@@ -844,8 +868,8 @@ Result map_make_connections (Map * map) {
           return FAILURE;
         }
 
-        PathEntry a = { .path = path, .redirects = listPathBridgeInit(6, &MemAlloc, &MemFree) };
-        PathEntry b = { .path = path, .redirects = listPathBridgeInit(6, &MemAlloc, &MemFree) };
+        PathEntry a = { .path = path, .redirects = listPathBridgeInit(6, &MemAlloc, &MemFree), .defensive_paths = listBridgeInit(6, &MemAlloc, &MemFree) };
+        PathEntry b = { .path = path, .redirects = listPathBridgeInit(6, &MemAlloc, &MemFree), .defensive_paths = listBridgeInit(6, &MemAlloc, &MemFree) };
         listPathEntryAppend(&path->region_a->paths, a);
         listPathEntryAppend(&path->region_b->paths, b);
         TraceLog(LOG_INFO, "Path connected");
@@ -860,6 +884,7 @@ Result map_make_connections (Map * map) {
     for (usize b = 0; b < region->buildings.len; b++) {
       region->buildings.items[b].region = region;
       region->buildings.items[b].spawn_paths = listBridgeInit(region->paths.len, &MemAlloc, &MemFree);
+      region->buildings.items[b].defend_paths = listBridgeInit(region->paths.len, &MemAlloc, &MemFree);
     }
 
     region->castle.region = region;

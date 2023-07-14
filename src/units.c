@@ -1,6 +1,7 @@
 #include "units.h"
 #include "std.h"
 #include "game.h"
+#include "bridge.h"
 #include <raymath.h>
 
 Result move_node (Node ** from, Movement * direction) {
@@ -37,6 +38,62 @@ Result move_node (Node ** from, Movement * direction) {
     *from = next;
 
     return SUCCESS;
+}
+
+/* Info **********************************************************************/
+Test is_unit_on_building_path (Unit *const unit) {
+    if (unit->location->bridge->start->previous == NULL)
+        return YES;
+    return NO;
+}
+Test can_unit_progress (Unit *const unit) {
+    const float min = 0.1f * 0.1f;
+    if (Vector2DistanceSqr(unit->position, unit->location->position) < min) {
+        return YES;
+    }
+    return NO;
+}
+Test is_unit_at_path_end (Unit *const unit) {
+    switch (unit->move_direction) {
+        case MOVEMENT_DIR_BACKWARD: {
+            if (unit->location->previous && unit->location->previous->bridge != unit->location->bridge)
+                return YES;
+        } break;
+        case MOVEMENT_DIR_FORWARD: {
+            if (unit->location->next && unit->location->next->bridge != unit->location->bridge)
+                return YES;
+        } break;
+        default: return NO;
+    }
+    return NO;
+}
+Test is_unit_at_main_path (Unit *const unit, ListPath *const paths) {
+    for (usize i = 0; i < paths->len; i++) {
+        if (unit->location->bridge == &paths->items[i].bridge)
+            return YES;
+    }
+    return NO;
+}
+Test is_unit_at_own_region (Unit *const unit, Map *const map) {
+    Region * reg = map_get_region_at(map, unit->position);
+    if (reg && reg->player_id == unit->player_owned) {
+        return YES;
+    }
+    return NO;
+}
+Test can_move_forward (Unit *const unit) {
+    switch (unit->move_direction) {
+        case MOVEMENT_DIR_BACKWARD: {
+            if (unit->location->previous == NULL)
+                return NO;
+        } break;
+        case MOVEMENT_DIR_FORWARD: {
+            if (unit->location->next == NULL)
+                return NO;
+        } break;
+        default: return NO;
+    }
+    return YES;
 }
 
 /* Combat ********************************************************************/
@@ -170,20 +227,6 @@ Unit * get_enemy_in_range (Unit *const unit) {
 }
 
 /* Movement ******************************************************************/
-Test is_unit_on_building_path (Unit *const unit) {
-    if (unit->location->bridge->start->previous == NULL)
-        return YES;
-    return NO;
-}
-
-Test can_unit_progress (Unit *const unit) {
-    const float min = 0.1f * 0.1f;
-    if (Vector2DistanceSqr(unit->position, unit->location->position) < min) {
-        return YES;
-    }
-    return NO;
-}
-
 Result step_over_unit (Unit * a, Node * anext, Movement adir) {
     Unit * b = anext->unit;
     usize guard = get_unit_range(b);
@@ -280,6 +323,36 @@ Result move_unit_forward (Unit * unit) {
     unit->move_direction = dir;
     return SUCCESS;
 }
+Result move_unit_towards (Unit * unit, Node * node) {
+    Movement move = move_direction(unit->location, node);
+    if (move == MOVEMENT_INVALID)
+        return FAILURE;
+    if (node->unit) {
+        return pass_units(unit, node, move, node->unit);
+    }
+    unit->location->unit = NULL;
+    unit->location = node;
+    unit->location->unit = unit;
+    unit->move_direction = move;
+    return SUCCESS;
+}
+Movement move_direction (Node *const from, Node *const to) {
+    if (from->bridge == to->bridge) {
+        if (from->next == to)
+            return MOVEMENT_DIR_FORWARD;
+        if (from->previous == to)
+            return MOVEMENT_DIR_BACKWARD;
+    }
+    else {
+        if (to->bridge) {
+            if (to->bridge->start == to)
+                return MOVEMENT_DIR_FORWARD;
+            else
+                return MOVEMENT_DIR_BACKWARD;
+        }
+    }
+    return MOVEMENT_INVALID;
+}
 
 /* Setup *********************************************************************/
 void clear_unit_list (ListUnit * list) {
@@ -300,9 +373,15 @@ usize destroy_unit (ListUnit * list, Unit * unit) {
     TraceLog(LOG_ERROR, "Can't destroy the unit, it's not in the list of units");
     return list->cap;
 }
-
 Unit * unit_from_building (Building *const building) {
-    Node * spawn = building->spawn_paths.items[building->active_spawn].start;
+    Bridge * castle_path = building->defend_paths.items[building->active_spawn].end->next->bridge;
+    Node * spawn;
+
+    if (bridge_is_enemy_present(castle_path, building->region->player_id))
+        spawn = building->defend_paths.items[building->active_spawn].start;
+    else
+        spawn = building->spawn_paths.items[building->active_spawn].start;
+
     if (spawn->unit) {
         // no spawn because the path is blocked. gotta wait until the unit moves
         return NULL;

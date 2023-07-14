@@ -5,6 +5,7 @@
 #include "units.h"
 #include "input.h"
 #include "level.h"
+#include "bridge.h"
 #include "constants.h"
 #include <raymath.h>
 
@@ -114,11 +115,36 @@ void update_unit_state (GameState * state) {
                         unit->state = UNIT_STATE_FIGHTING;
                     }
                     else {
-                        if(move_unit_forward(unit)) {
-                            // TODO This fixes units getting stuck at friendly guardian but makes them bounce back instead of passing friendies
-                            // Leaving as is for now, if it causes issues, can change later
+                        Region * region;
+                        if (is_unit_at_path_end(unit) &&
+                            is_unit_at_main_path(unit, &state->map.paths) &&
+                            (region = map_get_region_at(&state->map, unit->position)) &&
+                            region->player_id == unit->player_owned) {
+                            TraceLog(LOG_INFO, "Maybe defend path?");
+                            PathEntry * entry = region_path_entry_from_bridge(region, unit->location->bridge);
+
+                            Path * redirected = entry->redirects.items[entry->active_redirect].to;
+                            PathEntry * redirect_entry = region_path_entry(region, redirected);
+                            if (bridge_is_enemy_present(&redirect_entry->castle_path, unit->player_owned)) {
+                                TraceLog(LOG_INFO, "Moving to defend redirect");
+                                if (move_unit_towards(unit, entry->castle_path.start)) {
+                                    TraceLog(LOG_ERROR, "Failed to redirect unit to defend");
+                                }
+                                continue;
+                            }
+                            if (bridge_is_enemy_present(&entry->castle_path, unit->player_owned)) {
+                                TraceLog(LOG_INFO, "Moving to defend the path");
+                                if (move_unit_towards(unit, entry->castle_path.start)) {
+                                    TraceLog(LOG_ERROR, "Failed to move unit to defend");
+                                }
+                                continue;
+                            }
+                        }
+
+                        if (can_move_forward(unit) == NO) {
                             unit->move_direction = ! unit->move_direction;
                         }
+                        else if(move_unit_forward(unit)) {}
                     }
                 }
             } break;

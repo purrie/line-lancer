@@ -153,6 +153,7 @@ struct Building {
     ushort         upgrades;
     float          spawn_timer;
     ListBridge     spawn_paths;
+    ListBridge     defend_paths;
     usize          active_spawn;
     Region       * region;
 };
@@ -187,6 +188,7 @@ struct PathEntry {
     Path           * path;
     usize            active_redirect;
     ListPathBridge   redirects;
+    ListBridge       defensive_paths;
     Bridge           castle_path;
 };
 

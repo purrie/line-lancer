@@ -4,6 +4,8 @@
 #include "level.h"
 #include "units.h"
 
+bool   bridge_is_enemy_present (Bridge *const bridge, usize player);
+
 Result bridge_region    (Region * region);
 Result bridge_over_path (Path   * path);
 void   bridge_deinit    (Bridge * b);

@@ -4,6 +4,16 @@
 #include "constants.h"
 #include "std.h"
 
+bool bridge_is_enemy_present (Bridge *const bridge, usize player) {
+    Node * node = bridge->start;
+    while (node->bridge == bridge) {
+        if (node->unit && node->unit->player_owned != player)
+            return true;
+        node = node->next;
+    }
+    return false;
+}
+
 Result bridge_points (Vector2 a, Vector2 b, Bridge * result) {
     float step_size = UNIT_SIZE * 2.0f;
     float distance = Vector2Distance(a, b);
@@ -65,20 +75,41 @@ Result bridge_nodes (Node *const a, Node *const b, Bridge * result) {
 
 Result bridge_building_and_path (Path *const path, Building * building) {
     if (building->spawn_paths.cap == building->spawn_paths.len) {
-        listBridgeGrow(&building->spawn_paths, building->spawn_paths.cap + 1);
+        if (listBridgeGrow(&building->spawn_paths, building->spawn_paths.cap + 1)) {
+            return FAILURE;
+        }
+        if (listBridgeGrow(&building->defend_paths, building->defend_paths.cap + 1)) {
+            return FAILURE;
+        }
     }
-    Bridge  * result      = &building->spawn_paths.items[building->spawn_paths.len];
-    Node    * destination = path_start_node(path, building->region, NULL);
-    Vector2   start_point = building->position;
+    Bridge * direct_bridge = &building->spawn_paths.items[building->spawn_paths.len];
+    Bridge * defens_bridge = &building->defend_paths.items[building->defend_paths.len];
 
-    clear_memory(result, sizeof(Bridge));
-
-    if (bridge_points(start_point, destination->position, result)) {
+    PathEntry * entry = region_path_entry(building->region, path);
+    if (entry == NULL) {
         return FAILURE;
     }
 
-    result->end->next = destination;
+    Node * destination = path_start_node(path, building->region, NULL);
+    Node * defennation = entry->castle_path.end;
+
+    Vector2 start_point = building->position;
+
+    clear_memory(direct_bridge, sizeof(Bridge));
+    clear_memory(defens_bridge, sizeof(Bridge));
+
+    if (bridge_points(start_point, destination->position, direct_bridge)) {
+        return FAILURE;
+    }
+    if (bridge_points(start_point, defennation->position, defens_bridge)) {
+        return FAILURE;
+    }
+
+    direct_bridge->end->next = destination;
+    defens_bridge->end->next = defennation;
+
     building->spawn_paths.len ++;
+    building->defend_paths.len ++;
 
     return SUCCESS;
 }
@@ -124,6 +155,33 @@ Result bridge_region (Region * region) {
         if (bridge_castle_and_path(from_entry, &region->castle)) {
             TraceLog(LOG_ERROR, "Failed to bridge path and castle of a region");
             return FAILURE;
+        }
+    }
+
+    for (usize f = 0; f < region->paths.len; f++) {
+        PathEntry * from = &region->paths.items[f];
+        Path * from_path = from->path;
+
+        if (from->defensive_paths.cap < from->redirects.len) {
+            if (listBridgeGrow(&from->defensive_paths, from->redirects.len)) {
+                return FAILURE;
+            }
+        }
+
+        for (usize t = 0; t < from->redirects.len; t++) {
+            Path * to_path = from->redirects.items[t].to;
+            PathEntry * to = region_path_entry(region, to_path);
+            Node * start = path_start_node(from_path, region, NULL);
+            Node * end   = to->castle_path.end;
+
+            Bridge * bridge = &from->defensive_paths.items[t];
+            clear_memory(bridge, sizeof(Bridge));
+            if (bridge_points(start->position, end->position, bridge)) {
+                return FAILURE;
+            }
+
+            bridge->end->next = end;
+            from->defensive_paths.len = t + 1;
         }
     }
 

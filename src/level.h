@@ -49,10 +49,12 @@ Building  * get_building_by_position (Map * map, Vector2 position);
 Result      building_set_spawn_path  (Building * building, Path *const path);
 
 /* Region Functions ********************************************************/
-void     region_change_ownership (GameState * state, Region * region, usize player_id);
-void     region_update_paths     (Region * region);
-Result   region_connect_paths    (Region * region, Path * from, Path * to);
-Region * region_by_guardian      (ListRegion *const regions, Unit *const guardian);
+void        region_change_ownership       (GameState * state, Region * region, usize player_id);
+void        region_update_paths           (Region * region);
+Result      region_connect_paths          (Region * region, Path * from, Path * to);
+Region    * region_by_guardian            (ListRegion *const regions, Unit *const guardian);
+PathEntry * region_path_entry             (Region *const region, Path *const path);
+PathEntry * region_path_entry_from_bridge (Region *const region, Bridge *const bridge);
 
 /* Map Functions *********************************************************/
 void     map_clamp           (Map * map);
