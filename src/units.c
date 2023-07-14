@@ -63,7 +63,6 @@ usize get_unit_range (Unit *const unit) {
             }
     }
 }
-
 float get_unit_attack (Unit * unit) {
     float attack;
     switch (unit->type) {
@@ -124,7 +123,6 @@ float get_unit_attack (Unit * unit) {
     }
     return attack;
 }
-
 float get_unit_health (UnitType type, FactionType faction, unsigned int upgrades) {
     switch (type) {
         case UNIT_FIGHTER:
@@ -156,7 +154,6 @@ float get_unit_health (UnitType type, FactionType faction, unsigned int upgrades
     TraceLog(LOG_ERROR, "Tried to obtain health of unsupported unit type");
     return 1.0f;
 }
-
 Unit * get_enemy_in_range (Unit *const unit) {
     usize range = get_unit_range(unit);
     Node * node = unit->location;
@@ -212,7 +209,6 @@ Result step_over_unit (Unit * a, Node * anext, Movement adir) {
     a->move_direction = adir;
     return SUCCESS;
 }
-
 Result pass_units (Unit * a, Node * anext, Movement adir, Unit * b) {
     if (is_unit_on_building_path(a) && is_unit_on_building_path(b) == NO) {
         // bugfix: this prevents units leaving building path from pushing oncoming other units to walk back towards the building
@@ -263,7 +259,6 @@ Result pass_units (Unit * a, Node * anext, Movement adir, Unit * b) {
         }
     }
 }
-
 Result move_unit_forward (Unit * unit) {
     Node * next = unit->location;
     Movement dir = unit->move_direction;
@@ -293,7 +288,6 @@ void clear_unit_list (ListUnit * list) {
     }
     list->len = 0;
 }
-
 usize destroy_unit (ListUnit * list, Unit * unit) {
     for (usize i = 0; i < list->len; i++) {
         if (list->items[i] == unit) {
@@ -347,7 +341,6 @@ Unit * unit_from_building (Building *const building) {
     spawn->unit = result;
     return result;
 }
-
 void setup_unit_guardian (Region * region) {
     region->castle.guardian.health       = get_unit_health(UNIT_GUARDIAN, region->faction, 0);
     region->castle.guardian.player_owned = region->player_id;

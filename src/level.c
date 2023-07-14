@@ -14,19 +14,16 @@ void place_building (Building * building, BuildingType type) {
     // TODO make proper building modification
     // update texture and whatnot
 }
-
 void upgrade_building (Building * building) {
     if (building->upgrades >= BUILDING_MAX_UPGRADES) return;
 
     building->upgrades ++;
     // TODO make proper building modification
 }
-
 void demolish_building (Building * building) {
     building->type = BUILDING_EMPTY;
     building->upgrades = 0;
 }
-
 usize building_buy_cost (BuildingType type) {
     switch (type) {
         case BUILDING_FIGHTER:  return 10;
@@ -39,15 +36,12 @@ usize building_buy_cost (BuildingType type) {
         } return 10000;
     }
 }
-
 usize building_upgrade_cost_raw (BuildingType type, usize level) {
     return building_buy_cost(type) * (level + 2);
 }
-
 usize building_upgrade_cost (Building *const building) {
     return building_upgrade_cost_raw(building->type, building->upgrades);
 }
-
 usize building_cost_to_spawn (Building *const building) {
     switch (building->type) {
         case BUILDING_TYPE_COUNT:
@@ -64,13 +58,11 @@ usize building_cost_to_spawn (Building *const building) {
             return 0;
     }
 }
-
 usize building_generated_income (Building *const building) {
     if (building->type == BUILDING_RESOURCE)
         return 3 * ( building->upgrades + 1);
     return 0;
 }
-
 float building_trigger_interval (Building *const building) {
     switch (building->type) {
         case BUILDING_TYPE_COUNT:
@@ -133,7 +125,6 @@ Result line_intersection (Line a, Line b, Vector2 * value) {
 
     return SUCCESS;
 }
-
 Test line_intersects (Line a, Line b) {
     const Vector2 sn = Vector2Subtract(a.a, a.b);
     const Vector2 wn = Vector2Subtract(b.a, b.b);
@@ -156,7 +147,6 @@ Test line_intersects (Line a, Line b) {
     }
     return YES;
 }
-
 usize lines_intersections (const ListLine lines, const Line line, ListVector2 * result) {
     usize added = 0;
     for (usize i = 0; i < lines.len; i++) {
@@ -183,7 +173,6 @@ usize lines_intersections (const ListLine lines, const Line line, ListVector2 * 
     }
     return added;
 }
-
 void create_sublines (
     ListLine * dest,
     const usize amount,
@@ -277,7 +266,6 @@ void bevel_lines (ListLine * lines, usize resolution, float depth, bool enclosed
     listLineDeinit(lines);
     (*lines) = beveled;
 }
-
 Rectangle get_line_bounds (const Line line) {
     Rectangle result;
     result.x = line.a.x < line.b.x ? line.a.x : line.b.x;
@@ -286,7 +274,6 @@ Rectangle get_line_bounds (const Line line) {
     result.height = line.a.y > line.b.y ? line.a.y - line.b.y : line.b.y - line.a.y;
     return result;
 }
-
 Rectangle get_lines_bounds (const ListLine lines) {
     Rectangle result = {0};
     if (lines.len == 0) return result;
@@ -305,7 +292,6 @@ Rectangle get_lines_bounds (const ListLine lines) {
 Rectangle area_bounds (const Area *const area) {
     return get_lines_bounds(area->lines);
 }
-
 bool area_contains_point (const Area *const area, const Vector2 point) {
     Rectangle aabb = area_bounds(area);
     if (CheckCollisionPointRec(point, aabb) == false) {
@@ -326,7 +312,6 @@ bool area_contains_point (const Area *const area, const Vector2 point) {
 
     return contains;
 }
-
 Test area_line_intersects (Area *const area, Line line) {
     for (usize i = 0; i < area->lines.len; i++) {
         Line t = area->lines.items[i];
@@ -344,7 +329,6 @@ Test area_line_intersects (Area *const area, Line line) {
 float building_size () {
     return 10.0f;
 }
-
 Rectangle building_bounds (Building *const building) {
     Rectangle bounds = {0};
     float size       = building_size();
@@ -354,7 +338,6 @@ Rectangle building_bounds (Building *const building) {
     bounds.height    = size;
     return bounds;
 }
-
 Building * get_building_by_position (Map *const map, Vector2 position) {
     for (usize r = 0; r < map->regions.len; r++) {
         ListBuilding * buildings = &map->regions.items[r].buildings;
@@ -370,7 +353,6 @@ Building * get_building_by_position (Map *const map, Vector2 position) {
 
     return NULL;
 }
-
 Result building_set_spawn_path (Building * building, Path *const path) {
     for (usize i = 0; i < building->spawn_paths.len; i++) {
         Bridge bridge = building->spawn_paths.items[i];
@@ -401,7 +383,6 @@ Path * path_on_point (Map *const map, Vector2 point, Movement * direction) {
         *direction = MOVEMENT_INVALID;
     return NULL;
 }
-
 Vector2 path_start_point(Path *const path, Region *const from) {
     if (path->region_a == from) {
         return path->lines.items[0].a;
@@ -415,7 +396,6 @@ Vector2 path_start_point(Path *const path, Region *const from) {
         return Vector2Zero();
     }
 }
-
 Node * path_start_node (Path *const path, Region *const from, Movement * direction_forward) {
     if (path->region_a == from) {
         if (direction_forward) {
@@ -432,7 +412,6 @@ Node * path_start_node (Path *const path, Region *const from, Movement * directi
     else
         return NULL;
 }
-
 Result path_follow(Path *const path, Region *const from, float distance, Vector2 * value) {
     if (path->region_a == NULL || path->region_b == NULL || path->region_a == path->region_b) {
         TraceLog(LOG_ERROR, "Path is not correctly initialized");
@@ -464,11 +443,9 @@ Result path_follow(Path *const path, Region *const from, float distance, Vector2
 
     return FAILURE;
 }
-
 Region * path_end_region(Path *const path, Region *const from) {
     return path->region_a == from ? path->region_b : path->region_a;
 }
-
 float path_length(Path *const path) {
     float sum = 0.0f;
     for (usize i = 0; i < path->lines.len; i++) {
@@ -485,7 +462,6 @@ Result path_clone (Path * dest, Path *const src) {
     copy_memory(dest->lines.items, src->lines.items, sizeof(Line) * src->lines.len);
     return SUCCESS;
 }
-
 void path_deinit (Path * path) {
     bridge_deinit(&path->bridge);
     UnloadModel(path->model);
@@ -527,7 +503,6 @@ void region_update_paths (Region * region) {
         }
     }
 }
-
 void region_change_ownership (GameState * state, Region * region, usize player_id) {
     region->player_id = player_id;
     region->faction = state->players.items[player_id].faction;
@@ -550,7 +525,6 @@ void region_change_ownership (GameState * state, Region * region, usize player_i
         demolish_building(b);
     }
 }
-
 Region * region_by_guardian (ListRegion *const regions, Unit *const guardian) {
     for (usize i = 0; i < regions->len; i++) {
         Region * region = &regions->items[i];
@@ -602,7 +576,6 @@ Result region_connect_paths (Region * region, Path * from, Path * to) {
     }
     return FAILURE;
 }
-
 Result region_clone (Region * dest, Region *const src) {
     dest->player_id = src->player_id;
     dest->faction = src->faction;
@@ -631,7 +604,6 @@ Result region_clone (Region * dest, Region *const src) {
 
     return SUCCESS;
 }
-
 void region_deinit (Region * region) {
     for (usize e = 0; e < region->paths.len; e++) {
         PathEntry * entry = &region->paths.items[e];
@@ -668,16 +640,34 @@ void region_deinit (Region * region) {
 }
 
 /* Map Functions ***********************************************************/
-void map_clamp (Map * map) {
-    Vector2 map_size = { (float)map->width, (float)map->height };
+size get_expected_income (Map *const map, usize player) {
+    float income = 0.0f;
 
     for (usize i = 0; i < map->regions.len; i++) {
-        ListLine * region = &map->regions.items[i].area.lines;
-        for (usize l = 0; l < region->len; l++) {
-            region->items[l].a = Vector2Clamp(region->items[l].a, Vector2Zero(), map_size);
-            region->items[l].b = Vector2Clamp(region->items[l].b, Vector2Zero(), map_size);
+        Region * region = &map->regions.items[i];
+        if (region->player_id != player)
+            continue;
+
+        income += (float)REGION_INCOME;
+        for (usize b = 0; b < region->buildings.len; b++) {
+            Building * building = &region->buildings.items[b];
+            if (building->type == BUILDING_RESOURCE)
+                income += ( building_generated_income(building) / building_trigger_interval(building) ) * REGION_INCOME_INTERVAL;
+            else if (building->type != BUILDING_EMPTY)
+                income -= ( building_cost_to_spawn(building) / building_trigger_interval(building) ) * REGION_INCOME_INTERVAL;
         }
     }
+
+    return (size)income;
+}
+Region * map_get_region_at (Map *const map, Vector2 point) {
+    for (usize r = 0; r < map->regions.len; r++) {
+        Region * region = &map->regions.items[r];
+        if (area_contains_point(&region->area, point)) {
+            return region;
+        }
+    }
+    return NULL;
 }
 
 void render_map (Map * map) {
@@ -703,7 +693,6 @@ void render_map (Map * map) {
         }
     }
 }
-
 void render_map_mesh (Map * map) {
     for (usize i = 0; i < map->regions.len; i++) {
         Region * region = &map->regions.items[i];
@@ -774,49 +763,17 @@ void render_map_mesh (Map * map) {
     #endif
 }
 
-size get_expected_income (Map *const map, usize player) {
-    float income = 0.0f;
+void map_clamp (Map * map) {
+    Vector2 map_size = { (float)map->width, (float)map->height };
 
     for (usize i = 0; i < map->regions.len; i++) {
-        Region * region = &map->regions.items[i];
-        if (region->player_id != player)
-            continue;
-
-        income += (float)REGION_INCOME;
-        for (usize b = 0; b < region->buildings.len; b++) {
-            Building * building = &region->buildings.items[b];
-            if (building->type == BUILDING_RESOURCE)
-                income += ( building_generated_income(building) / building_trigger_interval(building) ) * REGION_INCOME_INTERVAL;
-            else if (building->type != BUILDING_EMPTY)
-                income -= ( building_cost_to_spawn(building) / building_trigger_interval(building) ) * REGION_INCOME_INTERVAL;
+        ListLine * region = &map->regions.items[i].area.lines;
+        for (usize l = 0; l < region->len; l++) {
+            region->items[l].a = Vector2Clamp(region->items[l].a, Vector2Zero(), map_size);
+            region->items[l].b = Vector2Clamp(region->items[l].b, Vector2Zero(), map_size);
         }
     }
-
-    return (size)income;
 }
-
-Region * map_get_region_at (Map *const map, Vector2 point) {
-    for (usize r = 0; r < map->regions.len; r++) {
-        Region * region = &map->regions.items[r];
-        if (area_contains_point(&region->area, point)) {
-            return region;
-        }
-    }
-    return NULL;
-}
-
-void map_deinit (Map * map) {
-    for (usize p = 0; p < map->paths.len; p++) {
-        path_deinit(&map->paths.items[p]);
-    }
-    for (usize r = 0; r < map->regions.len; r++) {
-        region_deinit(&map->regions.items[r]);
-    }
-    listPathDeinit(&map->paths);
-    listRegionDeinit(&map->regions);
-    clear_memory(map, sizeof(Map));
-}
-
 Result map_clone (Map * dest, Map *const src) {
     clear_memory(dest, sizeof(Map));
     dest->name = src->name;
@@ -846,7 +803,17 @@ Result map_clone (Map * dest, Map *const src) {
     map_deinit(dest);
     return FAILURE;
 }
-
+void map_deinit (Map * map) {
+    for (usize p = 0; p < map->paths.len; p++) {
+        path_deinit(&map->paths.items[p]);
+    }
+    for (usize r = 0; r < map->regions.len; r++) {
+        region_deinit(&map->regions.items[r]);
+    }
+    listPathDeinit(&map->paths);
+    listRegionDeinit(&map->regions);
+    clear_memory(map, sizeof(Map));
+}
 Result map_make_connections (Map * map) {
   TraceLog(LOG_INFO, "Connecting map");
   // connect path <-> region
@@ -907,7 +874,6 @@ Result map_make_connections (Map * map) {
 
   return SUCCESS;
 }
-
 void map_subdivide_paths (Map * map) {
   TraceLog(LOG_INFO, "Smoothing map meshes");
   for(usize i = 0; i < map->paths.len; i++) {
@@ -940,7 +906,6 @@ void map_subdivide_paths (Map * map) {
     bevel_lines(&map->regions.items[i].area.lines, MAP_BEVEL, depth, true);
   }
 }
-
 Result map_prepare_to_play (Map * map) {
   if(map_make_connections(map)) {
     return FAILURE;
