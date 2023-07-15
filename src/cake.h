@@ -213,6 +213,7 @@ CAKE_RECT cake_diet_by (CAKE_RECT rect, float width) {
     }
     rect.x += width * 0.5f;
     rect.width -= width;
+    return rect;
 }
 
 CAKE_RECT cake_layers (CAKE_RECT rect, unsigned int row_count, CAKE_RECT * rows_result, float height, float spacing) {

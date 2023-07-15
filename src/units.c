@@ -110,6 +110,7 @@ usize get_unit_range (Unit *const unit) {
                 case FACTION_KNIGHTS: return 2;
                 case FACTION_MAGES: return 1;
             }
+            break;
         case UNIT_GUARDIAN:
             // TODO this probably won't be used since the guardian needs to always reach any attacker
             // Otherwise some units will be able to defeat guardian without a fight
@@ -118,9 +119,13 @@ usize get_unit_range (Unit *const unit) {
                 case FACTION_KNIGHTS: return 2;
                 case FACTION_MAGES: return 5;
             }
+            break;
+        default: {}
     }
+    TraceLog(LOG_ERROR, "Failed to resolve unit to get range");
+    return 1;
 }
-float get_unit_attack (Unit * unit) {
+float get_unit_attack (Unit *const unit) {
     float attack;
     switch (unit->type) {
         case UNIT_FIGHTER: {
@@ -457,26 +462,26 @@ void render_units (GameState *const state) {
         }
 
         Color player = get_player_color(unit->player_owned);
-        Color state = GREEN;
+        Color unit_state = GREEN;
 
         switch (unit->state) {
             case UNIT_STATE_FIGHTING: {
-                state = RED;
+                unit_state = RED;
             } break;
             case UNIT_STATE_MOVING: {
-                state = LIME;
+                unit_state = LIME;
             } break;
             case UNIT_STATE_GUARDING: {
                 TraceLog(LOG_ERROR, "Unit is in guard state, that shouldn't happen!");
             } break;
             default: {
-                state = PINK;
+                unit_state = PINK;
             } break;
         }
         col.b = unit->player_owned * 127;
 
         DrawCircleV(unit->position, 7.0f, player);
-        DrawCircleV(unit->position, 5.0f, state);
+        DrawCircleV(unit->position, 5.0f, unit_state);
         DrawCircleV(unit->position, 3.0f, col);
     }
 

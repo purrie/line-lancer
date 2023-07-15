@@ -73,26 +73,31 @@ float building_trigger_interval (Building *const building) {
                 case FACTION_KNIGHTS: return 10.0f - building->upgrades;
                 case FACTION_MAGES:   return 10.0f - building->upgrades;
             }
+            break;
         case BUILDING_FIGHTER:
             switch (building->region->faction) {
                 case FACTION_KNIGHTS: return 5.0f - building->upgrades;
                 case FACTION_MAGES:   return 5.0f - building->upgrades;
             }
+            break;
         case BUILDING_ARCHER:
             switch (building->region->faction) {
                 case FACTION_KNIGHTS: return 5.0f - building->upgrades;
                 case FACTION_MAGES:   return 5.0f - building->upgrades;
             }
+            break;
         case BUILDING_SUPPORT:
             switch (building->region->faction) {
                 case FACTION_KNIGHTS: return 5.0f - building->upgrades;
                 case FACTION_MAGES:   return 5.0f - building->upgrades;
             }
+            break;
         case BUILDING_SPECIAL:
             switch (building->region->faction) {
                 case FACTION_KNIGHTS: return 5.0f - building->upgrades;
                 case FACTION_MAGES:   return 5.0f - building->upgrades;
             }
+            break;
     }
     TraceLog(LOG_WARNING, "Attempted to obtain spawn interval from non-spawning building");
     return 0.0f;
@@ -331,11 +336,11 @@ float building_size () {
 }
 Rectangle building_bounds (Building *const building) {
     Rectangle bounds = {0};
-    float size       = building_size();
-    bounds.x         = building->position.x - size * 0.5f;
-    bounds.y         = building->position.y - size * 0.5f;
-    bounds.width     = size;
-    bounds.height    = size;
+    float b_size       = building_size();
+    bounds.x         = building->position.x - b_size * 0.5f;
+    bounds.y         = building->position.y - b_size * 0.5f;
+    bounds.width     = b_size;
+    bounds.height    = b_size;
     return bounds;
 }
 Building * get_building_by_position (Map *const map, Vector2 position) {
@@ -479,12 +484,12 @@ void region_update_paths (Region * region) {
         bool is_owner_same = entry->path->region_a->player_id == entry->path->region_b->player_id;
 
         if (is_owner_same) {
-            Node * s = entry->redirects.items[entry->active_redirect].bridge->start;
-            Node * e = entry->redirects.items[entry->active_redirect].bridge->end;
+            Node * start_node = entry->redirects.items[entry->active_redirect].bridge->start;
+            Node * end_node = entry->redirects.items[entry->active_redirect].bridge->end;
 
-            connect = Vector2DistanceSqr(start->position, s->position) >
-                      Vector2DistanceSqr(start->position, e->position) ?
-                      e : s;
+            connect = Vector2DistanceSqr(start->position, start_node->position) >
+                      Vector2DistanceSqr(start->position, end_node->position) ?
+                      end_node : start_node;
         }
         else
             connect = entry->castle_path.start;
@@ -868,10 +873,10 @@ Result map_make_connections (Map * map) {
           return FAILURE;
         }
 
-        PathEntry a = { .path = path, .redirects = listPathBridgeInit(6, &MemAlloc, &MemFree), .defensive_paths = listBridgeInit(6, &MemAlloc, &MemFree) };
-        PathEntry b = { .path = path, .redirects = listPathBridgeInit(6, &MemAlloc, &MemFree), .defensive_paths = listBridgeInit(6, &MemAlloc, &MemFree) };
-        listPathEntryAppend(&path->region_a->paths, a);
-        listPathEntryAppend(&path->region_b->paths, b);
+        PathEntry pea = { .path = path, .redirects = listPathBridgeInit(6, &MemAlloc, &MemFree), .defensive_paths = listBridgeInit(6, &MemAlloc, &MemFree) };
+        PathEntry peb = { .path = path, .redirects = listPathBridgeInit(6, &MemAlloc, &MemFree), .defensive_paths = listBridgeInit(6, &MemAlloc, &MemFree) };
+        listPathEntryAppend(&path->region_a->paths, pea);
+        listPathEntryAppend(&path->region_b->paths, peb);
         TraceLog(LOG_INFO, "Path connected");
         break;
       }

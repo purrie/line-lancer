@@ -380,7 +380,7 @@ usize load_region_properties(
   usize children = tokens[properties_index].size;
   usize cursor = properties_index + 1;
   while (children --> 0) {
-    usize value = 0;
+    usize value_index = 0;
     usize name = 0;
 
     usize property_children = tokens[cursor].size;
@@ -391,14 +391,14 @@ usize load_region_properties(
         name = ++cursor;
       }
       else if (compare_literal(s, "value")) {
-        value = ++cursor;
+        value_index = ++cursor;
       }
       cursor = skip_tokens(tokens, cursor);
     }
 
     StringSlice s = make_slice_u(data, tokens[name].start, tokens[name].end);
     if (compare_literal(s, "player_id")) {
-      StringSlice v = make_slice_u(data, tokens[value].start, tokens[value].end);
+      StringSlice v = make_slice_u(data, tokens[value_index].start, tokens[value_index].end);
       usize value;
       if (convert_slice_usize(v, &value)) {
         value = 0;
@@ -440,16 +440,16 @@ usize load_region(
         goto fail;
     }
 
-    StringSlice s = make_slice_u(data, tokens[region_pos].start, tokens[region_pos].end);
+    StringSlice key_name = make_slice_u(data, tokens[region_pos].start, tokens[region_pos].end);
 
-    if (compare_literal(s, "properties")) {
+    if (compare_literal(key_name, "properties")) {
       region_pos = load_region_properties(&region, data, tokens, region_pos + 1);
       if (region_pos == 0) {
         TraceLog(LOG_ERROR, "Failed to load region properties");
         goto fail;
       }
     }
-    else if (compare_literal(s, "x") || compare_literal(s, "y")) {
+    else if (compare_literal(key_name, "x") || compare_literal(key_name, "y")) {
       region_pos ++;
       StringSlice s = make_slice_u(data, tokens[region_pos].start, tokens[region_pos].end);
       float value = 0.0f;
@@ -464,7 +464,7 @@ usize load_region(
       }
       region_pos ++;
     }
-    else if (compare_literal(s, "objects")) {
+    else if (compare_literal(key_name, "objects")) {
       region_pos = load_region_objects(&region, data, tokens, region_pos + 1);
       if (region_pos == 0) {
         TraceLog(LOG_ERROR, "Failed to load region objects");
@@ -649,12 +649,11 @@ Result load_level(Map * result, char * path) {
   jsmn_init(&json_parser);
 
   const usize token_len = jsmn_parse(&json_parser, (char *)(data), len, NULL, 0);
-  jsmntok_t tokens[token_len];
+  jsmntok_t * tokens = MemAlloc(sizeof(jsmntok_t) * token_len);
   clear_memory(tokens, sizeof(jsmntok_t) * token_len);
   jsmn_init(&json_parser);
 
-  size_t tokenlen =
-      jsmn_parse(&json_parser, (char *)(data), len, tokens, token_len);
+  jsmn_parse(&json_parser, (char *)(data), len, tokens, token_len);
 
   if (tokens[0].type != JSMN_OBJECT) {
     TraceLog(LOG_ERROR,
@@ -665,7 +664,6 @@ Result load_level(Map * result, char * path) {
   result->regions = listRegionInit (10, &MemAlloc, &MemFree);
   result->paths   = listPathInit   (10, &MemAlloc, &MemFree);
 
-  usize fields = tokens[0].size;
   usize cursor = 1;
 
   TraceLog(LOG_INFO, "Starting loading");
@@ -726,7 +724,7 @@ Result load_level(Map * result, char * path) {
       cursor ++;
       while (properties_count --> 0) {
         usize name = 0;
-        usize value = 0;
+        usize value_index = 0;
         usize count = tokens[cursor].size;
         cursor ++;
         while (count --> 0) {
@@ -735,14 +733,14 @@ Result load_level(Map * result, char * path) {
             name = ++cursor;
           }
           else if (compare_literal(s, "value")) {
-            value = ++cursor;
+            value_index = ++cursor;
           }
           cursor = skip_tokens(tokens, cursor);
         }
 
         StringSlice property_type = make_slice_u(data, tokens[name].start, tokens[name].end);
         if (compare_literal(property_type, "player_count")) {
-          StringSlice num = make_slice_u(data, tokens[value].start, tokens[value].end);
+          StringSlice num = make_slice_u(data, tokens[value_index].start, tokens[value_index].end);
           usize value;
           if (convert_slice_usize(num, &value)) {
             log_slice(LOG_ERROR, "Couldn't parse player count:", num);
@@ -751,10 +749,10 @@ Result load_level(Map * result, char * path) {
           result->player_count = value;
         }
         else if (compare_literal(property_type, "name")) {
-          usize len = tokens[value].end - tokens[value].start;
-          result->name = MemAlloc(len + 1);
-          copy_memory(result->name, &data[tokens[value].start], len);
-          result->name[len] = '\0';
+          usize name_len = tokens[value_index].end - tokens[value_index].start;
+          result->name = MemAlloc(name_len + 1);
+          copy_memory(result->name, &data[tokens[value_index].start], name_len);
+          result->name[name_len] = '\0';
         }
 
         else {

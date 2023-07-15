@@ -6,17 +6,18 @@
 #include "level.h"
 #include "constants.h"
 
-Model generate_building_mesh(const Vector2 pos, const float size, const float layer) {
+Model generate_building_mesh(const Vector2 pos, const float b_size, const float layer) {
   Mesh mesh = {0};
 
   {
-    mesh.vertexCount = 4;
+    usize vcount = 4;
+    mesh.vertexCount = vcount;
     mesh.vertices = MemAlloc(sizeof(float) * 3 * mesh.vertexCount);
 
-    for (usize i = 0; i < mesh.vertexCount; i++) {
+    for (usize i = 0; i < vcount; i++) {
       mesh.vertices[i * 3 + 2] = layer;
     }
-    float half_size = size * 0.5f;
+    float half_size = b_size * 0.5f;
 
     mesh.vertices[0] = pos.x - half_size;
     mesh.vertices[1] = pos.y - half_size;
@@ -257,7 +258,6 @@ Test is_clockwise (Vector2 a, Vector2 b, Vector2 c) {
 }
 
 Test is_area_clockwise(Area *const area) {
-  unsigned int half = area->lines.len / 2;
   unsigned int cl = 0;
   unsigned int cc = 0;
   for (usize i = 0; i < area->lines.len; i++) {
@@ -371,7 +371,7 @@ void generate_map_mesh(Map * map) {
     TraceLog(LOG_INFO, "  Generating path mesh #%d", i);
     map->paths.items[i].model = generate_line_mesh(map->paths.items[i].lines, 20.0f, 3, LAYER_PATH);
   }
-  float size = building_size();
+  float b_size = building_size();
   for (usize i = 0; i < map->regions.len; i++) {
     TraceLog(LOG_INFO, "Generating region #%d", i);
     TraceLog(LOG_INFO, "  Generating region mesh");
@@ -379,11 +379,11 @@ void generate_map_mesh(Map * map) {
     region->area.model = generate_area_mesh(&region->area, LAYER_MAP);
 
     TraceLog(LOG_INFO, "  Generating castle mesh");
-    region->castle.model = generate_building_mesh(region->castle.position, size, LAYER_BUILDING);
+    region->castle.model = generate_building_mesh(region->castle.position, b_size, LAYER_BUILDING);
 
     for (usize b = 0; b < region->buildings.len; b++) {
       TraceLog(LOG_INFO, "  Generating building mesh #%d", b);
-      region->buildings.items[b].model = generate_building_mesh(region->buildings.items[b].position, size, LAYER_BUILDING);
+      region->buildings.items[b].model = generate_building_mesh(region->buildings.items[b].position, b_size, LAYER_BUILDING);
     }
   }
 }

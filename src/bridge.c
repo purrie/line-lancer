@@ -139,8 +139,7 @@ Result bridge_region (Region * region) {
             Node * a = path_start_node(from, region, NULL);
             Node * b = path_start_node(to, region, NULL);
 
-            PathBridge path = { to };
-            path.bridge = MemAlloc(sizeof(Bridge));
+            PathBridge path = { .to = to, .bridge = MemAlloc(sizeof(Bridge)) };
             if(bridge_nodes(a, b, path.bridge)) {
                 MemFree(path.bridge);
                 TraceLog(LOG_ERROR, "Failed to bridge internal paths of a region");

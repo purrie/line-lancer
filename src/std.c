@@ -35,7 +35,7 @@ void * clear_memory(void * ptr, usize bytes) {
 
 char * convert_int_to_ascii (int number, Allocator alloc) {
     char buffer[64];
-    char count = 0;
+    usize count = 0;
     int test = number;
     char negative = number < 0;
     if (negative) {
@@ -57,11 +57,11 @@ char * convert_int_to_ascii (int number, Allocator alloc) {
 
     {
         char total = count;
-        char length = (total - negative) / 2;
+        usize length = (total - negative) / 2;
         char last = negative ? 0 : 1;
 
-        for (char start = negative; start < length; start++) {
-            char other = total - start - last;
+        for (usize start = negative; start < length; start++) {
+            usize other = total - start - last;
             char temp = buffer[start];
             buffer[start] = buffer[other];
             buffer[other] = temp;
@@ -69,6 +69,9 @@ char * convert_int_to_ascii (int number, Allocator alloc) {
     }
 
     char * result = alloc(sizeof(char) * (count + 1));
+    if (result == NULL) {
+        return NULL;
+    }
     copy_memory(result, buffer, count);
     result[count] = '\0';
     return result;

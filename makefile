@@ -6,7 +6,7 @@ SOURCE_FOLDER=src
 SOURCE_TEST_FOLDER=tests
 BIN_FOLDER=bin
 
-FLAGS=
+FLAGS=-Wall -Wextra -Warray-bounds -Wshadow -Wunused -Wdeprecated
 DEBUG_FLAGS=-g
 LIBS=-lraylib -lm
 
@@ -23,6 +23,8 @@ build: $(BIN_FOLDER) $(OBJ_FOLDER) $(BIN_FOLDER)/$(BIN)
 build-debug:
 	make clean
 	FLAGS="$(FLAGS) $(DEBUG_FLAGS)" make build -e
+
+rebuild: clean build
 
 rerun: clean run
 

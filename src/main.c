@@ -253,7 +253,6 @@ int main(void) {
 
     assets_deinit(&game_assets);
 
-    end:
     CloseWindow();
     return result;
 }
