@@ -172,10 +172,10 @@ float get_unit_attack (Unit *const unit) {
         case UNIT_GUARDIAN: {
             switch (unit->faction) {
                 case FACTION_KNIGHTS: {
-                    attack = 10.0f * (unit->upgrade + 1);
+                    attack = 15.0f;
                 } break;
                 case FACTION_MAGES: {
-                    attack = 10.0f * (unit->upgrade + 1);
+                    attack = 15.0f;
                 } break;
             }
         } break;
