@@ -241,7 +241,13 @@ void render_resource_bar (GameState *const state) {
 
     char * gold_label   = "Gold: ";
     char * gold         = convert_int_to_ascii(player->resource_gold, &temp_alloc);
+    if (gold == NULL) {
+        gold = "lots... ";
+    }
     char * income_label = convert_int_to_ascii(income, &temp_alloc);
+    if (income_label == NULL) {
+        income_label = "munies...";
+    }
 
     int gold_label_width = MeasureText(gold_label, UI_FONT_SIZE_BAR);
     int gold_width       = MeasureText(gold, UI_FONT_SIZE_BAR);
