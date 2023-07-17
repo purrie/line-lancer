@@ -13,6 +13,7 @@
 #define REGION_INCOME 3
 
 #define BUILDING_MAX_UPGRADES 2
+#define BUILDING_MAX_UNITS 15
 
 #define LAYER_MAP -0.3f
 #define LAYER_PATH -0.2f

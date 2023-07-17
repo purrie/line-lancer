@@ -116,6 +116,7 @@ struct Unit {
     Movement    move_direction;
     usize       player_owned;
     FactionType faction;
+    Building *  origin;
 };
 
 struct Node {
@@ -155,6 +156,7 @@ struct Building {
     ListBridge     spawn_paths;
     ListBridge     defend_paths;
     usize          active_spawn;
+    usize          units_spawned;
     Region       * region;
 };
 

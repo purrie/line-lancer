@@ -23,6 +23,7 @@ void upgrade_building (Building * building) {
 void demolish_building (Building * building) {
     building->type = BUILDING_EMPTY;
     building->upgrades = 0;
+    building->units_spawned = 0;
 }
 usize building_buy_cost (BuildingType type) {
     switch (type) {

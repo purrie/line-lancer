@@ -2,6 +2,7 @@
 #include "std.h"
 #include "game.h"
 #include "bridge.h"
+#include "constants.h"
 #include <raymath.h>
 
 Result move_node (Node ** from, Movement * direction) {
@@ -370,6 +371,8 @@ usize destroy_unit (ListUnit * list, Unit * unit) {
     for (usize i = 0; i < list->len; i++) {
         if (list->items[i] == unit) {
             unit->location->unit = NULL;
+            if (unit->origin->region->player_id == unit->player_owned && unit->origin->units_spawned > 0)
+                unit->origin->units_spawned -= 1;
             MemFree(unit);
             listUnitRemove(list, i);
             return i;
@@ -379,6 +382,9 @@ usize destroy_unit (ListUnit * list, Unit * unit) {
     return list->cap;
 }
 Unit * unit_from_building (Building *const building) {
+    if (building->units_spawned >= BUILDING_MAX_UNITS)
+        return NULL;
+
     Bridge * castle_path = building->defend_paths.items[building->active_spawn].end->next->bridge;
     Node * spawn;
 
@@ -421,6 +427,9 @@ Unit * unit_from_building (Building *const building) {
     result->location        = spawn;
     result->move_direction  = MOVEMENT_DIR_FORWARD;
     result->health          = get_unit_health(result->type, result->faction, result->upgrade);
+
+    result->origin = building;
+    result->origin->units_spawned += 1;
 
     spawn->unit = result;
     return result;
