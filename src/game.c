@@ -120,22 +120,22 @@ void update_unit_state (GameState * state) {
                             is_unit_at_main_path(unit, &state->map.paths) &&
                             (region = map_get_region_at(&state->map, unit->position)) &&
                             region->player_id == unit->player_owned) {
-                            TraceLog(LOG_INFO, "Maybe defend path?");
+
                             PathEntry * entry = region_path_entry_from_bridge(region, unit->location->bridge);
+                            if (bridge_is_enemy_present(&entry->castle_path, unit->player_owned)) {
+                                TraceLog(LOG_INFO, "Moving to defend the path");
+                                if (move_unit_towards(unit, entry->castle_path.start)) {
+                                    TraceLog(LOG_ERROR, "Failed to move unit to defend");
+                                }
+                                continue;
+                            }
 
                             Path * redirected = entry->redirects.items[entry->active_redirect].to;
                             PathEntry * redirect_entry = region_path_entry(region, redirected);
                             if (bridge_is_enemy_present(&redirect_entry->castle_path, unit->player_owned)) {
                                 TraceLog(LOG_INFO, "Moving to defend redirect");
-                                if (move_unit_towards(unit, entry->castle_path.start)) {
+                                if (move_unit_towards(unit, entry->defensive_paths.items[entry->active_redirect].start)) {
                                     TraceLog(LOG_ERROR, "Failed to redirect unit to defend");
-                                }
-                                continue;
-                            }
-                            if (bridge_is_enemy_present(&entry->castle_path, unit->player_owned)) {
-                                TraceLog(LOG_INFO, "Moving to defend the path");
-                                if (move_unit_towards(unit, entry->castle_path.start)) {
-                                    TraceLog(LOG_ERROR, "Failed to move unit to defend");
                                 }
                                 continue;
                             }
