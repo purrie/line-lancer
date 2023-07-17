@@ -210,10 +210,13 @@ void guardian_fight (GameState * state, float delta_time) {
                     if (node->unit->health <= 0.0f) {
                         destroy_unit(&state->units, node->unit);
                     }
+                    // damage only the first on the path
+                    goto once;
                 }
                 node = node->previous;
             }
         }
+        once: {}
     }
 }
 
