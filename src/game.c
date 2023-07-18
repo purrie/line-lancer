@@ -144,7 +144,13 @@ void update_unit_state (GameState * state) {
                         if (can_move_forward(unit) == NO) {
                             unit->move_direction = ! unit->move_direction;
                         }
-                        else if(move_unit_forward(unit)) {}
+                    }
+
+                    if (can_move_forward(unit) == NO) {
+                        unit->move_direction = ! unit->move_direction;
+                    }
+                    else if(move_unit_forward(unit) == FATAL) {
+                        unit->move_direction = ! unit->move_direction;
                     }
                 }
             } break;

@@ -316,7 +316,7 @@ Result move_unit_forward (Unit * unit) {
     }
     if (dir == MOVEMENT_INVALID) {
         TraceLog(LOG_WARNING, "Next node has invalid movement, it's not connected to a bridge");
-        return FAILURE;
+        return FATAL;
     }
 
     if (next->unit) {

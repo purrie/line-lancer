@@ -42,6 +42,7 @@ typedef void ( * Deallocator )(void * ptr);
 enum Result {
     SUCCESS = 0,
     FAILURE,
+    FATAL,
 };
 
 enum Test {
