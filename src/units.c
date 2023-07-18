@@ -96,6 +96,20 @@ Test can_move_forward (Unit *const unit) {
     }
     return YES;
 }
+Test is_unit_tied_to_building (Unit *const unit) {
+    if (unit->origin &&
+        unit->origin->region->player_id == unit->player_owned &&
+        unit->origin->units_spawned > 0)
+        return YES;
+    return NO;
+}
+Test unit_has_effect (Unit *const unit, MagicType type) {
+    for (usize e = 0; e < unit->effects.len; e++) {
+        if (unit->effects.items[e].type == type)
+            return YES;
+    }
+    return NO;
+}
 
 /* Combat ********************************************************************/
 usize get_unit_range (Unit *const unit) {
@@ -105,7 +119,7 @@ usize get_unit_range (Unit *const unit) {
         case UNIT_ARCHER:
             return 3 + unit->upgrade;
         case UNIT_SUPPORT:
-            return 1 + unit->upgrade;
+            return 4 + unit->upgrade;
         case UNIT_SPECIAL:
             switch (unit->faction) {
                 case FACTION_KNIGHTS: return 2;
@@ -184,7 +198,43 @@ float get_unit_attack (Unit *const unit) {
             return 1.0f;
         } break;
     }
-    return attack;
+    float bonus = 0.0f;
+    for (usize i = 0; i < unit->effects.len; i++) {
+        switch (unit->effects.items[i].type) {
+            case MAGIC_STRENGTH: {
+                bonus += attack * 0.5f;
+            } break;
+            case MAGIC_WEAKNESS: {
+                bonus -= attack * 0.5f;
+            } break;
+            default: {}
+        }
+    }
+    return attack + bonus;
+}
+Result get_unit_support_power (Unit *const unit, MagicEffect * effect) {
+    if (unit->type != UNIT_SUPPORT)
+        return FAILURE;
+    switch (unit->faction) {
+        case FACTION_KNIGHTS: {
+            *effect = (MagicEffect){
+                .type = MAGIC_HEALING,
+                .strength = 5.0f,
+                .source_player = unit->player_owned,
+            };
+            return SUCCESS;
+        }
+        case FACTION_MAGES: {
+            *effect = (MagicEffect){
+                .type = MAGIC_WEAKNESS,
+                .strength = 10.0f,
+                .source_player = unit->player_owned,
+            };
+            return SUCCESS;
+        }
+    }
+    TraceLog(LOG_ERROR, "Unsupported support unit");
+    return FAILURE;
 }
 float get_unit_health (UnitType type, FactionType faction, unsigned int upgrades) {
     switch (type) {
@@ -193,29 +243,61 @@ float get_unit_health (UnitType type, FactionType faction, unsigned int upgrades
                 case FACTION_KNIGHTS: return 100.0f * (upgrades + 1);
                 case FACTION_MAGES:   return 140.0f * (upgrades + 1);
             }
+            break;
         case UNIT_ARCHER:
             switch (faction) {
                 case FACTION_KNIGHTS: return 80.0f * (upgrades + 1);
                 case FACTION_MAGES:   return 70.0f * (upgrades + 1);
             }
+            break;
         case UNIT_SUPPORT:
             switch (faction) {
                 case FACTION_KNIGHTS: return 60.0f * (upgrades + 1);
                 case FACTION_MAGES:   return 60.0f * (upgrades + 1);
             }
+            break;
         case UNIT_SPECIAL:
             switch (faction) {
                 case FACTION_KNIGHTS: return 120.0f * (upgrades + 1);
                 case FACTION_MAGES:   return 50.0f * (upgrades + 1);
             }
+            break;
         case UNIT_GUARDIAN:
             switch (faction) {
                 case FACTION_KNIGHTS: return 2000.0f;
                 case FACTION_MAGES:   return 2000.0f;
             }
+            break;
     }
     TraceLog(LOG_ERROR, "Tried to obtain health of unsupported unit type");
     return 1.0f;
+}
+float get_unit_damage (Unit *const unit) {
+    return get_unit_health(unit->type, unit->faction, unit->upgrade) - unit->health;
+}
+usize get_unit_cooldown (Unit *const unit) {
+    switch (unit->faction) {
+        case FACTION_KNIGHTS: {
+            switch (unit->type) {
+                case UNIT_FIGHTER:  return FPS - unit->upgrade;
+                case UNIT_ARCHER:   return FPS - unit->upgrade;
+                case UNIT_SUPPORT:  return FPS - unit->upgrade;
+                case UNIT_SPECIAL:  return FPS - unit->upgrade;
+                case UNIT_GUARDIAN: return FPS;
+            }
+        } break;
+        case FACTION_MAGES: {
+            switch (unit->type) {
+                case UNIT_FIGHTER:  return FPS - unit->upgrade;
+                case UNIT_ARCHER:   return FPS - unit->upgrade;
+                case UNIT_SUPPORT:  return FPS - unit->upgrade;
+                case UNIT_SPECIAL:  return FPS - unit->upgrade;
+                case UNIT_GUARDIAN: return FPS;
+            }
+        } break;
+    }
+    TraceLog(LOG_ERROR, "Attempted to get cooldown from unsupported unit");
+    return FPS;
 }
 Unit * get_enemy_in_range (Unit *const unit) {
     usize range = get_unit_range(unit);
@@ -231,6 +313,97 @@ Unit * get_enemy_in_range (Unit *const unit) {
     }
     return NULL;
 }
+Result get_enemies_in_range (Unit *const unit, ListUnit * result) {
+    result->len = 0;
+    usize range = get_unit_range(unit);
+    Node * node = unit->location->next;
+    for (usize i = 0; i < range; i++) {
+        if (node == NULL)
+            break;
+        if (node->unit && node->unit->player_owned != unit->player_owned) {
+            if (listUnitAppend(result, node->unit)) {
+                return FAILURE;
+            }
+        }
+        node = node->next;
+    }
+    node = unit->location->previous;
+    for (usize i = 0; i < range; i++) {
+        if (node == NULL)
+            break;
+        if (node->unit && node->unit->player_owned != unit->player_owned) {
+            if (listUnitAppend(result, node->unit)) {
+                return FAILURE;
+            }
+        }
+        node = node->previous;
+    }
+    return SUCCESS;
+}
+Result get_allies_in_range (Unit *const unit, ListUnit * result) {
+    result->len = 0;
+    usize range = get_unit_range(unit);
+    Node * node = unit->location->next;
+    for (usize i = 0; i < range; i++) {
+        if (node == NULL)
+            break;
+        if (node->unit && node->unit->player_owned == unit->player_owned) {
+            if (listUnitAppend(result, node->unit)) {
+                return FAILURE;
+            }
+        }
+        node = node->next;
+    }
+    node = unit->location->previous;
+    for (usize i = 0; i < range; i++) {
+        if (node == NULL)
+            break;
+        if (node->unit && node->unit->player_owned == unit->player_owned) {
+            if (listUnitAppend(result, node->unit)) {
+                return FAILURE;
+            }
+        }
+        node = node->previous;
+    }
+    return SUCCESS;
+}
+usize unit_kill (GameState * state, Unit * unit) {
+    ListUnit * list = &state->units;
+
+    for (usize i = 0; i < unit->effects.len; i++) {
+        MagicEffect * effect = &unit->effects.items[i];
+        if (effect->type == MAGIC_CURSE) {
+            PlayerData * player = &state->players.items[effect->source_player];
+            unit->effects.len = 0;
+            if (is_unit_tied_to_building(unit)) {
+                unit->origin->units_spawned -= 1;
+                unit->origin = NULL;
+            }
+            unit->faction = player->faction;
+            unit->type = UNIT_SPECIAL;
+            unit->health = get_unit_health(UNIT_SPECIAL, player->faction, 0);
+            unit->move_direction = !unit->move_direction;
+            unit->player_owned = effect->source_player;
+            unit->upgrade = 0;
+
+            return list->cap;
+        }
+    }
+
+    for (usize i = 0; i < list->len; i++) {
+        if (list->items[i] == unit) {
+            unit->location->unit = NULL;
+            if (is_unit_tied_to_building(unit))
+                unit->origin->units_spawned -= 1;
+            listMagicEffectDeinit(&unit->effects);
+            MemFree(unit);
+            listUnitRemove(list, i);
+            return i;
+        }
+    }
+    TraceLog(LOG_ERROR, "Can't destroy the unit, it's not in the list of units");
+    return list->cap;
+}
 
 /* Movement ******************************************************************/
 Result step_over_unit (Unit * a, Node * anext, Movement adir) {
@@ -240,7 +413,7 @@ Result step_over_unit (Unit * a, Node * anext, Movement adir) {
         if (guard == 0) {
             return FAILURE;
         }
-        if (b->state != UNIT_STATE_FIGHTING) {
+        if (b->state == UNIT_STATE_MOVING) {
             return FAILURE;
         }
         if (b->player_owned != a->player_owned) {
@@ -363,23 +536,11 @@ Movement move_direction (Node *const from, Node *const to) {
 /* Setup *********************************************************************/
 void clear_unit_list (ListUnit * list) {
     for(usize i = 0; i < list->len; i++) {
-        MemFree(list->items[i]);
+        Unit * unit = list->items[i];
+        listMagicEffectDeinit(&unit->effects);
+        MemFree(unit);
     }
     list->len = 0;
-}
-usize destroy_unit (ListUnit * list, Unit * unit) {
-    for (usize i = 0; i < list->len; i++) {
-        if (list->items[i] == unit) {
-            unit->location->unit = NULL;
-            if (unit->origin->region->player_id == unit->player_owned && unit->origin->units_spawned > 0)
-                unit->origin->units_spawned -= 1;
-            MemFree(unit);
-            listUnitRemove(list, i);
-            return i;
-        }
-    }
-    TraceLog(LOG_ERROR, "Can't destroy the unit, it's not in the list of units");
-    return list->cap;
 }
 Unit * unit_from_building (Building *const building) {
     if (building->units_spawned >= BUILDING_MAX_UNITS)
@@ -419,14 +580,20 @@ Unit * unit_from_building (Building *const building) {
             return NULL;
         } break;
     }
+    result->effects = listMagicEffectInit(MAGIC_TYPE_LAST + 1, &MemAlloc, &MemFree);
+    if (result->effects.items == NULL) {
+        TraceLog(LOG_ERROR, "Failed to allocate effect list");
+        MemFree(result);
+        return NULL;
+    }
 
-    result->position        = building->position;
-    result->upgrade         = building->upgrades;
-    result->player_owned    = building->region->player_id;
-    result->faction         = building->region->faction;
-    result->location        = spawn;
-    result->move_direction  = MOVEMENT_DIR_FORWARD;
-    result->health          = get_unit_health(result->type, result->faction, result->upgrade);
+    result->position       = building->position;
+    result->upgrade        = building->upgrades;
+    result->player_owned   = building->region->player_id;
+    result->faction        = building->region->faction;
+    result->location       = spawn;
+    result->move_direction = MOVEMENT_DIR_FORWARD;
+    result->health         = get_unit_health(result->type, result->faction, result->upgrade);
 
     result->origin = building;
     result->origin->units_spawned += 1;
@@ -441,6 +608,13 @@ void setup_unit_guardian (Region * region) {
     region->castle.guardian.position     = region->castle.guardian_spot.position;
     region->castle.guardian.state        = UNIT_STATE_GUARDING;
     region->castle.guardian.type         = UNIT_GUARDIAN;
+
+    if (region->castle.guardian.effects.items == NULL) {
+        region->castle.guardian.effects = listMagicEffectInit(MAGIC_TYPE_LAST + 1, &MemAlloc, &MemFree);
+    }
+    else {
+        region->castle.guardian.effects.len = 0;
+    }
 
     region->castle.guardian.location     = &region->castle.guardian_spot;
     region->castle.guardian_spot.unit    = &region->castle.guardian;
@@ -480,9 +654,12 @@ void render_units (GameState *const state) {
             case UNIT_STATE_MOVING: {
                 unit_state = LIME;
             } break;
+            case UNIT_STATE_SUPPORTING: {
+                unit_state = BLUE;
+            } break;
             case UNIT_STATE_GUARDING: {
                 TraceLog(LOG_ERROR, "Unit is in guard state, that shouldn't happen!");
-            } break;
+            }
             default: {
                 unit_state = PINK;
             } break;

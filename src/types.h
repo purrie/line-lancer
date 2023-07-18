@@ -21,10 +21,12 @@ typedef struct Area Area;
 typedef struct GameState GameState;
 typedef struct Unit Unit;
 typedef struct PlayerData PlayerData;
+typedef struct MagicEffect MagicEffect;
 
 typedef enum Movement Movement;
 typedef enum BuildingType BuildingType;
 typedef enum PlayerState PlayerState;
+typedef enum MagicType MagicType;
 typedef enum UnitType UnitType;
 typedef enum UnitState UnitState;
 typedef enum Result Result;
@@ -78,6 +80,7 @@ makeList(PathBridge, PathBridge);
 makeList(Bridge, Bridge);
 makeList(PlayerData, PlayerData);
 makeList(Map, Map);
+makeList(MagicEffect, MagicEffect);
 
 makeList(Unit*, Unit);
 makeList(Region*, RegionP);
@@ -98,6 +101,7 @@ enum UnitType {
 enum UnitState {
     UNIT_STATE_MOVING = 0,
     UNIT_STATE_FIGHTING,
+    UNIT_STATE_SUPPORTING,
     UNIT_STATE_GUARDING,
 };
 
@@ -107,17 +111,38 @@ enum Movement {
     MOVEMENT_INVALID,
 };
 
+enum MagicType {
+    MAGIC_HEALING = 0,
+    MAGIC_CURSE,
+    MAGIC_WEAKNESS,
+    MAGIC_STRENGTH,
+    MAGIC_HELLFIRE,
+    MAGIC_TYPE_LAST = MAGIC_HELLFIRE,
+};
+
+struct MagicEffect {
+    MagicType type;
+    float     strength;
+    usize     source_player;
+};
+
 struct Unit {
-    float       health;
-    Vector2     position;
-    UnitType    type;
-    ushort      upgrade;
-    UnitState   state;
-    Node      * location;
-    Movement    move_direction;
+    UnitType  type;
+    ushort    upgrade;
+
     usize       player_owned;
     FactionType faction;
-    Building *  origin;
+
+    usize     cooldown;
+    float     health;
+    UnitState state;
+    Vector2   position;
+    Movement  move_direction;
+
+    ListMagicEffect effects;
+
+    Node     * location;
+    Building * origin;
 };
 
 struct Node {

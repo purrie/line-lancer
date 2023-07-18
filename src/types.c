@@ -13,6 +13,7 @@ implementList(PathBridge, PathBridge)
 implementList(Bridge, Bridge)
 implementList(PlayerData, PlayerData)
 implementList(Map, Map)
+implementList(MagicEffect, MagicEffect)
 
 implementList(Unit*, Unit)
 implementList(Region*, RegionP)

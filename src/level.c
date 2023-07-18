@@ -661,6 +661,8 @@ void region_deinit (Region * region) {
     }
     listBuildingDeinit(&region->buildings);
 
+    listMagicEffectDeinit(&region->castle.guardian.effects);
+
     listLineDeinit(&region->area.lines);
     UnloadModel(region->area.model);
 
