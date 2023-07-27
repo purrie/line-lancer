@@ -781,7 +781,8 @@ void render_map_mesh (Map * map) {
         ListBuilding * buildings = &region->buildings;
         for (usize b = 0; b < buildings->len; b++) {
             Building * building = &buildings->items[b];
-            render_bridge(&building->spawn_paths.items[building->active_spawn], BLACK, RED, BLUE);
+            if (building->type != BUILDING_EMPTY && building->type != BUILDING_RESOURCE)
+                render_bridge(&building->spawn_paths.items[building->active_spawn], BLACK, RED, BLUE);
             switch (building->type) {
                 case BUILDING_EMPTY: {
                     DrawModel(building->model, Vector3Zero(), 1.0f, BLUE);
