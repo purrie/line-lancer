@@ -12,7 +12,8 @@
     void list ## name ## Deinit(List ## name * list);\
     int list ## name ## Grow(List ## name * list, usize new_cap);\
     int list ## name ## Append(List ## name * list, type item);\
-    void list ## name ## Remove(List ## name * list, usize index)\
+    void list ## name ## Remove(List ## name * list, usize index);\
+    void list ## name ## Bubblesort(List ## name * list, int (*predicate)(type *a, type *b))\
 
 
 #define implementList(type, name) \
@@ -77,5 +78,20 @@ void list ## name ## Remove(List ## name * list, usize index) {\
         copy_memory(list->items + index, list->items + index + 1, sizeof(type) * (list->len - index));\
     return;\
 }\
+\
+void list ## name ## Bubblesort(List ## name * list, int (*predicate)(type *a, type *b)) {\
+    if (list->len < 2) return;\
+    usize len = list->len - 1;\
+    while (len --> 0) { \
+        for (usize i = 0; i < len; i++) {\
+            if (predicate(&list->items[i], &list->items[i + 1]) > 0) {\
+                type swap = list->items[i];\
+                list->items[i] = list->items[i + 1];\
+                list->items[i + 1] = swap;\
+            }\
+        }\
+    }\
+}\
+
 
 #endif // ARRAY_H_
