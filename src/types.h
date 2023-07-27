@@ -84,6 +84,7 @@ makeList(MagicEffect, MagicEffect);
 
 makeList(Unit*, Unit);
 makeList(Region*, RegionP);
+makeList(PathEntry*, PathEntryP);
 
 typedef enum FactionType {
     FACTION_KNIGHTS,

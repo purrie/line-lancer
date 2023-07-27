@@ -382,6 +382,11 @@ Result building_set_spawn_path (Building * building, Path *const path) {
     }
     return FAILURE;
 }
+Test path_enemies_present (PathEntry *const path, usize player_id) {
+    if (bridge_is_enemy_present(&path->castle_path, player_id)) return YES;
+    if (bridge_is_enemy_present(&path->path->bridge, player_id)) return YES;
+    return NO;
+}
 
 /* Path Functions **********************************************************/
 Path * path_on_point (Map *const map, Vector2 point, Movement * direction) {

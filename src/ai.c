@@ -5,28 +5,60 @@
 #include "level.h"
 
 void redirect_building_paths (GameState * state, usize player_index, ListRegionP * ai_regions) {
+    (void)state;
+
+    ListPathEntryP endangered_paths = listPathEntryPInit(6, &temp_alloc, NULL);
+    ListPathEntryP hostile_paths = listPathEntryPInit(6, &temp_alloc, NULL);
+
     for (usize i = 0; i < ai_regions->len; i++) {
         Region * region = ai_regions->items[i];
 
         if (region->paths.len < 2)
             continue;
 
-        usize hostile_paths_count = 0;
-        PathEntry ** hostile_paths = temp_alloc(sizeof(PathEntry*) * region->paths.len);
+        endangered_paths.len = 0;
+        hostile_paths.len = 0;
 
         for (usize p = 0; p < region->paths.len; p++) {
             PathEntry * entry = &region->paths.items[p];
-            if (entry->path->region_a->player_id != entry->path->region_b->player_id) {
-                hostile_paths[hostile_paths_count++] = entry;
+            if (path_enemies_present(entry, player_index)) {
+                listPathEntryPAppend(&endangered_paths, entry);
+            }
+            else if (entry->path->region_a->player_id != entry->path->region_b->player_id) {
+                listPathEntryPAppend(&hostile_paths, entry);
+            }
+        }
+        if (( endangered_paths.len + hostile_paths.len ) == 0) {
+            for (usize p = 0; p < region->paths.len; p++) {
+                PathEntry * entry = &region->paths.items[p];
+                Region * other;
+
+                if (entry->path->region_a == region) {
+                    other = entry->path->region_b;
+                }
+                else {
+                    other = entry->path->region_a;
+                }
+
+                for (usize r = 0; r < other->paths.len; r++) {
+                    PathEntry * other_entry = &other->paths.items[r];
+                    if (path_enemies_present(other_entry, player_index)) {
+                        listPathEntryPAppend(&endangered_paths, entry);
+                        break;
+                    }
+                    else if (other_entry->path->region_a->player_id != other_entry->path->region_b->player_id) {
+                        listPathEntryPAppend(&hostile_paths, entry);
+                        break;
+                    }
+                }
             }
         }
 
-        if (hostile_paths_count) {
+        if (( endangered_paths.len + hostile_paths.len ) > 0) {
             usize index = 0;
             for (usize b = 0; b < region->buildings.len; b++) {
                 Building * building = &region->buildings.items[b];
                 switch (building->type) {
-                    case BUILDING_TYPE_COUNT:
                     case BUILDING_EMPTY:
                     case BUILDING_RESOURCE:
                         continue;
@@ -34,131 +66,93 @@ void redirect_building_paths (GameState * state, usize player_index, ListRegionP
                     case BUILDING_ARCHER:
                     case BUILDING_SUPPORT:
                     case BUILDING_SPECIAL: {
-                        building_set_spawn_path(building, hostile_paths[index]->path);
-                        index = (index + 1) % hostile_paths_count;
+                        if (endangered_paths.len) {
+                            Path * path = endangered_paths.items[index]->path;
+                            building_set_spawn_path(building, path);
+                            index = (index + 1) % endangered_paths.len;
+                        }
+                        else {
+                            Path * path = hostile_paths.items[index]->path;
+                            building_set_spawn_path(building, path);
+                            index = (index + 1) % hostile_paths.len;
+                        }
                     } break;
                 }
             }
         }
         else {
-            for (usize p = 0; p < region->paths.len; p++) {
-                PathEntry * entry = &region->paths.items[p];
-                Region * other;
-
-                if (entry->path->region_a == region) {
-                    other = entry->path->region_b;
-                }
-                else {
-                    other = entry->path->region_a;
-                }
-
-                bool is_in_danger = false;
-                for (usize r = 0; r < other->paths.len; r++) {
-                    PathEntry * other_entry = &other->paths.items[r];
-                    if (other_entry->path->region_a->player_id != other_entry->path->region_b->player_id) {
-                        is_in_danger = true;
-                        break;
-                    }
-                }
-
-                if (is_in_danger) {
-                    hostile_paths[hostile_paths_count++] = entry;
-                }
-            }
-
-            if (hostile_paths_count) {
-                usize index = 0;
-                for (usize b = 0; b < region->buildings.len; b++) {
-                    Building * building = &region->buildings.items[b];
-                    switch (building->type) {
-                        case BUILDING_TYPE_COUNT:
-                        case BUILDING_EMPTY:
-                        case BUILDING_RESOURCE:
-                            continue;
-                        case BUILDING_FIGHTER:
-                        case BUILDING_ARCHER:
-                        case BUILDING_SUPPORT:
-                        case BUILDING_SPECIAL: {
-                            building_set_spawn_path(building, hostile_paths[index]->path);
-                            index = (index + 1) % hostile_paths_count;
-                        } break;
-                    }
-                }
-            }
-            else {
-                usize index = 0;
-                for (usize b = 0; b < region->buildings.len; b++) {
-                    Building * building = &region->buildings.items[b];
-                    switch (building->type) {
-                        case BUILDING_TYPE_COUNT:
-                        case BUILDING_EMPTY:
-                        case BUILDING_RESOURCE:
-                            continue;
-                        case BUILDING_FIGHTER:
-                        case BUILDING_ARCHER:
-                        case BUILDING_SUPPORT:
-                        case BUILDING_SPECIAL: {
-                            Path * path = region->paths.items[index].path;
-                            building_set_spawn_path(building, path);
-                            index = (index + 1) % region->paths.len;
-                        } break;
-                    }
+            usize index = 0;
+            for (usize b = 0; b < region->buildings.len; b++) {
+                Building * building = &region->buildings.items[b];
+                switch (building->type) {
+                    case BUILDING_EMPTY:
+                    case BUILDING_RESOURCE:
+                        continue;
+                    case BUILDING_FIGHTER:
+                    case BUILDING_ARCHER:
+                    case BUILDING_SUPPORT:
+                    case BUILDING_SPECIAL: {
+                        Path * path = region->paths.items[index].path;
+                        building_set_spawn_path(building, path);
+                        index = (index + 1) % region->paths.len;
+                    } break;
                 }
             }
         }
 
     }
 }
-
 void redirect_region_paths (GameState * state, usize player_index, ListRegionP * ai_regions) {
-    // TODO maybe this function doesn't need to run unless state of region ownership has changed?
+    (void)state;
+    ListPathEntryP endangered_paths = listPathEntryPInit(6, &temp_alloc, NULL);
+    ListPathEntryP hostile_paths = listPathEntryPInit(6, &temp_alloc, NULL);
+    ListPathEntryP safe_paths = listPathEntryPInit(6, &temp_alloc, NULL);
+
     for (usize i = 0; i < ai_regions->len; i++) {
         Region * region = ai_regions->items[i];
 
         if (region->paths.len < 2)
             continue;
 
-        usize hostile_paths = 0;
+        endangered_paths.len = 0;
+        hostile_paths.len = 0;
+        safe_paths.len = 0;
+
         for (usize p = 0; p < region->paths.len; p++) {
             PathEntry * entry = &region->paths.items[p];
-            if (entry->path->region_a->player_id != entry->path->region_b->player_id) {
-                hostile_paths ++;
+            if (path_enemies_present(entry, player_index)) {
+                listPathEntryPAppend(&endangered_paths, entry);
+            }
+            else if (entry->path->region_a->player_id != entry->path->region_b->player_id) {
+                listPathEntryPAppend(&hostile_paths, entry);
+            }
+            else {
+                listPathEntryPAppend(&safe_paths, entry);
             }
         }
 
-        if (hostile_paths == region->paths.len) {
+        if (safe_paths.len == 0)
             continue;
-        }
 
-        if (hostile_paths) {
-            usize friendly_paths = region->paths.len - hostile_paths;
-            usize friendly_index = 0;
+        if (endangered_paths.len + hostile_paths.len > 0) {
             usize hostile_index  = 0;
 
-            PathEntry ** friendly = temp_alloc(sizeof(PathEntry*) * friendly_paths);
-            PathEntry ** hostile  = temp_alloc(sizeof(PathEntry*) * hostile_paths);
-
-            for (usize p = 0; p < region->paths.len; p++) {
-                PathEntry * entry = &region->paths.items[p];
-                if (entry->path->region_a->player_id != entry->path->region_b->player_id) {
-                    hostile[hostile_index++] = entry;
+            hostile_index = 0;
+            for (usize f = 0; f < safe_paths.len; f++) {
+                Path * from = safe_paths.items[f]->path;
+                Path * to = NULL;
+                if (endangered_paths.len) {
+                    to = endangered_paths.items[hostile_index]->path;
+                    hostile_index = (hostile_index + 1) % endangered_paths.len;
                 }
                 else {
-                    friendly[friendly_index++] = entry;
+                    to = hostile_paths.items[hostile_index]->path;
+                    hostile_index = (hostile_index + 1) % hostile_paths.len;
                 }
-            }
-
-            hostile_index = 0;
-            for (usize f = 0; f < friendly_paths; f++) {
-                region_connect_paths(region, friendly[f]->path, hostile[hostile_index]->path);
-                hostile_index = (hostile_index + 1) % hostile_paths;
+                region_connect_paths(region, from, to);
             }
         }
         else {
-
-            usize endangered_regions = 0;
-            PathEntry ** endangered = temp_alloc(sizeof(PathEntry*) * region->paths.len);
-
             for (usize p = 0; p < region->paths.len; p++) {
                 PathEntry * entry = &region->paths.items[p];
                 Region * other;
@@ -169,23 +163,17 @@ void redirect_region_paths (GameState * state, usize player_index, ListRegionP *
                 else {
                     other = entry->path->region_a;
                 }
-                usize danger_level = 0;
 
                 for (usize r = 0; r < other->paths.len; r++) {
                     PathEntry * other_entry = &other->paths.items[r];
                     if (other_entry->path->region_a->player_id != other_entry->path->region_b->player_id) {
-                        danger_level = 1;
+                        listPathEntryPAppend(&endangered_paths, entry);
                         break;
                     }
                 }
-
-                if (danger_level) {
-                    endangered[endangered_regions] = entry;
-                    endangered_regions ++;
-                }
             }
 
-            if (endangered_regions == 0) {
+            if (endangered_paths.len == 0) {
                 for (usize p = 0; p < region->paths.len; p++) {
                     usize next = (p + 1) % region->paths.len;
                     region_connect_paths(region, region->paths.items[p].path, region->paths.items[next].path);
@@ -195,292 +183,240 @@ void redirect_region_paths (GameState * state, usize player_index, ListRegionP *
                 usize next = 0;
                 for (usize p = 0; p < region->paths.len; p++) {
                     Path * from = region->paths.items[p].path;
-                    Path * to = endangered[next]->path;
+                    Path * to = endangered_paths.items[next]->path;
                     if (from == to) {
-                        if (endangered_regions == 1)
+                        if (endangered_paths.len == 1)
                             continue;
-                        next = (next + 1) % endangered_regions;
-
+                        next = (next + 1) % endangered_paths.len;
+                        to = endangered_paths.items[next]->path;
                     }
-                    region_connect_paths(region, region->paths.items[p].path, region->paths.items[next].path);
-                    next = (next + 1) % endangered_regions;
+                    region_connect_paths(region, from, to);
+                    next = (next + 1) % endangered_paths.len;
                 }
             }
         }
     }
 }
 
+int sort_regions_by_risk (Region ** a, Region ** b) {
+    Region * aa = *a;
+    Region * bb = *b;
+    int a_bad_neighbors = 0;
+    int b_bad_neighbors = 0;
+
+    for (usize i = 0; i < aa->paths.len; i++) {
+        PathEntry * entry = &aa->paths.items[i];
+        if (entry->path->region_a->player_id != entry->path->region_b->player_id)
+            a_bad_neighbors ++;
+    }
+
+    for (usize i = 0; i < bb->paths.len; i++) {
+        PathEntry * entry = &bb->paths.items[i];
+        if (entry->path->region_a->player_id != entry->path->region_b->player_id)
+            b_bad_neighbors ++;
+    }
+
+    return a_bad_neighbors - b_bad_neighbors;
+}
+
 void make_purchasing_decision (GameState * state, usize player_index, ListRegionP * ai_regions) {
     PlayerData * ai = &state->players.items[player_index];
 
-    bool can_afford_something = ai->resource_gold >= 10;
+    #if ( BUILDING_MAX_UPGRADES != 2 )
+    #error "Expected max building level to be 2 for this AI to work correctly"
+    #endif
 
-    if (can_afford_something) {
-        usize * spread = temp_alloc(sizeof(usize) * BUILDING_TYPE_COUNT);
-        usize * buildings_first_level = temp_alloc(sizeof(usize) * BUILDING_TYPE_COUNT);
-        usize * buildings_unupgraded = temp_alloc(sizeof(usize) * BUILDING_TYPE_COUNT);
+    #ifdef DEBUG
+    if (BUILDING_TYPE_LAST != BUILDING_RESOURCE) {
+        TraceLog(LOG_FATAL, "We expect the resource building to be last to prevent out of bounds error");
+        return;
+    }
+    #endif
 
-        clear_memory(spread, sizeof(usize) * BUILDING_TYPE_COUNT);
-        clear_memory(buildings_first_level, sizeof(usize) * BUILDING_TYPE_COUNT);
-        clear_memory(buildings_unupgraded, sizeof(usize) * BUILDING_TYPE_COUNT);
+    float income = get_expected_income(&state->map, player_index);
+    float upkeep = get_expected_maintenance_cost(&state->map, player_index);
 
-        #if ( BUILDING_MAX_UPGRADES != 2 )
-        #error "Expected max building level to be 2 for this AI to work correctly"
-        #endif
+    BuildingType wanted_building = BUILDING_EMPTY;
+    bool wanted_upgrade = false;
 
-        usize resource_upgrades = 0;
-        usize combat_buildings = 0;
-        usize combat_upgrades = 0;
-        usize combat_raw = 0;
+    // choose what to buy
+    if (upkeep + 0.3f > income) {
+        wanted_building = BUILDING_RESOURCE;
+    }
+    else {
+        usize buildings_empty_count = 0;
+        usize buildings_unupgraded_count = 0;
+        usize buildings_first_level_count = 0;
+        usize buildings_second_level_count = 0;
+        usize buildings_total = 0;
+        usize buildings_unupgraded_spread[BUILDING_TYPE_LAST] = {0};
+        usize buildings_first_level_spread[BUILDING_TYPE_LAST] = {0};
+        usize buildings_second_level_spread[BUILDING_TYPE_LAST] = {0};
+
 
         for (usize r = 0; r < ai_regions->len; r++) {
             for (usize b = 0; b < ai_regions->items[r]->buildings.len; b++) {
                 Building * building = &ai_regions->items[r]->buildings.items[b];
+
                 switch (building->type) {
-                    case BUILDING_TYPE_COUNT:
-                        continue;
-                    case BUILDING_RESOURCE:
-                        resource_upgrades += building->upgrades;
-                    case BUILDING_EMPTY:
-                        break;
                     case BUILDING_FIGHTER:
                     case BUILDING_ARCHER:
                     case BUILDING_SUPPORT:
                     case BUILDING_SPECIAL:
-                        combat_buildings += 1;
-                        if (building->upgrades) {
-                            if (building->upgrades != BUILDING_MAX_UPGRADES)
-                                buildings_first_level[building->type] += 1;
-                            combat_upgrades += building->upgrades;
-                        }
-                        else {
-                            buildings_unupgraded[building->type] += 1;
-                            combat_raw += 1;
+                        buildings_total += 1;
+                        switch(building->upgrades) {
+                            case 0:
+                                buildings_unupgraded_count += 1;
+                                buildings_unupgraded_spread[building->type] += 1;
+                                break;
+                            case 1:
+                                buildings_first_level_count += 1;
+                                buildings_first_level_spread[building->type] += 1;
+                                break;
+                            case 2:
+                                buildings_second_level_count += 1;
+                                buildings_second_level_spread[building->type] += 1;
+                                break;
                         }
                         break;
+                    case BUILDING_EMPTY:
+                        buildings_empty_count += 1;
+                    case BUILDING_RESOURCE: break;
                 }
-                spread[building->type] ++;
             }
         }
 
-        BuildingType wanted_building = BUILDING_EMPTY;
-        bool want_to_build;
-        size income = get_expected_income(&state->map, player_index);
+        if (buildings_total == 0) {
+            wanted_building = BUILDING_FIGHTER;
+            goto building_chosen;
+        }
 
-
-        if (income < 1) {
-            // TODO this is not ideal, improve by calculating wanted income in relation to expense
-
-            wanted_building = BUILDING_RESOURCE;
-            #ifdef DEBUG_AI
-            TraceLog(LOG_INFO, "AI %zu wants to build resource building", player_index);
-            #endif
-
-            if (( buildings_unupgraded[BUILDING_RESOURCE] && ai->resource_gold >= building_upgrade_cost_raw(BUILDING_RESOURCE, 0)) ||
-                ( buildings_first_level[BUILDING_RESOURCE] && ai->resource_gold >= building_upgrade_cost_raw(BUILDING_RESOURCE, 1))) {
-                want_to_build = false;
-                #ifdef DEBUG_AI
-                TraceLog(LOG_INFO, "AI %zu decided to upgrade", player_index);
-                #endif
-            }
-            else if (spread[BUILDING_EMPTY] && ai->resource_gold >= building_buy_cost(BUILDING_RESOURCE)) {
-                want_to_build = true;
-                #ifdef DEBUG_AI
-                TraceLog(LOG_INFO, "AI %zu decided to buy", player_index);
-                #endif
+        if (buildings_empty_count == 0) {
+            if (buildings_unupgraded_count > 0 || buildings_first_level_count > 0) {
+                wanted_upgrade = true;
             }
             else {
-                #ifdef DEBUG_AI
-                TraceLog(LOG_INFO, "AI %zu can't afford resources", player_index);
-                #endif
+                // nothing to do
                 return;
             }
+        }
+
+        if (wanted_upgrade == false) {
+            BuildingType try_wanted = BUILDING_FIGHTER;
+            float desired_spread[BUILDING_TYPE_LAST] = {0};
+            desired_spread[BUILDING_FIGHTER] = 0.5f;
+            desired_spread[BUILDING_ARCHER] = 0.3f;
+            desired_spread[BUILDING_SUPPORT] = 0.1f;
+            desired_spread[BUILDING_SPECIAL] = 0.1f;
+
+            while (try_wanted != BUILDING_TYPE_LAST) {
+                float spread = (buildings_unupgraded_spread[try_wanted] + buildings_first_level_spread[try_wanted] + buildings_second_level_spread[try_wanted]) / (float)buildings_total;
+                if (spread < desired_spread[try_wanted]) {
+                    wanted_building = try_wanted;
+                    goto building_chosen;
+                }
+                try_wanted += 1;
+            }
+        }
+
+        for (BuildingType try = BUILDING_FIGHTER; try < BUILDING_TYPE_LAST; try ++) {
+            usize count = buildings_first_level_spread[try];
+            for (BuildingType against = try + 1; against < BUILDING_TYPE_LAST; against ++) {
+                usize against_count = buildings_first_level_spread[against];
+                if (count < against_count)
+                    goto next_first_try;
+            }
+            wanted_building = try;
+            goto building_chosen;
+            next_first_try: {}
+        }
+
+        for (BuildingType try = BUILDING_FIGHTER; try < BUILDING_TYPE_LAST; try ++) {
+            usize count = buildings_second_level_spread[try];
+            for (BuildingType against = try + 1; against < BUILDING_TYPE_LAST; against ++) {
+                usize against_count = buildings_second_level_spread[against];
+                if (count < against_count)
+                    goto next_second_try;
+            }
+            wanted_building = try;
+            goto building_chosen;
+            next_second_try: {}
+        }
+
+        // fallback
+        if (wanted_upgrade == false) {
+            wanted_building = BUILDING_FIGHTER;
         }
         else {
-            bool can_build = spread[BUILDING_EMPTY] > 0;
-            bool can_upgrade = combat_raw > 0 || ( combat_upgrades / BUILDING_MAX_UPGRADES ) != combat_buildings;
-            if (can_build && can_upgrade) {
-                if (spread[BUILDING_EMPTY] + combat_upgrades > combat_buildings) {
-                    goto decide_what_to_buy;
-                }
-                else {
-                    goto decide_what_to_upgrade;
+            for (BuildingType try = BUILDING_FIGHTER; try < BUILDING_TYPE_LAST; try ++) {
+                usize count = buildings_first_level_spread[try];
+                if (count > 0) {
+                    wanted_building = try;
+                    goto building_chosen;
                 }
             }
-            else if (can_upgrade) {
-                goto decide_what_to_upgrade;
-            }
-            else if (can_build) {
-                goto decide_what_to_buy;
-            }
-            else {
-                // can't do anything
-                return;
-            }
-
-            decide_what_to_upgrade:
-            {
-                want_to_build = false;
-
-                if (( buildings_first_level[BUILDING_SPECIAL] && ai->resource_gold >= building_upgrade_cost_raw(BUILDING_SPECIAL, 1) ) ||
-                    ( buildings_unupgraded[BUILDING_SPECIAL] && ai->resource_gold >= building_upgrade_cost_raw(BUILDING_SPECIAL, 0) )
-                ) {
-                    wanted_building = BUILDING_SPECIAL;
-                    #ifdef DEBUG_AI
-                    TraceLog(LOG_INFO, "AI %zu decided to upgrade special units", player_index);
-                    #endif
-                }
-                else if (( buildings_first_level[BUILDING_SUPPORT] && ai->resource_gold >= building_upgrade_cost_raw(BUILDING_SUPPORT, 1) ) ||
-                            ( buildings_unupgraded[BUILDING_SUPPORT] && ai->resource_gold >= building_upgrade_cost_raw(BUILDING_SUPPORT, 0) )
-                ) {
-                    wanted_building = BUILDING_SUPPORT;
-                    #ifdef DEBUG_AI
-                    TraceLog(LOG_INFO, "AI %zu decided to upgrade support units", player_index);
-                    #endif
-                }
-                else if (( buildings_first_level[BUILDING_ARCHER] && ai->resource_gold >= building_upgrade_cost_raw(BUILDING_ARCHER, 1) ) ||
-                            ( buildings_unupgraded[BUILDING_ARCHER] && ai->resource_gold >= building_upgrade_cost_raw(BUILDING_ARCHER, 0) )
-                ) {
-                    wanted_building = BUILDING_ARCHER;
-                    #ifdef DEBUG_AI
-                    TraceLog(LOG_INFO, "AI %zu decided to upgrade archer units", player_index);
-                    #endif
-                }
-                else if (( buildings_first_level[BUILDING_FIGHTER] && ai->resource_gold >= building_upgrade_cost_raw(BUILDING_FIGHTER, 1) ) ||
-                            ( buildings_unupgraded[BUILDING_FIGHTER] && ai->resource_gold >= building_upgrade_cost_raw(BUILDING_FIGHTER, 0) )
-                ) {
-                    wanted_building = BUILDING_FIGHTER;
-                    #ifdef DEBUG_AI
-                    TraceLog(LOG_INFO, "AI %zu decided to upgrade fighter units", player_index);
-                    #endif
+            for (BuildingType try = BUILDING_FIGHTER; try < BUILDING_TYPE_LAST; try ++) {
+                usize count = buildings_second_level_spread[try];
+                if (count > 0) {
+                    wanted_building = try;
+                    goto building_chosen;
                 }
             }
-
-            goto wanted_building_chosen;
-
-            decide_what_to_buy:
-            {
-                want_to_build = true;
-
-                if (spread[BUILDING_FIGHTER] <= combat_buildings / 2) {
-                    wanted_building = BUILDING_FIGHTER;
-                    #ifdef DEBUG_AI
-                    TraceLog(LOG_INFO, "AI %zu decided to buy fighter building", player_index);
-                    #endif
-                }
-                else if (spread[BUILDING_ARCHER] <= combat_buildings / 4) {
-                    wanted_building = BUILDING_ARCHER;
-                    #ifdef DEBUG_AI
-                    TraceLog(LOG_INFO, "AI %zu decided to buy archer building", player_index);
-                    #endif
-                }
-                else if (spread[BUILDING_SUPPORT] <= combat_buildings / 4) {
-                    wanted_building = BUILDING_SUPPORT;
-                    #ifdef DEBUG_AI
-                    TraceLog(LOG_INFO, "AI %zu decided to buy support building", player_index);
-                    #endif
-                }
-                else {
-                    wanted_building = BUILDING_SPECIAL;
-                    #ifdef DEBUG_AI
-                    TraceLog(LOG_INFO, "AI %zu decided to buy special building", player_index);
-                    #endif
-                }
-
-                if (ai->resource_gold < building_buy_cost(wanted_building)) {
-                    #ifdef DEBUG_AI
-                    TraceLog(LOG_INFO, "  but can't afford it...");
-                    #endif
-                    return;
-                }
-            }
-
-        }
-        wanted_building_chosen: {}
-
-
-        Building * chosen_building = NULL;
-
-        {
-            for (usize r = 0; r < ai_regions->len; r++) {
-                Region * region = ai_regions->items[r];
-                bool is_safe = true;
-                for (usize p = 0; p < region->paths.len; p++) {
-                    PathEntry * entry = &region->paths.items[p];
-                    if (entry->path->region_a->player_id != entry->path->region_b->player_id) {
-                        is_safe = false;
-                        break;
-                    }
-                }
-                if (is_safe) {
-                    for (usize b = 0; b < region->buildings.len; b++) {
-                        Building * building = &region->buildings.items[b];
-                        if (want_to_build) {
-                            if (building->type == BUILDING_EMPTY) {
-                                chosen_building = building;
-                                goto building_chosen;
-                            }
-                        }
-                        else {
-                            if (building->type == wanted_building && building->upgrades != BUILDING_MAX_UPGRADES && ai->resource_gold >= building_upgrade_cost(building)) {
-                                chosen_building = building;
-                                goto building_chosen;
-                            }
-                        }
-                    }
-                }
-            }
-
-            for (usize r = 0; r < ai_regions->len; r++) {
-                Region * region = ai_regions->items[r];
-
-                for (usize b = 0; b < region->buildings.len; b++) {
-                    Building * building = &region->buildings.items[b];
-                    if (want_to_build) {
-                        if (building->type == BUILDING_EMPTY) {
-                            chosen_building = building;
-                            goto building_chosen;
-                        }
-                    }
-                    else {
-                        if (building->type == wanted_building && building->upgrades != BUILDING_MAX_UPGRADES && ai->resource_gold >= building_upgrade_cost(building)) {
-                            chosen_building = building;
-                            goto building_chosen;
-                        }
-                    }
-                }
-            }
-        }
-
-        building_chosen:
-
-        if (want_to_build) {
-            if (chosen_building == NULL) {
-                #ifdef DEBUG_AI
-                TraceLog(LOG_ERROR, "Wanted to buy a building but couldn't find empty spot for AI nr = %d", player_index);
-                #endif
-                return;
-            }
-            ai->resource_gold -= building_buy_cost(wanted_building);
-            place_building(chosen_building, wanted_building);
-            #ifdef DEBUG_AI
-            TraceLog(LOG_INFO, "AI %zu purchased a building", player_index);
-            #endif
-        }
-        else {
-            if (chosen_building == NULL) {
-                #ifdef DEBUG_AI
-                TraceLog(LOG_ERROR, "Wanted to upgrade a building but couldn't find empty spot for AI nr = %d", player_index);
-                #endif
-                return;
-            }
-            ai->resource_gold -= building_upgrade_cost(chosen_building);
-            upgrade_building(chosen_building);
-            #ifdef DEBUG_AI
-            TraceLog(LOG_INFO, "AI %zi purchased an upgrade", player_index);
-            #endif
         }
     }
+
+    building_chosen:
+
+    if (wanted_building == BUILDING_EMPTY)
+        return;
+
+    if (wanted_upgrade) {
+        if (building_upgrade_cost_raw(wanted_building, 1) > ai->resource_gold) {
+            return;
+        }
+
+        listRegionPBubblesort(ai_regions, &sort_regions_by_risk);
+        for (usize i = 0; i < ai_regions->len; i++) {
+            Region * region = ai_regions->items[i];
+            for (usize b = 0; b < region->buildings.len; b++) {
+                Building * building = &region->buildings.items[b];
+
+                if (building->type != wanted_building || building->upgrades == BUILDING_MAX_UPGRADES) {
+                    continue;
+                }
+
+                usize cost = building_upgrade_cost(building);
+                if (ai->resource_gold < cost) {
+                    continue;
+                }
+
+                upgrade_building(building);
+                ai->resource_gold -= cost;
+                return;
+            }
+        }
+    }
+    else {
+        usize cost = building_buy_cost(wanted_building);
+        if (cost > ai->resource_gold)
+            return;
+
+        listRegionPBubblesort(ai_regions, &sort_regions_by_risk);
+        for (usize i = 0; i < ai_regions->len; i++) {
+            Region * region = ai_regions->items[i];
+            for (usize b = 0; b < region->buildings.len; b++) {
+                Building * building = &region->buildings.items[b];
+
+                if (building->type != BUILDING_EMPTY)
+                    continue;
+
+                place_building(building, wanted_building);
+                ai->resource_gold -= cost;
+                return;
+            }
+        }
+    }
+
 }
 
 void simulate_ai (GameState * state) {

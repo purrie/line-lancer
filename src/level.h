@@ -21,6 +21,8 @@ Result    path_follow      (Path *const path, Region *const from, float distance
 Region  * path_end_region  (Path *const path, Region *const from);
 float     path_length      (Path *const path);
 
+Test path_enemies_present (PathEntry *const path, usize player_id);
+
 /* Area Functions ***********************************************************/
 void      clamp_area              (Area *area, Rectangle rect);
 void      area_flip_y             (Area *area, float height);

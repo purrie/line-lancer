@@ -17,6 +17,7 @@ implementList(MagicEffect, MagicEffect)
 
 implementList(Unit*, Unit)
 implementList(Region*, RegionP)
+implementList(PathEntry*, PathEntryP)
 
 char * faction_to_string (FactionType faction) {
     switch (faction) {
