@@ -659,7 +659,8 @@ void render_units (GameState *const state) {
             } break;
             case UNIT_STATE_GUARDING: {
                 TraceLog(LOG_ERROR, "Unit is in guard state, that shouldn't happen!");
-            }
+                unit_state = PINK;
+            } break;
             default: {
                 unit_state = PINK;
             } break;
