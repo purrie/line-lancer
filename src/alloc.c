@@ -1,20 +1,44 @@
 #include "alloc.h"
+#include <raylib.h>
 
-#ifndef ALLOC_MEMORY_SIZE
-#define ALLOC_MEMORY_SIZE 16777216
+#ifndef MAX_ARENA_SIZE
+#define MAX_ARENA_SIZE 32 * 1024
 #endif
 
-static char mem[ALLOC_MEMORY_SIZE];
-static unsigned long long int cursor = 0;
+typedef struct Arena Arena;
+
+struct Arena {
+    unsigned char mem[MAX_ARENA_SIZE];
+    unsigned long cursor;
+    Arena * next;
+};
+
+Arena global_arena = {0};
+
 
 void * temp_alloc (unsigned int size) {
-    if (cursor + size > ALLOC_MEMORY_SIZE) return (void*)0;
+    Arena * arena = &global_arena;
+    while (arena->cursor + size > MAX_ARENA_SIZE) {
+        if (arena->next) {
+            arena = arena->next;
+        }
+        else {
+            arena->next = MemAlloc(sizeof(Arena));
+            arena = arena->next;
+            arena->cursor = 0;
+            arena->next = (void*)0;
+        }
+    }
 
-    unsigned long long int ptr = cursor;
-    cursor += size;
-    return &mem[ptr];
+    unsigned long int ptr = arena->cursor;
+    arena->cursor += size;
+    return &arena->mem[ptr];
 }
 
 void temp_free () {
-    cursor = 0;
+    Arena * arena = &global_arena;
+    do {
+        arena->cursor = 0;
+        arena = arena->next;
+    } while (arena);
 }
