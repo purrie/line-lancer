@@ -17,3 +17,12 @@ implementList(MagicEffect, MagicEffect)
 
 implementList(Unit*, Unit)
 implementList(Region*, RegionP)
+
+char * faction_to_string (FactionType faction) {
+    switch (faction) {
+        case FACTION_KNIGHTS: return "Knights";
+        case FACTION_MAGES: return "Mages";
+    }
+    TraceLog(LOG_ERROR, "Attempted to stringify unhandled faction");
+    return "Error: Unhandled faction type";
+}

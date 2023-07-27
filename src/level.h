@@ -47,6 +47,7 @@ float       building_size            ();
 Rectangle   building_bounds          (Building *const building);
 Building  * get_building_by_position (Map * map, Vector2 position);
 Result      building_set_spawn_path  (Building * building, Path *const path);
+char      * building_type_to_string  (BuildingType type);
 
 /* Region Functions ********************************************************/
 void        region_change_ownership       (GameState * state, Region * region, usize player_id);

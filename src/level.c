@@ -54,10 +54,9 @@ usize building_cost_to_spawn (Building *const building) {
         case BUILDING_SUPPORT:
         case BUILDING_SPECIAL:
             return 1 + building->upgrades;
-        default:
-            TraceLog(LOG_ERROR, "Attempted to get unit spawn cost from unhandled building type");
-            return 0;
     }
+    TraceLog(LOG_ERROR, "Attempted to get spawning cost from unhandled building: %s", building_type_to_string(building->type));
+    return 0;
 }
 usize building_generated_income (Building *const building) {
     if (building->type == BUILDING_RESOURCE)
@@ -68,6 +67,7 @@ float building_trigger_interval (Building *const building) {
     switch (building->type) {
         case BUILDING_TYPE_COUNT:
         case BUILDING_EMPTY:
+            return 0.0f;
             break;
         case BUILDING_RESOURCE:
             switch (building->region->faction) {
@@ -100,8 +100,27 @@ float building_trigger_interval (Building *const building) {
             }
             break;
     }
-    TraceLog(LOG_WARNING, "Attempted to obtain spawn interval from non-spawning building");
+    TraceLog(LOG_WARNING, "Attempted to obtain trigger interval from unhandled building: T: %s, F:%s", building_type_to_string(building->type), faction_to_string(building->region->faction));
     return 0.0f;
+}
+char * building_type_to_string (BuildingType type) {
+    switch (type) {
+        case BUILDING_TYPE_COUNT:
+            return "Invalid building type (count)";
+        case BUILDING_EMPTY:
+            return "Empty Building";
+        case BUILDING_RESOURCE:
+            return "Resource";
+        case BUILDING_ARCHER:
+            return "Archery";
+        case BUILDING_FIGHTER:
+            return "Fighters";
+        case BUILDING_SUPPORT:
+            return "Support";
+        case BUILDING_SPECIAL:
+            return "Special";
+    }
+    return "Invalid building type (unhandled)";
 }
 
 /* Line Functions **********************************************************/

@@ -282,4 +282,7 @@ struct GameState {
     Camera2D         camera;
 };
 
+/* Utils *********************************************************************/
+char * faction_to_string (FactionType faction);
+
 #endif // TYPES_H_
