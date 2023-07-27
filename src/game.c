@@ -534,8 +534,14 @@ Result game_state_prepare (GameState * result, Map *const prefab) {
     clear_memory(result->players.items, sizeof(PlayerData) * result->players.len);
 
     // TODO make better way to set which is the local player, especially after implementing multiplayer
-    result->players.items[1].type = PLAYER_LOCAL;
-    for (usize i = 1; i < result->players.len; i++) {
+    #ifdef SIMULATE_PLAYER
+    usize player_index = 0;
+    #else
+    usize player_index = 1;
+    result->players.items[player_index].type = PLAYER_LOCAL;
+    #endif
+
+    for (usize i = player_index + 1; i < result->players.len; i++) {
         result->players.items[i].type = PLAYER_AI;
     }
 

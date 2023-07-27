@@ -6,6 +6,8 @@
 
 #define FPS 60
 
+#define SIMULATE_PLAYER
+
 #define UNIT_SIZE 6.0f
 #define UNIT_SPEED 20.0f
 
