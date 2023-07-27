@@ -11,7 +11,7 @@ void draw_button (
     Rectangle   area,
     char      * text,
     Vector2     cursor,
-    float       padding,
+    UiLayout    label_layout,
     Color       bg,
     Color       hover,
     Color       frame
@@ -24,8 +24,27 @@ void draw_button (
         DrawRectangleRec(area, bg);
         DrawRectangleLinesEx(area, 1.0f, frame);
     }
+    Rectangle text_area;
+    switch (label_layout) {
+        case UI_LAYOUT_LEFT: {
+            text_area = cake_carve_to(area, area.width, UI_FONT_SIZE_BUTTON);
+            int space = MeasureText(" ", UI_FONT_SIZE_BUTTON);
+            text_area.x += space;
+        } break;
+        case UI_LAYOUT_CENTER: {
+            int label_width = MeasureText(text, UI_FONT_SIZE_BUTTON);
+            text_area = cake_carve_to(area, label_width, UI_FONT_SIZE_BUTTON);
+        } break;
+        case UI_LAYOUT_RIGHT: {
+            int label_width = MeasureText(text, UI_FONT_SIZE_BUTTON);
+            text_area = cake_carve_to(area, area.width, UI_FONT_SIZE_BUTTON);
+            text_area.x += area.width - label_width;
+            int space = MeasureText(" ", UI_FONT_SIZE_BUTTON);
+            text_area.x -= space;
+        } break;
+    }
 
-    DrawText(text, area.x + padding, area.y + padding, UI_FONT_SIZE_BUTTON, frame);
+    DrawText(text, text_area.x, text_area.y, UI_FONT_SIZE_BUTTON, frame);
 }
 
 float ui_margin () {
@@ -151,17 +170,16 @@ void render_empty_building_dialog (GameState *const state) {
     }
 
     {
-        float margin = ui_margin();
         Color color_bg = DARKBLUE;
         Color color_hover = LIGHTGRAY;
         Color color_frame = BLACK;
 
-        draw_button(dialog.warrior, "Fighter", cursor, margin, color_bg, color_hover, color_frame);
-        draw_button(dialog.archer, "Archer", cursor, margin, color_bg, color_hover, color_frame);
-        draw_button(dialog.support, "Support", cursor, margin, color_bg, color_hover, color_frame);
+        draw_button(dialog.warrior, "Fighter", cursor, UI_LAYOUT_CENTER, color_bg, color_hover, color_frame);
+        draw_button(dialog.archer, "Archer", cursor, UI_LAYOUT_CENTER, color_bg, color_hover, color_frame);
+        draw_button(dialog.support, "Support", cursor, UI_LAYOUT_CENTER, color_bg, color_hover, color_frame);
 
-        draw_button(dialog.special, "Special", cursor, margin, color_bg, color_hover, color_frame);
-        draw_button(dialog.resource, "Cash", cursor, margin, color_bg, color_hover, color_frame);
+        draw_button(dialog.special, "Special", cursor, UI_LAYOUT_CENTER, color_bg, color_hover, color_frame);
+        draw_button(dialog.resource, "Cash", cursor, UI_LAYOUT_CENTER, color_bg, color_hover, color_frame);
     }
 }
 
@@ -219,12 +237,11 @@ void render_upgrade_building_dialog (GameState *const state) {
     DrawText(text, dialog.label.x, dialog.label.y, 20, WHITE);
     DrawText(lvl, level.x, level.y, 16, WHITE);
 
-    float margin = ui_margin();
     Color color_bg = DARKBLUE;
     Color color_hover = LIGHTGRAY;
     Color color_frame = BLACK;
-    draw_button(dialog.upgrade, "Upgrade", cursor, margin, color_bg, color_hover, color_frame);
-    draw_button(dialog.demolish, "Demolish", cursor, margin, color_bg, color_hover, color_frame);
+    draw_button(dialog.upgrade, "Upgrade", cursor, UI_LAYOUT_CENTER, color_bg, color_hover, color_frame);
+    draw_button(dialog.demolish, "Demolish", cursor, UI_LAYOUT_CENTER, color_bg, color_hover, color_frame);
 }
 
 void render_resource_bar (GameState *const state) {
@@ -360,7 +377,7 @@ int render_map_list (Rectangle area, ListMap * maps, usize from, usize len) {
     cake_layers(area, len, boxes, UI_FONT_SIZE_BUTTON + ui_margin(), ui_spacing());
     for (usize i = 0; i < len; i++) {
         usize index = i + from;
-        draw_button(boxes[i], maps->items[index].name, cursor, 0, DARKBLUE, BLUE, RAYWHITE);
+        draw_button(boxes[i], maps->items[index].name, cursor, UI_LAYOUT_LEFT, DARKBLUE, BLUE, RAYWHITE);
         if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
             if (CheckCollisionPointRec(cursor, boxes[i])) {
                 selected = index;

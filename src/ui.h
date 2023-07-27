@@ -30,6 +30,12 @@ typedef struct {
     Rectangle quit;
 } MainMenuLayout;
 
+typedef enum {
+    UI_LAYOUT_LEFT,
+    UI_LAYOUT_CENTER,
+    UI_LAYOUT_RIGHT,
+} UiLayout;
+
 
 /* Input *********************************************************************/
 Result ui_building_action_click (GameState *const state, Vector2 cursor, BuildingAction * action);
@@ -45,6 +51,6 @@ ExecutionMode render_main_menu ();
 /* Component Rendering *******************************************************/
 void render_simple_map_preview (Rectangle area, Map * map, float region_size, float path_thickness);
 int  render_map_list           (Rectangle area, ListMap * maps, usize from, usize len);
-void draw_button               (Rectangle area, char * text, Vector2 cursor, float padding, Color bg, Color hover, Color frame);
+void draw_button               (Rectangle area, char * text, Vector2 cursor, UiLayout label_layout, Color bg, Color hover, Color frame);
 
 #endif // UI_H_

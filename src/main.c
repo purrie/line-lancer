@@ -120,8 +120,8 @@ ExecutionMode level_select (GameAssets * assets, GameState * game) {
         Rectangle accept = cake_carve_to(screen, width, height);
 
         Vector2 cursor = GetMousePosition();
-        draw_button(cancel, "Cancel", cursor, 5.0f, DARKBLUE, BLUE, RAYWHITE);
-        draw_button(accept, "Start", cursor, 5.0f, DARKBLUE, BLUE, RAYWHITE);
+        draw_button(cancel, "Cancel", cursor, UI_LAYOUT_CENTER, DARKBLUE, BLUE, RAYWHITE);
+        draw_button(accept, "Start", cursor, UI_LAYOUT_CENTER, DARKBLUE, BLUE, RAYWHITE);
 
         if (IsMouseButtonReleased(MOUSE_BUTTON_LEFT)) {
             if (CheckCollisionPointRec(cursor, cancel)) {
@@ -184,8 +184,8 @@ ExecutionMode main_menu () {
         BeginDrawing();
         ClearBackground(black);
 
-        draw_button(layout.new_game, "New Game", cursor, 5.0f, bg, hover, frame);
-        draw_button(layout.quit, "Exit", cursor, 5.0f, bg, hover, frame);
+        draw_button(layout.new_game, "New Game", cursor, UI_LAYOUT_CENTER, bg, hover, frame);
+        draw_button(layout.quit, "Exit", cursor, UI_LAYOUT_CENTER, bg, hover, frame);
 
         if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
             if (CheckCollisionPointRec(cursor, layout.new_game)) {
