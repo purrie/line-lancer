@@ -65,6 +65,8 @@ void     map_deinit          (Map * map);
 void     render_map          (Map * map);
 void     render_map_mesh     (Map * map);
 Region * map_get_region_at   (Map *const map, Vector2 point);
-size     get_expected_income (Map *const map, usize player);
+
+float get_expected_income           (Map *const map, usize player);
+float get_expected_maintenance_cost (Map *const map, usize player);
 
 #endif // GEOMETRY_H_

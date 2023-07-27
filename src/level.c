@@ -691,7 +691,7 @@ void region_deinit (Region * region) {
 }
 
 /* Map Functions ***********************************************************/
-size get_expected_income (Map *const map, usize player) {
+float get_expected_income (Map *const map, usize player) {
     float income = 0.0f;
 
     for (usize i = 0; i < map->regions.len; i++) {
@@ -699,17 +699,34 @@ size get_expected_income (Map *const map, usize player) {
         if (region->player_id != player)
             continue;
 
-        income += (float)REGION_INCOME;
+        income += (float)REGION_INCOME / (float)REGION_INCOME_INTERVAL;
         for (usize b = 0; b < region->buildings.len; b++) {
             Building * building = &region->buildings.items[b];
             if (building->type == BUILDING_RESOURCE)
-                income += ( building_generated_income(building) / building_trigger_interval(building) ) * REGION_INCOME_INTERVAL;
-            else if (building->type != BUILDING_EMPTY)
-                income -= ( building_cost_to_spawn(building) / building_trigger_interval(building) ) * REGION_INCOME_INTERVAL;
+                income += ( (float)building_generated_income(building) / building_trigger_interval(building) );
         }
     }
 
-    return (size)income;
+    return income;
+}
+float get_expected_maintenance_cost (Map *const map, usize player) {
+    float cost = 0.0f;
+
+    for (usize i = 0; i < map->regions.len; i++) {
+        Region * region = &map->regions.items[i];
+        if (region->player_id != player)
+            continue;
+
+        for (usize b = 0; b < region->buildings.len; b++) {
+            Building * building = &region->buildings.items[b];
+            if (building->type == BUILDING_EMPTY)
+                continue;
+            if (building->type != BUILDING_RESOURCE)
+                cost += ( (float)building_cost_to_spawn(building) / (float)building_trigger_interval(building) );
+        }
+    }
+
+    return cost;
 }
 Region * map_get_region_at (Map *const map, Vector2 point) {
     for (usize r = 0; r < map->regions.len; r++) {

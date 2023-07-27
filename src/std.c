@@ -76,6 +76,61 @@ char * convert_int_to_ascii (int number, Allocator alloc) {
     result[count] = '\0';
     return result;
 }
+char * convert_float_to_ascii (float number, unsigned int dot_count, Allocator alloc) {
+    char buffer[256] = {0};
+
+    usize count = 0;
+    int test = number;
+    char negative = number < 0;
+    if (negative) {
+        count ++;
+        buffer[0] = '-';
+        test = -test;
+    }
+
+    while (test != 0) {
+        char num = test % 10;
+        buffer[count++] = '0' + num;
+        test /= 10;
+    }
+
+    if (count == 0) {
+        buffer[0] = '0';
+        count = 1;
+    }
+
+    {
+        char total = count;
+        usize length = (total - negative) / 2;
+        char last = negative ? 0 : 1;
+
+        for (usize start = negative; start < length; start++) {
+            usize other = total - start - last;
+            char temp = buffer[start];
+            buffer[start] = buffer[other];
+            buffer[other] = temp;
+        }
+    }
+
+    if (dot_count > 0){
+        buffer[count++] = '.';
+        float after_dot = number;
+        while (dot_count --> 0) {
+            after_dot *= 10.0f;
+            int rounded = (int)after_dot;
+            char num = (char)( rounded % 10 );
+            buffer[count++] = '0' + num;
+        }
+    }
+
+    char * result = alloc(sizeof(char) * (count + 1));
+    if (result == NULL) {
+        return NULL;
+    }
+    copy_memory(result, buffer, count);
+    result[count] = '\0';
+    return result;
+}
 
 usize string_length (char * string) {
     usize guard = 2048;

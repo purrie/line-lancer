@@ -79,7 +79,6 @@ EmptyDialog empty_dialog (Vector2 position) {
 
     return result;
 }
-
 BuildingDialog building_dialog (Vector2 position) {
     BuildingDialog result;
     float margin  = ui_margin();
@@ -118,7 +117,6 @@ Result ui_building_action_click (GameState *const state, Vector2 cursor, Buildin
     }
     return SUCCESS;
 }
-
 Result ui_building_buy_click (GameState *const state, Vector2 cursor, BuildingType * result) {
     if (state->selected_building->type != BUILDING_EMPTY) {
         return FAILURE;
@@ -182,7 +180,6 @@ void render_empty_building_dialog (GameState *const state) {
         draw_button(dialog.resource, "Cash", cursor, UI_LAYOUT_CENTER, color_bg, color_hover, color_frame);
     }
 }
-
 void render_upgrade_building_dialog (GameState *const state) {
     Vector2 cursor = GetMousePosition();
     Vector2 building_pos = GetWorldToScreen2D(state->selected_building->position, state->camera);
@@ -243,7 +240,6 @@ void render_upgrade_building_dialog (GameState *const state) {
     draw_button(dialog.upgrade, "Upgrade", cursor, UI_LAYOUT_CENTER, color_bg, color_hover, color_frame);
     draw_button(dialog.demolish, "Demolish", cursor, UI_LAYOUT_CENTER, color_bg, color_hover, color_frame);
 }
-
 void render_resource_bar (GameState *const state) {
     usize player_index;
     if (get_local_player_index(state, &player_index)) {
@@ -251,41 +247,71 @@ void render_resource_bar (GameState *const state) {
     }
     PlayerData * player = &state->players.items[player_index];
 
-    int income = get_expected_income(&state->map, player_index);
+    float income = get_expected_income(&state->map, player_index);
+    float upkeep = get_expected_maintenance_cost(&state->map, player_index);
 
     Rectangle bar = cake_rect(GetScreenWidth(), UI_BAR_SIZE);
     Rectangle mbar = cake_margin_all(bar, UI_BAR_MARGIN);
 
     char * gold_label   = "Gold: ";
-    char * gold         = convert_int_to_ascii(player->resource_gold, &temp_alloc);
-    if (gold == NULL) {
-        gold = "lots... ";
+    char * income_label = "Income: ";
+    char * upkeep_label = "Upkeep cost: ";
+    char * per_second = "/s ";
+
+    char * gold_value_label = convert_int_to_ascii(player->resource_gold, &temp_alloc);
+    if (gold_value_label == NULL) {
+        gold_value_label = "lots... ";
     }
-    char * income_label = convert_int_to_ascii(income, &temp_alloc);
-    if (income_label == NULL) {
-        income_label = "munies...";
+    char * income_value_label = convert_float_to_ascii(income, 1, &temp_alloc);
+    if (income_value_label == NULL) {
+        income_value_label = "too much...";
+    }
+    char * upkeep_value_label = convert_float_to_ascii(upkeep, 1, &temp_alloc);
+    if (upkeep_value_label == NULL) {
+        upkeep_value_label = "too much...";
     }
 
     int gold_label_width = MeasureText(gold_label, UI_FONT_SIZE_BAR);
-    int gold_width       = MeasureText(gold, UI_FONT_SIZE_BAR);
+    int gold_value_width = MeasureText(gold_value_label, UI_FONT_SIZE_BAR);
+    int income_label_width = MeasureText(income_label, UI_FONT_SIZE_BAR);
+    int income_value_width = MeasureText(income_value_label, UI_FONT_SIZE_BAR);
+    int upkeep_label_width = MeasureText(upkeep_label, UI_FONT_SIZE_BAR);
+    int upkeep_value_width = MeasureText(upkeep_value_label, UI_FONT_SIZE_BAR);
+    int per_second_width = MeasureText(per_second, UI_FONT_SIZE_BAR);
 
-    Rectangle label_rect = cake_cut_vertical(&mbar, gold_label_width, 0);
-    Rectangle gold_rect  = cake_cut_vertical(&mbar, gold_width, 0);
+    #define MARGIN_SIZE 50
+
+    int gold_margin = UI_BAR_MARGIN;
+    if (gold_value_width < MARGIN_SIZE)
+        gold_margin += MARGIN_SIZE - gold_value_width;
+
+    int income_margin = UI_BAR_MARGIN;
+    if (income_value_width < MARGIN_SIZE)
+        income_margin += MARGIN_SIZE - income_value_width;
+
+    Rectangle rect_gold_label = cake_cut_vertical(&mbar, gold_label_width, 0);
+    Rectangle rect_gold  = cake_cut_vertical(&mbar, gold_value_width, gold_margin);
+
+    Rectangle rect_income_label = cake_cut_vertical(&mbar, income_label_width, 0);
+    Rectangle rect_income = cake_cut_vertical(&mbar, income_value_width, 0);
+    Rectangle rect_income_per_second = cake_cut_vertical(&mbar, per_second_width, income_margin);
+
+    Rectangle rect_upkeep_label = cake_cut_vertical(&mbar, upkeep_label_width, 0);
+    Rectangle rect_upkeep = cake_cut_vertical(&mbar, upkeep_value_width, 0);
+    Rectangle rect_upkeep_per_second = mbar;
 
     DrawRectangleRec(bar, DARKGRAY);
-    DrawText(gold_label   , label_rect.x, label_rect.y, UI_FONT_SIZE_BAR, WHITE);
-    DrawText(gold         , gold_rect.x , gold_rect.y , UI_FONT_SIZE_BAR, WHITE);
-    cake_cut_vertical(&mbar, UI_BAR_MARGIN, 0);
+    DrawText(gold_label , rect_gold_label.x, rect_gold_label.y, UI_FONT_SIZE_BAR, WHITE);
+    DrawText(gold_value_label , rect_gold.x , rect_gold.y , UI_FONT_SIZE_BAR, WHITE);
 
-    if (income >= 0) {
-        int sign_width = MeasureText("+", UI_FONT_SIZE_BAR);
-        Rectangle sign = cake_cut_vertical(&mbar, sign_width, 0);
-        DrawText("+", sign.x, sign.y, UI_FONT_SIZE_BAR, WHITE);
-    }
+    DrawText(income_label , rect_income_label.x, rect_income_label.y, UI_FONT_SIZE_BAR, WHITE);
+    DrawText(income_value_label , rect_income.x , rect_income.y , UI_FONT_SIZE_BAR, WHITE);
+    DrawText(per_second, rect_income_per_second.x, rect_income_per_second.y, UI_FONT_SIZE_BAR, WHITE);
 
-    DrawText(income_label, mbar.x, mbar.y, UI_FONT_SIZE_BAR, WHITE);
+    DrawText(upkeep_label , rect_upkeep_label.x, rect_upkeep_label.y, UI_FONT_SIZE_BAR, WHITE);
+    DrawText(upkeep_value_label , rect_upkeep.x , rect_upkeep.y , UI_FONT_SIZE_BAR, WHITE);
+    DrawText(per_second, rect_upkeep_per_second.x, rect_upkeep_per_second.y, UI_FONT_SIZE_BAR, WHITE);
 }
-
 void render_ingame_ui (GameState *const state) {
     if (state->current_input == INPUT_OPEN_BUILDING) {
         if (state->selected_building->type == BUILDING_EMPTY) {
@@ -312,7 +338,6 @@ MainMenuLayout main_menu_layout () {
     };
     return result;
 }
-
 void render_simple_map_preview (Rectangle area, Map * map, float region_size, float path_thickness) {
     DrawRectangleRec(area, BLACK);
     DrawRectangleLinesEx(area, UI_BORDER_SIZE, DARKGRAY);
@@ -351,7 +376,6 @@ void render_simple_map_preview (Rectangle area, Map * map, float region_size, fl
         DrawCircleV(point, region_size, col);
     }
 }
-
 int render_map_list (Rectangle area, ListMap * maps, usize from, usize len) {
     int selected = -1;
     DrawRectangleRec(area, BLACK);
