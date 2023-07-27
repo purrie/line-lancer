@@ -8,121 +8,6 @@
 #include "mesh.h"
 #include <raymath.h>
 
-/* Building functions ********************************************************/
-void place_building (Building * building, BuildingType type) {
-    building->type = type;
-    // TODO make proper building modification
-    // update texture and whatnot
-}
-void upgrade_building (Building * building) {
-    if (building->upgrades >= BUILDING_MAX_UPGRADES) return;
-
-    building->upgrades ++;
-    // TODO make proper building modification
-}
-void demolish_building (Building * building) {
-    building->type = BUILDING_EMPTY;
-    building->upgrades = 0;
-    building->units_spawned = 0;
-}
-usize building_buy_cost (BuildingType type) {
-    switch (type) {
-        case BUILDING_FIGHTER:  return 10;
-        case BUILDING_ARCHER:   return 15;
-        case BUILDING_SUPPORT:  return 15;
-        case BUILDING_SPECIAL:  return 20;
-        case BUILDING_RESOURCE: return 10;
-        default: {
-            TraceLog(LOG_ERROR, "Attempted to get cost of unbuildable building type");
-        } return 10000;
-    }
-}
-usize building_upgrade_cost_raw (BuildingType type, usize level) {
-    return building_buy_cost(type) * (level + 2);
-}
-usize building_upgrade_cost (Building *const building) {
-    return building_upgrade_cost_raw(building->type, building->upgrades);
-}
-usize building_cost_to_spawn (Building *const building) {
-    switch (building->type) {
-        case BUILDING_TYPE_COUNT:
-        case BUILDING_EMPTY:
-        case BUILDING_RESOURCE:
-            return 0;
-        case BUILDING_ARCHER:
-        case BUILDING_FIGHTER:
-        case BUILDING_SUPPORT:
-        case BUILDING_SPECIAL:
-            return 1 + building->upgrades;
-    }
-    TraceLog(LOG_ERROR, "Attempted to get spawning cost from unhandled building: %s", building_type_to_string(building->type));
-    return 0;
-}
-usize building_generated_income (Building *const building) {
-    if (building->type == BUILDING_RESOURCE)
-        return 3 * ( building->upgrades + 1);
-    return 0;
-}
-float building_trigger_interval (Building *const building) {
-    switch (building->type) {
-        case BUILDING_TYPE_COUNT:
-        case BUILDING_EMPTY:
-            return 0.0f;
-            break;
-        case BUILDING_RESOURCE:
-            switch (building->region->faction) {
-                case FACTION_KNIGHTS: return 10.0f - building->upgrades;
-                case FACTION_MAGES:   return 10.0f - building->upgrades;
-            }
-            break;
-        case BUILDING_FIGHTER:
-            switch (building->region->faction) {
-                case FACTION_KNIGHTS: return 5.0f - building->upgrades;
-                case FACTION_MAGES:   return 5.0f - building->upgrades;
-            }
-            break;
-        case BUILDING_ARCHER:
-            switch (building->region->faction) {
-                case FACTION_KNIGHTS: return 5.0f - building->upgrades;
-                case FACTION_MAGES:   return 5.0f - building->upgrades;
-            }
-            break;
-        case BUILDING_SUPPORT:
-            switch (building->region->faction) {
-                case FACTION_KNIGHTS: return 5.0f - building->upgrades;
-                case FACTION_MAGES:   return 5.0f - building->upgrades;
-            }
-            break;
-        case BUILDING_SPECIAL:
-            switch (building->region->faction) {
-                case FACTION_KNIGHTS: return 5.0f - building->upgrades;
-                case FACTION_MAGES:   return 5.0f - building->upgrades;
-            }
-            break;
-    }
-    TraceLog(LOG_WARNING, "Attempted to obtain trigger interval from unhandled building: T: %s, F:%s", building_type_to_string(building->type), faction_to_string(building->region->faction));
-    return 0.0f;
-}
-char * building_type_to_string (BuildingType type) {
-    switch (type) {
-        case BUILDING_TYPE_COUNT:
-            return "Invalid building type (count)";
-        case BUILDING_EMPTY:
-            return "Empty Building";
-        case BUILDING_RESOURCE:
-            return "Resource";
-        case BUILDING_ARCHER:
-            return "Archery";
-        case BUILDING_FIGHTER:
-            return "Fighters";
-        case BUILDING_SUPPORT:
-            return "Support";
-        case BUILDING_SPECIAL:
-            return "Special";
-    }
-    return "Invalid building type (unhandled)";
-}
-
 /* Line Functions **********************************************************/
 Result line_intersection (Line a, Line b, Vector2 * value) {
     const Vector2 sn = Vector2Subtract(a.a, a.b);
@@ -351,6 +236,115 @@ Test area_line_intersects (Area *const area, Line line) {
 }
 
 /* Building Functions ******************************************************/
+void place_building (Building * building, BuildingType type) {
+    building->type = type;
+    // TODO make proper building modification
+    // update texture and whatnot
+}
+void upgrade_building (Building * building) {
+    if (building->upgrades >= BUILDING_MAX_UPGRADES) return;
+
+    building->upgrades ++;
+    // TODO make proper building modification
+}
+void demolish_building (Building * building) {
+    building->type = BUILDING_EMPTY;
+    building->upgrades = 0;
+    building->units_spawned = 0;
+}
+usize building_buy_cost (BuildingType type) {
+    switch (type) {
+        case BUILDING_FIGHTER:  return 10;
+        case BUILDING_ARCHER:   return 15;
+        case BUILDING_SUPPORT:  return 15;
+        case BUILDING_SPECIAL:  return 20;
+        case BUILDING_RESOURCE: return 10;
+        default: {
+            TraceLog(LOG_ERROR, "Attempted to get cost of unbuildable building type");
+        } return 10000;
+    }
+}
+usize building_upgrade_cost_raw (BuildingType type, usize level) {
+    return building_buy_cost(type) * (level + 2);
+}
+usize building_upgrade_cost (Building *const building) {
+    return building_upgrade_cost_raw(building->type, building->upgrades);
+}
+usize building_cost_to_spawn (Building *const building) {
+    switch (building->type) {
+        case BUILDING_EMPTY:
+        case BUILDING_RESOURCE:
+            return 0;
+        case BUILDING_ARCHER:
+        case BUILDING_FIGHTER:
+        case BUILDING_SUPPORT:
+        case BUILDING_SPECIAL:
+            return 1 + building->upgrades;
+    }
+    TraceLog(LOG_ERROR, "Attempted to get spawning cost from unhandled building: %s", building_type_to_string(building->type));
+    return 0;
+}
+usize building_generated_income (Building *const building) {
+    if (building->type == BUILDING_RESOURCE)
+        return 3 * ( building->upgrades + 1);
+    return 0;
+}
+float building_trigger_interval (Building *const building) {
+    switch (building->type) {
+        case BUILDING_EMPTY:
+            return 0.0f;
+            break;
+        case BUILDING_RESOURCE:
+            switch (building->region->faction) {
+                case FACTION_KNIGHTS: return 10.0f - building->upgrades;
+                case FACTION_MAGES:   return 10.0f - building->upgrades;
+            }
+            break;
+        case BUILDING_FIGHTER:
+            switch (building->region->faction) {
+                case FACTION_KNIGHTS: return 5.0f - building->upgrades;
+                case FACTION_MAGES:   return 5.0f - building->upgrades;
+            }
+            break;
+        case BUILDING_ARCHER:
+            switch (building->region->faction) {
+                case FACTION_KNIGHTS: return 5.0f - building->upgrades;
+                case FACTION_MAGES:   return 5.0f - building->upgrades;
+            }
+            break;
+        case BUILDING_SUPPORT:
+            switch (building->region->faction) {
+                case FACTION_KNIGHTS: return 5.0f - building->upgrades;
+                case FACTION_MAGES:   return 5.0f - building->upgrades;
+            }
+            break;
+        case BUILDING_SPECIAL:
+            switch (building->region->faction) {
+                case FACTION_KNIGHTS: return 5.0f - building->upgrades;
+                case FACTION_MAGES:   return 5.0f - building->upgrades;
+            }
+            break;
+    }
+    TraceLog(LOG_WARNING, "Attempted to obtain trigger interval from unhandled building: T: %s, F:%s", building_type_to_string(building->type), faction_to_string(building->region->faction));
+    return 0.0f;
+}
+char * building_type_to_string (BuildingType type) {
+    switch (type) {
+        case BUILDING_EMPTY:
+            return "Empty Building";
+        case BUILDING_RESOURCE:
+            return "Resource";
+        case BUILDING_ARCHER:
+            return "Archery";
+        case BUILDING_FIGHTER:
+            return "Fighters";
+        case BUILDING_SUPPORT:
+            return "Support";
+        case BUILDING_SPECIAL:
+            return "Special";
+    }
+    return "Invalid building type (unhandled)";
+}
 float building_size () {
     return 10.0f;
 }

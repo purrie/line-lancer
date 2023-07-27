@@ -4,17 +4,6 @@
 #include <raylib.h>
 #include "types.h"
 
-/* Building Functions ********************************************************/
-void   place_building            (Building * building, BuildingType type);
-void   upgrade_building          (Building * building);
-void   demolish_building         (Building * building);
-usize  building_buy_cost         (BuildingType type);
-usize  building_upgrade_cost     (Building *const building);
-usize  building_upgrade_cost_raw (BuildingType type, usize level);
-usize  building_cost_to_spawn    (Building *const building);
-usize  building_generated_income (Building *const building);
-float  building_trigger_interval (Building *const building);
-
 /* Line Functions ***********************************************************/
 Line      make_line           (Vector2 a, Vector2 b);
 Test      line_intersects     (Line a, Line b);
@@ -43,6 +32,16 @@ bool      area_contains_point     (const Area *const area, const Vector2 point);
 Rectangle area_bounds             (const Area *const area);
 
 /* Building Functions ******************************************************/
+void   place_building            (Building * building, BuildingType type);
+void   upgrade_building          (Building * building);
+void   demolish_building         (Building * building);
+usize  building_buy_cost         (BuildingType type);
+usize  building_upgrade_cost     (Building *const building);
+usize  building_upgrade_cost_raw (BuildingType type, usize level);
+usize  building_cost_to_spawn    (Building *const building);
+usize  building_generated_income (Building *const building);
+float  building_trigger_interval (Building *const building);
+
 float       building_size            ();
 Rectangle   building_bounds          (Building *const building);
 Building  * get_building_by_position (Map * map, Vector2 position);
