@@ -44,7 +44,8 @@ int list ## name ## Grow(List ## name * list, usize new_cap) {\
     list->cap = new_cap;\
     if (list->items != NULL) {\
         copy_memory(new_list, list->items, sizeof(type) * list->len);\
-        list->dealloc(list->items);\
+        if (list->dealloc != NULL)\
+            list->dealloc(list->items);\
         list->items = new_list;\
     } else {\
         list->items = new_list;\
