@@ -211,7 +211,6 @@ void render_upgrade_building_dialog (GameState *const state) {
         case BUILDING_RESOURCE: {
             text = "Cash";
         } break;
-        case BUILDING_TYPE_COUNT:
         case BUILDING_EMPTY: {
             DrawText("Invalid", dialog.label.x, dialog.label.y, 20, WHITE);
         } return;

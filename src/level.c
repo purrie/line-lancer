@@ -802,9 +802,6 @@ void render_map_mesh (Map * map) {
                 case BUILDING_RESOURCE: {
                     DrawModel(building->model, Vector3Zero(), 1.0f, YELLOW);
                 } break;
-                case BUILDING_TYPE_COUNT: {
-                    TraceLog(LOG_ERROR, "Building count is not a valid building type to render");
-                } break;
             }
         }
 

@@ -84,7 +84,6 @@ void spawn_units (GameState * state, float delta_time) {
 
             switch (building->type) {
                 case BUILDING_EMPTY:
-                case BUILDING_TYPE_COUNT:
                     break;
                 case BUILDING_RESOURCE: {
                     player->resource_gold += building_generated_income(building);
