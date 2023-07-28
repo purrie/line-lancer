@@ -22,6 +22,7 @@ typedef struct GameState GameState;
 typedef struct Unit Unit;
 typedef struct PlayerData PlayerData;
 typedef struct MagicEffect MagicEffect;
+typedef struct Attack Attack;
 
 typedef enum Movement Movement;
 typedef enum BuildingType BuildingType;
@@ -81,6 +82,7 @@ makeList(Bridge, Bridge);
 makeList(PlayerData, PlayerData);
 makeList(Map, Map);
 makeList(MagicEffect, MagicEffect);
+makeList(Attack, Attack);
 
 makeList(Unit*, Unit);
 makeList(Region*, RegionP);
@@ -127,6 +129,14 @@ struct MagicEffect {
     usize     source_player;
 };
 
+struct Attack {
+    usize   damage;
+    float   timer;
+    float   delay;
+    usize   origin_attacker;
+    Vector2 origin_position;
+};
+
 struct Unit {
     UnitType  type;
     ushort    upgrade;
@@ -141,6 +151,7 @@ struct Unit {
     Movement  move_direction;
 
     ListMagicEffect effects;
+    ListAttack incoming_attacks;
 
     Node     * location;
     Building * origin;

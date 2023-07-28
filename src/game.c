@@ -128,8 +128,8 @@ void update_unit_state (GameState * state) {
                             }
                             while (buffer.len --> 0) {
                                 Unit * ally = buffer.items[buffer.len];
-                                float damage = get_unit_damage(ally);
-                                if (damage > 1.0f && unit_has_effect(ally, MAGIC_HEALING) == NO) {
+                                float damage = get_unit_wounds(ally);
+                                if (damage > 1.0f && unit_has_effect(ally, MAGIC_HEALING, NULL) == NO) {
                                     unit->state = UNIT_STATE_SUPPORTING;
                                     goto next;
                                 }
@@ -142,7 +142,7 @@ void update_unit_state (GameState * state) {
                             }
                             while (buffer.len --> 0) {
                                 Unit * enemy = buffer.items[buffer.len];
-                                if (unit_has_effect(enemy, MAGIC_WEAKNESS) == NO) {
+                                if (unit_has_effect(enemy, MAGIC_WEAKNESS, NULL) == NO) {
                                     unit->state = UNIT_STATE_SUPPORTING;
                                     goto next;
                                 }
@@ -198,8 +198,8 @@ void update_unit_state (GameState * state) {
                         }
                         while (buffer.len --> 0) {
                             Unit * endangered = buffer.items[buffer.len];
-                            float damage = get_unit_damage(endangered);
-                            if (damage > 1.0f && unit_has_effect(endangered, MAGIC_HEALING) == NO) {
+                            float damage = get_unit_wounds(endangered);
+                            if (damage > 1.0f && unit_has_effect(endangered, MAGIC_HEALING, NULL) == NO) {
                                 goto next;
                             }
                         }
@@ -213,7 +213,7 @@ void update_unit_state (GameState * state) {
                         }
                         while (buffer.len --> 0) {
                             Unit * enemy = buffer.items[buffer.len];
-                            if (unit_has_effect(enemy, MAGIC_WEAKNESS) == NO)
+                            if (unit_has_effect(enemy, MAGIC_WEAKNESS, NULL) == NO)
                                 goto next;
                         }
                         unit->state = UNIT_STATE_MOVING;
@@ -233,8 +233,8 @@ void update_unit_state (GameState * state) {
                             }
                             while (buffer.len --> 0) {
                                 Unit * ally = buffer.items[buffer.len];
-                                float damage = get_unit_damage(ally);
-                                if (damage > 1.0f && unit_has_effect(ally, MAGIC_HEALING) == NO) {
+                                float damage = get_unit_wounds(ally);
+                                if (damage > 1.0f && unit_has_effect(ally, MAGIC_HEALING, NULL) == NO) {
                                     unit->state = UNIT_STATE_SUPPORTING;
                                     goto next;
                                 }
@@ -247,7 +247,7 @@ void update_unit_state (GameState * state) {
                             }
                             while (buffer.len --> 0) {
                                 Unit * enemy = buffer.items[buffer.len];
-                                if (unit_has_effect(enemy, MAGIC_WEAKNESS) == NO) {
+                                if (unit_has_effect(enemy, MAGIC_WEAKNESS, NULL) == NO) {
                                     unit->state = UNIT_STATE_SUPPORTING;
                                     goto next;
                                 }
@@ -306,9 +306,9 @@ void units_support (GameState * state, float delta_time) {
                 float damage = -1.0f;
                 for (usize u = 0; u < buffer.len; u++) {
                     Unit * check = buffer.items[u];
-                    if (unit_has_effect(check, MAGIC_HEALING))
+                    if (unit_has_effect(check, MAGIC_HEALING, NULL))
                         continue;
-                    float check_damage = get_unit_damage(check);
+                    float check_damage = get_unit_wounds(check);
                     if (check_damage > damage) {
                         most_hurt = check;
                         damage = check_damage;
@@ -335,7 +335,7 @@ void units_support (GameState * state, float delta_time) {
 
                 for (usize u = 0; u < buffer.len; u++) {
                     Unit * target = buffer.items[u];
-                    if (unit_has_effect(unit, MAGIC_WEAKNESS))
+                    if (unit_has_effect(unit, MAGIC_WEAKNESS, NULL))
                         continue;
                     MagicEffect magic;
                     if (get_unit_support_power(unit, &magic)) {
@@ -353,30 +353,83 @@ void units_support (GameState * state, float delta_time) {
     listUnitDeinit(&buffer);
 }
 void units_fight (GameState * state, float delta_time) {
+    (void)delta_time;
     for (usize i = 0; i < state->units.len; i++) {
         Unit * unit = state->units.items[i];
         if (unit->state != UNIT_STATE_FIGHTING)
             continue;
+        if (unit->cooldown > 0)
+            continue;
+
         Unit * target = get_enemy_in_range(unit);
         if (target) {
-            target->health -= get_unit_attack(unit) * delta_time;
-            if (target->health > 0.0f) {
-                continue;
-            }
-            if (target->state == UNIT_STATE_GUARDING) {
-                Region * region = region_by_guardian(&state->map.regions, target);
-                region_change_ownership(state, region, unit->player_owned);
-            }
-            else {
-                usize target_index = unit_kill(state, target);
-                if (target_index < i) i--;
-            }
+            Attack attack = {
+                .damage = get_unit_attack(unit),
+                .origin_attacker = unit->player_owned,
+                .origin_position = unit->position,
+                .delay = get_unit_attack_delay(unit),
+                .timer = 0.0f,
+            };
+            listAttackAppend(&target->incoming_attacks, attack);
+            unit->cooldown = get_unit_cooldown(unit);
         }
     }
 }
-void guardian_fight (GameState * state, float delta_time) {
+void units_damage(GameState * state, float delta_time) {
+    usize units = state->units.len;
+    while (units --> 0) {
+        Unit * unit = state->units.items[units];
+        usize attacks = unit->incoming_attacks.len;
+        while (attacks --> 0) {
+            Attack * attack = &unit->incoming_attacks.items[attacks];
+            attack->timer += delta_time;
+            if (attack->timer < attack->delay)
+                continue;
+
+            if (attack->origin_attacker != unit->player_owned) {
+                unit->health -= attack->damage;
+                if (unit->health <= 0.0f) {
+                    unit_kill(state, unit);
+                    goto next_unit;
+                }
+            }
+
+            listAttackRemove(&unit->incoming_attacks, attacks);
+        }
+        next_unit:{}
+    }
+
     for (usize i = 0; i < state->map.regions.len; i++) {
         Region * region = &state->map.regions.items[i];
+        Unit * guardian = &region->castle.guardian;
+        usize attacks = guardian->incoming_attacks.len;
+        while (attacks --> 0) {
+            Attack * attack = &guardian->incoming_attacks.items[attacks];
+            attack->timer += delta_time;
+            if (attack->timer < attack->delay)
+                continue;
+
+            if (attack->origin_attacker != guardian->player_owned) {
+                guardian->health -= attack->damage;
+                if (guardian->health <= 0.0f) {
+                    region_change_ownership(state, region, attack->origin_attacker);
+                    goto next_guard;
+                }
+            }
+
+            listAttackRemove(&guardian->incoming_attacks, attacks);
+        }
+        next_guard:{}
+    }
+}
+void guardian_fight (GameState * state, float delta_time) {
+    (void)delta_time;
+    for (usize i = 0; i < state->map.regions.len; i++) {
+        Region * region = &state->map.regions.items[i];
+
+        Unit * guardian = &region->castle.guardian;
+        if (guardian->cooldown > 0)
+            continue;
 
         for (usize p = 0; p < region->paths.len; p++) {
             PathEntry * entry = &region->paths.items[p];
@@ -384,10 +437,15 @@ void guardian_fight (GameState * state, float delta_time) {
 
             while (node != entry->castle_path.start) {
                 if (node->unit && node->unit->player_owned != region->player_id) {
-                    node->unit->health -= get_unit_attack(&region->castle.guardian) * delta_time;
-                    if (node->unit->health <= 0.0f) {
-                        unit_kill(state, node->unit);
-                    }
+                    guardian->cooldown = get_unit_cooldown(guardian);
+                    Attack attack = {
+                        .damage = get_unit_attack(guardian),
+                        .delay = get_unit_attack_delay(guardian),
+                        .origin_attacker = region->player_id,
+                        .origin_position = guardian->position,
+                        .timer = 0.0f,
+                    };
+                    listAttackAppend(&node->unit->incoming_attacks, attack);
                     // damage only the first on the path
                     goto once;
                 }
@@ -398,8 +456,9 @@ void guardian_fight (GameState * state, float delta_time) {
     }
 }
 void process_effects (GameState * state, float delta_time) {
-    for (usize i = 0; i < state->units.len; i++) {
-        Unit * unit = state->units.items[i];
+    usize unit_count = state->units.len;
+    while (unit_count --> 0) {
+        Unit * unit = state->units.items[unit_count];
         usize e = unit->effects.len;
         while (e --> 0) {
             MagicEffect * effect = &unit->effects.items[e];
@@ -416,9 +475,7 @@ void process_effects (GameState * state, float delta_time) {
                     unit->health -= damage;
                     effect->strength -= damage;
                     if (unit->health <= 0.0f) {
-                        usize index = unit_kill(state, unit);
-                        if (index < i)
-                            --i;
+                        unit_kill(state, unit);
                         goto next;
                     }
                 } break;
@@ -475,14 +532,20 @@ void simulate_units (GameState * state) {
         if (unit->cooldown > 0)
             unit->cooldown --;
     }
+    for (usize i = 0; i < state->map.regions.len; i++) {
+        Unit * guard = &state->map.regions.items[i].castle.guardian;
+        if (guard->cooldown > 0)
+            guard->cooldown --;
+    }
 
-    process_effects   (state, dt);
     spawn_units       (state, dt);
     update_unit_state (state);
     move_units        (state, dt);
     units_support     (state, dt);
     units_fight       (state, dt);
     guardian_fight    (state, dt);
+    units_damage      (state, dt);
+    process_effects   (state, dt);
 }
 
 /* Gameplay Loop *************************************************************/
