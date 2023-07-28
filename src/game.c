@@ -542,6 +542,10 @@ Result game_state_prepare (GameState * result, Map *const prefab) {
 
     for (usize i = player_index + 1; i < result->players.len; i++) {
         result->players.items[i].type = PLAYER_AI;
+        unsigned int max = -1;
+        max /= 2;
+        max -= 1;
+        result->players.items[i].seed = GetRandomValue(0, (int)max);
     }
 
     for (usize i = 1; i < result->players.len; i++) {

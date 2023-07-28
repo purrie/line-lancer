@@ -249,6 +249,7 @@ struct PlayerData {
     usize resource_gold;
     PlayerType type;
     FactionType faction;
+    usize seed;
 };
 
 typedef enum {

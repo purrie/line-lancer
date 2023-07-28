@@ -5,8 +5,6 @@
 #include "level.h"
 
 void redirect_building_paths (GameState * state, usize player_index, ListRegionP * ai_regions) {
-    (void)state;
-
     ListPathEntryP endangered_paths = listPathEntryPInit(6, &temp_alloc, NULL);
     ListPathEntryP hostile_paths = listPathEntryPInit(6, &temp_alloc, NULL);
 
@@ -55,7 +53,7 @@ void redirect_building_paths (GameState * state, usize player_index, ListRegionP
         }
 
         if (( endangered_paths.len + hostile_paths.len ) > 0) {
-            usize index = 0;
+            usize index = state->players.items[player_index].seed % (endangered_paths.len ? endangered_paths.len : hostile_paths.len);
             for (usize b = 0; b < region->buildings.len; b++) {
                 Building * building = &region->buildings.items[b];
                 switch (building->type) {
@@ -81,7 +79,7 @@ void redirect_building_paths (GameState * state, usize player_index, ListRegionP
             }
         }
         else {
-            usize index = 0;
+            usize index = state->players.items[player_index].seed % region->paths.len;
             for (usize b = 0; b < region->buildings.len; b++) {
                 Building * building = &region->buildings.items[b];
                 switch (building->type) {
@@ -103,7 +101,6 @@ void redirect_building_paths (GameState * state, usize player_index, ListRegionP
     }
 }
 void redirect_region_paths (GameState * state, usize player_index, ListRegionP * ai_regions) {
-    (void)state;
     ListPathEntryP endangered_paths = listPathEntryPInit(6, &temp_alloc, NULL);
     ListPathEntryP hostile_paths = listPathEntryPInit(6, &temp_alloc, NULL);
     ListPathEntryP safe_paths = listPathEntryPInit(6, &temp_alloc, NULL);
@@ -137,7 +134,7 @@ void redirect_region_paths (GameState * state, usize player_index, ListRegionP *
         if (endangered_paths.len + hostile_paths.len > 0) {
             usize hostile_index  = 0;
 
-            hostile_index = 0;
+            hostile_index = state->players.items[player_index].seed % (endangered_paths.len ? endangered_paths.len : hostile_paths.len);
             for (usize f = 0; f < safe_paths.len; f++) {
                 Path * from = safe_paths.items[f]->path;
                 Path * to = NULL;
@@ -174,13 +171,17 @@ void redirect_region_paths (GameState * state, usize player_index, ListRegionP *
             }
 
             if (endangered_paths.len == 0) {
+                usize start = state->players.items[player_index].seed % region->paths.len;
+                if (start == 0)
+                    start = 1;
+
                 for (usize p = 0; p < region->paths.len; p++) {
-                    usize next = (p + 1) % region->paths.len;
+                    usize next = (p + start) % region->paths.len;
                     region_connect_paths(region, region->paths.items[p].path, region->paths.items[next].path);
                 }
             }
             else {
-                usize next = 0;
+                usize next = state->players.items[player_index].seed % endangered_paths.len;
                 for (usize p = 0; p < region->paths.len; p++) {
                     Path * from = region->paths.items[p].path;
                     Path * to = endangered_paths.items[next]->path;

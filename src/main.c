@@ -1,5 +1,6 @@
 #include <raylib.h>
 #include <raymath.h>
+#include <time.h>
 #include "std.h"
 #include "alloc.h"
 #include "assets.h"
@@ -208,6 +209,9 @@ ExecutionMode main_menu () {
 int main(void) {
     int result = 0;
     SetTraceLogLevel(LOG_INFO);
+
+    SetRandomSeed(time(0));
+
     InitWindow(WINDOW_WIDTH, WINDOW_HEIGHT, "Hello!");
 
     GameAssets game_assets = {0};
