@@ -6,7 +6,7 @@
 
 #define FPS 60
 
-/* #define SIMULATE_PLAYER */
+#define SIMULATE_PLAYER
 
 #define UNIT_SIZE 6.0f
 #define UNIT_SPEED 20.0f
@@ -28,9 +28,9 @@
 #define MAP_BEVEL 5
 #define PATH_BEVEL 3
 
-#define RENDER_NAV_GRID
+/* #define RENDER_NAV_GRID */
 #define RENDER_PATHS
-#define RENDER_PATHS_DEBUG
+/* #define RENDER_PATHS_DEBUG */
 
 #define UI_DIALOG_BUILDING_WIDTH 350
 #define UI_DIALOG_BUILDING_HEIGHT 200
