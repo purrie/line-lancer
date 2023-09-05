@@ -5,7 +5,6 @@
 #include "units.h"
 #include "input.h"
 #include "level.h"
-#include "bridge.h"
 #include "constants.h"
 #include "alloc.h"
 #include <raymath.h>
@@ -52,6 +51,34 @@ usize find_unit (ListUnit * units, Unit * unit) {
     }
     return units->len;
 }
+Test support_can_support (Unit *const unit, ListUnit * buffer) {
+    switch (unit->faction) {
+        case FACTION_KNIGHTS: {
+            if (get_allies_in_range(unit, buffer)) {
+                return NO;
+            }
+            while (buffer->len --> 0) {
+                Unit * ally = buffer->items[buffer->len];
+                float damage = get_unit_wounds(ally);
+                if (damage > 1.0f && unit_has_effect(ally, MAGIC_HEALING, NULL) == NO) {
+                    return YES;
+                }
+            }
+        } break;
+        case FACTION_MAGES: {
+            if (get_enemies_in_range(unit, buffer)) {
+                return NO;
+            }
+            while (buffer->len --> 0) {
+                Unit * enemy = buffer->items[buffer->len];
+                if (unit_has_effect(enemy, MAGIC_WEAKNESS, NULL) == NO) {
+                    return YES;
+                }
+            }
+        } break;
+    }
+    return NO;
+}
 
 /* Unit Simulation ***********************************************************/
 Test spawn_unit (GameState * state, Building * building) {
@@ -94,18 +121,20 @@ void spawn_units (GameState * state, float delta_time) {
                 case BUILDING_SPECIAL: {
                     usize cost_to_spawn = building_cost_to_spawn(building);
                     bool can_afford     = player->resource_gold >= cost_to_spawn;
-                    if (can_afford && spawn_unit(state, building))
+                    if (can_afford && spawn_unit(state, building)) {
+                        TraceLog(LOG_DEBUG, "Spawned unit for player %zu for %zu", region->player_id, cost_to_spawn);
                         player->resource_gold -= cost_to_spawn;
+                    }
                 } break;
             }
         }
     }
 }
 void update_unit_state (GameState * state) {
-    ListUnit buffer = listUnitInit(12, &temp_alloc, NULL);
+    ListUnit buffer = listUnitInit(12, temp_allocator());
     if (buffer.items == NULL) {
         TraceLog(LOG_WARNING, "Failed to allocate temporary memory, falling back to slow memory");
-        buffer = listUnitInit(12, &MemAlloc, &MemFree);
+        buffer = listUnitInit(12, perm_allocator());
     }
 
     for (usize u = 0; u < state->units.len; u++) {
@@ -115,152 +144,80 @@ void update_unit_state (GameState * state) {
             continue;
 
         switch (unit->state) {
-            case UNIT_STATE_MOVING: {
-                if (can_unit_progress(unit) == false) {
+            case UNIT_STATE_IDLE: {
+                if (unit->type == UNIT_SUPPORT) {
+                    if (support_can_support(unit, &buffer)) {
+                        unit->state = UNIT_STATE_SUPPORTING;
+                        continue;
+                    }
+                }
+                if (get_enemy_in_range(unit)) {
+                    unit->state = UNIT_STATE_FIGHTING;
                     continue;
                 }
+                if (unit->current_path < unit->pathfind.len) {
+                    if (get_enemy_in_sight(unit)) {
+                        unit->state = UNIT_STATE_CHASING;
+                    }
+                    else {
+                        unit->state = UNIT_STATE_MOVING;
+                    }
+                }
+            } break;
+            case UNIT_STATE_MOVING: {
+                if (unit_reached_waypoint(unit) == NO) continue;
+
                 if (unit->type == UNIT_SUPPORT) {
-                    switch (unit->faction) {
-                        case FACTION_KNIGHTS: {
-                            if (get_allies_in_range(unit, &buffer)) {
-                                TraceLog(LOG_ERROR, "Failed to get knight support allies");
-                                break;
-                            }
-                            while (buffer.len --> 0) {
-                                Unit * ally = buffer.items[buffer.len];
-                                float damage = get_unit_wounds(ally);
-                                if (damage > 1.0f && unit_has_effect(ally, MAGIC_HEALING, NULL) == NO) {
-                                    unit->state = UNIT_STATE_SUPPORTING;
-                                    goto next;
-                                }
-                            }
-                        } break;
-                        case FACTION_MAGES: {
-                            if (get_enemies_in_range(unit, &buffer)) {
-                                TraceLog(LOG_ERROR, "Failed to get mage support enemies");
-                                break;
-                            }
-                            while (buffer.len --> 0) {
-                                Unit * enemy = buffer.items[buffer.len];
-                                if (unit_has_effect(enemy, MAGIC_WEAKNESS, NULL) == NO) {
-                                    unit->state = UNIT_STATE_SUPPORTING;
-                                    goto next;
-                                }
-                            }
-                        } break;
+                    if (support_can_support(unit, &buffer)) {
+                        unit->state = UNIT_STATE_SUPPORTING;
+                        continue;
+                    }
+                }
+                if (get_enemy_in_sight(unit)) {
+                    unit->state = UNIT_STATE_IDLE;
+                }
+
+                if (!unit_has_path(unit)) {
+                    unit->state = UNIT_STATE_IDLE;
+                }
+            } break;
+            case UNIT_STATE_CHASING: {
+                if (unit_reached_waypoint(unit) == NO) continue;
+
+                if (unit->type == UNIT_SUPPORT) {
+                    if (support_can_support(unit, &buffer)) {
+                        unit->state = UNIT_STATE_SUPPORTING;
+                        continue;
                     }
                 }
                 if (get_enemy_in_range(unit)) {
                     unit->state = UNIT_STATE_FIGHTING;
                 }
-                else {
-                    Region * region;
-                    if (is_unit_at_path_end(unit) &&
-                        is_unit_at_main_path(unit, &state->map.paths) &&
-                        (region = map_get_region_at(&state->map, unit->position)) &&
-                        region->player_id == unit->player_owned) {
 
-                        PathEntry * entry = region_path_entry_from_bridge(region, unit->location->bridge);
-                        if (bridge_is_enemy_present(&entry->castle_path, unit->player_owned)) {
-                            TraceLog(LOG_INFO, "Moving to defend the path");
-                            if (move_unit_towards(unit, entry->castle_path.start)) {
-                                TraceLog(LOG_ERROR, "Failed to move unit to defend");
-                            }
-                            continue;
-                        }
-
-                        Path * redirected = entry->redirects.items[entry->active_redirect].to;
-                        PathEntry * redirect_entry = region_path_entry(region, redirected);
-                        if (bridge_is_enemy_present(&redirect_entry->castle_path, unit->player_owned)) {
-                            TraceLog(LOG_INFO, "Moving to defend redirect");
-                            if (move_unit_towards(unit, entry->defensive_paths.items[entry->active_redirect].start)) {
-                                TraceLog(LOG_ERROR, "Failed to redirect unit to defend");
-                            }
-                            continue;
-                        }
-                    }
-
-                    if (can_move_forward(unit) == NO) {
-                        unit->move_direction = ! unit->move_direction;
-                    }
-                    else if(move_unit_forward(unit) == FATAL) {
-                        unit->move_direction = ! unit->move_direction;
-                    }
+                if (!unit_has_path(unit)) {
+                    unit->state = UNIT_STATE_IDLE;
                 }
+
             } break;
             case UNIT_STATE_SUPPORTING: {
-                switch (unit->faction) {
-                    case FACTION_KNIGHTS: {
-                        if (get_allies_in_range(unit, &buffer)) {
-                            TraceLog(LOG_ERROR, "Failed to get allies for knight support state change");
-                            unit->state = UNIT_STATE_MOVING;
-                            continue;
-                        }
-                        while (buffer.len --> 0) {
-                            Unit * endangered = buffer.items[buffer.len];
-                            float damage = get_unit_wounds(endangered);
-                            if (damage > 1.0f && unit_has_effect(endangered, MAGIC_HEALING, NULL) == NO) {
-                                goto next;
-                            }
-                        }
-                        unit->state = UNIT_STATE_MOVING;
-                    } break;
-                    case FACTION_MAGES: {
-                        if (get_enemies_in_range(unit, &buffer)) {
-                            TraceLog(LOG_ERROR, "Failed to get enemies of mage support for state change");
-                            unit->state = UNIT_STATE_MOVING;
-                            continue;
-                        }
-                        while (buffer.len --> 0) {
-                            Unit * enemy = buffer.items[buffer.len];
-                            if (unit_has_effect(enemy, MAGIC_WEAKNESS, NULL) == NO)
-                                goto next;
-                        }
-                        unit->state = UNIT_STATE_MOVING;
-                    } break;
+                if (support_can_support(unit, &buffer) == NO) {
+                    unit->state = UNIT_STATE_IDLE;
                 }
             } break;
-            case UNIT_STATE_GUARDING: {
-                // do nothing, guardians are always in this state, regular units never enter this state
-            } break;
+            // do nothing, guardians are always in this state, regular units never enter this state
+            case UNIT_STATE_GUARDING: continue;
             case UNIT_STATE_FIGHTING: {
                 if (unit->type == UNIT_SUPPORT) {
-                    switch (unit->faction) {
-                        case FACTION_KNIGHTS: {
-                            if (get_allies_in_range(unit, &buffer)) {
-                                TraceLog(LOG_ERROR, "Failed to get knight support allies");
-                                break;
-                            }
-                            while (buffer.len --> 0) {
-                                Unit * ally = buffer.items[buffer.len];
-                                float damage = get_unit_wounds(ally);
-                                if (damage > 1.0f && unit_has_effect(ally, MAGIC_HEALING, NULL) == NO) {
-                                    unit->state = UNIT_STATE_SUPPORTING;
-                                    goto next;
-                                }
-                            }
-                        } break;
-                        case FACTION_MAGES: {
-                            if (get_enemies_in_range(unit, &buffer)) {
-                                TraceLog(LOG_ERROR, "Failed to get mage support enemies");
-                                break;
-                            }
-                            while (buffer.len --> 0) {
-                                Unit * enemy = buffer.items[buffer.len];
-                                if (unit_has_effect(enemy, MAGIC_WEAKNESS, NULL) == NO) {
-                                    unit->state = UNIT_STATE_SUPPORTING;
-                                    goto next;
-                                }
-                            }
-                        } break;
+                    if (support_can_support(unit, &buffer)) {
+                        unit->state = UNIT_STATE_SUPPORTING;
+                        continue;
                     }
                 }
                 if (get_enemy_in_range(unit) == NULL) {
-                    unit->state = UNIT_STATE_MOVING;
+                    unit->state = UNIT_STATE_IDLE;
                 }
             } break;
         }
-        next: {}
     }
     listUnitDeinit(&buffer);
 }
@@ -269,8 +226,106 @@ void move_units (GameState * state, float delta_time) {
         Unit * unit = state->units.items[u];
 
         switch (unit->state) {
+            case UNIT_STATE_IDLE: {
+                if (unit->cooldown > 0) {
+                    continue;
+                }
+                unit->cooldown = FPS / 10;
+                unit->current_path = 0;
+
+                NavRangeSearchContext context = {
+                    .type = NAV_CONTEXT_HOSTILE,
+                    .amount = NAV_CONTEXT_SINGLE,
+                    .player_id = unit->player_owned,
+                    .range = UNIT_MAX_RANGE
+                };
+                if (nav_range_search(unit->waypoint, &context) == SUCCESS) {
+                    NavTarget target = {
+                        .approach_only = true,
+                        .waypoint = context.unit_found->waypoint,
+                        .type = NAV_TARGET_WAYPOINT
+                    };
+                    if (nav_find_path(unit->waypoint, target, &unit->pathfind)) {
+                        TraceLog(LOG_ERROR, "Failed to pathfind towards enemy");
+                    }
+                    continue;
+                }
+
+                if (unit->waypoint->graph->type == GRAPH_PATH) {
+                    Path * path = unit->waypoint->graph->path;
+                    Region * region = path->region_a->player_id == unit->player_owned ? path->region_b : path->region_a;
+                    NavTarget navtarget = (NavTarget){
+                        .region = region,
+                        .approach_only = false,
+                        .type = NAV_TARGET_REGION
+                    };
+                    if (nav_find_path(unit->waypoint, navtarget, &unit->pathfind)) {
+                        TraceLog(LOG_ERROR, "Failed to find path to neighboring region");
+                    }
+                    continue;
+                }
+
+                Region * region = unit->waypoint->graph->region;
+                if (region->player_id == unit->player_owned) {
+                    // exit path of a region has been specified  v
+                    if (region->active_path < region->paths.len) {
+                        Path * path = region->paths.items[region->active_path];
+                        Region * target = path->region_a == region ? path->region_b : path->region_a;
+                        NavTarget navtarget = (NavTarget){
+                            .region = target,
+                            .approach_only = false,
+                            .type = NAV_TARGET_REGION
+                        };
+                        if (nav_find_path(unit->waypoint, navtarget, &unit->pathfind)) {
+                            TraceLog(LOG_ERROR, "Failed to find path to neighboring region");
+                        }
+                        continue;
+                    }
+                    usize allowed_attempts = 10;
+                    while (allowed_attempts --> 0) {
+                        usize random = GetRandomValue(0, region->nav_graph.waypoints.len - 1);
+                        WayPoint * target = region->nav_graph.waypoints.items[random];
+                        if (target == NULL) continue;
+                        if (target->blocked || target->unit) continue;
+                        NavTarget navtarget = {
+                            .approach_only = true,
+                            .waypoint = target,
+                            .type = NAV_TARGET_WAYPOINT
+                        };
+                        if (nav_find_path(unit->waypoint, navtarget, &unit->pathfind)) {
+                            TraceLog(LOG_ERROR, "Failed to find idling path inside region");
+                            unit->cooldown = FPS;
+                        }
+                        break;
+                    }
+                }
+                else {
+                    NavTarget target = {
+                        .approach_only = true,
+                        .waypoint = region->castle.waypoint,
+                        .type = NAV_TARGET_WAYPOINT
+                    };
+                    if (nav_find_path(unit->waypoint, target, &unit->pathfind)) {
+                        TraceLog(LOG_ERROR, "Failed to pathfind towards enemy castle");
+                        unit->cooldown = FPS;
+                    }
+                }
+
+            } break;
+            case UNIT_STATE_CHASING:
             case UNIT_STATE_MOVING: {
-                unit->position = Vector2MoveTowards(unit->position, unit->location->position, UNIT_SPEED * delta_time);
+                if (unit_reached_waypoint(unit)) {
+                    if (unit_progress_path(unit)) {
+                        TraceLog(LOG_ERROR, "Failed to progress unit path");
+                        unit->pathfind.len = 0;
+                        continue;
+                    }
+                }
+                unit->position = Vector2MoveTowards(
+                    unit->position,
+                    unit->waypoint->world_position,
+                    UNIT_SPEED * delta_time
+                );
             } break;
             default: break;
         }
@@ -278,10 +333,10 @@ void move_units (GameState * state, float delta_time) {
 }
 void units_support (GameState * state, float delta_time) {
     (void)delta_time;
-    ListUnit buffer = listUnitInit(12, &temp_alloc, NULL);
+    ListUnit buffer = listUnitInit(12, temp_allocator());
     if (buffer.items == NULL) {
         TraceLog(LOG_WARNING, "Failed to allocate temporary memory, falling back to slow memory");
-        buffer = listUnitInit(12, &MemAlloc, &MemFree);
+        buffer = listUnitInit(12, perm_allocator());
     }
 
     for (usize i = 0; i < state->units.len; i++) {
@@ -401,7 +456,7 @@ void units_damage(GameState * state, float delta_time) {
 
     for (usize i = 0; i < state->map.regions.len; i++) {
         Region * region = &state->map.regions.items[i];
-        Unit * guardian = &region->castle.guardian;
+        Unit * guardian = &region->castle;
         usize attacks = guardian->incoming_attacks.len;
         while (attacks --> 0) {
             Attack * attack = &guardian->incoming_attacks.items[attacks];
@@ -427,32 +482,22 @@ void guardian_fight (GameState * state, float delta_time) {
     for (usize i = 0; i < state->map.regions.len; i++) {
         Region * region = &state->map.regions.items[i];
 
-        Unit * guardian = &region->castle.guardian;
+        Unit * guardian = &region->castle;
         if (guardian->cooldown > 0)
             continue;
 
-        for (usize p = 0; p < region->paths.len; p++) {
-            PathEntry * entry = &region->paths.items[p];
-            Node * node = entry->castle_path.end;
-
-            while (node != entry->castle_path.start) {
-                if (node->unit && node->unit->player_owned != region->player_id) {
-                    guardian->cooldown = get_unit_cooldown(guardian);
-                    Attack attack = {
-                        .damage = get_unit_attack(guardian),
-                        .delay = get_unit_attack_delay(guardian),
-                        .origin_attacker = region->player_id,
-                        .origin_position = guardian->position,
-                        .timer = 0.0f,
-                    };
-                    listAttackAppend(&node->unit->incoming_attacks, attack);
-                    // damage only the first on the path
-                    goto once;
-                }
-                node = node->previous;
-            }
+        Unit * target = get_enemy_in_range(guardian);
+        if (target) {
+            Attack attack = {
+                .damage = get_unit_attack(guardian),
+                .origin_attacker = guardian->player_owned,
+                .origin_position = guardian->position,
+                .delay = get_unit_attack_delay(guardian),
+                .timer = 0.0f,
+            };
+            listAttackAppend(&target->incoming_attacks, attack);
+            guardian->cooldown = get_unit_cooldown(guardian);
         }
-        once: {}
     }
 }
 void process_effects (GameState * state, float delta_time) {
@@ -492,7 +537,7 @@ void process_effects (GameState * state, float delta_time) {
 
     for (usize i = 0; i < state->map.regions.len; i++) {
         Region * region = &state->map.regions.items[i];
-        Unit * guardian = &region->castle.guardian;
+        Unit * guardian = &region->castle;
         usize e = guardian->effects.len;
         while (e --> 0) {
             MagicEffect * effect = &guardian->effects.items[e];
@@ -533,7 +578,7 @@ void simulate_units (GameState * state) {
             unit->cooldown --;
     }
     for (usize i = 0; i < state->map.regions.len; i++) {
-        Unit * guard = &state->map.regions.items[i].castle.guardian;
+        Unit * guard = &state->map.regions.items[i].castle;
         if (guard->cooldown > 0)
             guard->cooldown --;
     }
@@ -589,9 +634,9 @@ Result game_state_prepare (GameState * result, Map *const prefab) {
     TraceLog(LOG_INFO, "Map ready to play");
 
     result->camera      = setup_camera(&result->map);
-    result->units       = listUnitInit(120, &MemAlloc, &MemFree);
+    result->units       = listUnitInit(120, perm_allocator());
 
-    result->players     = listPlayerDataInit(result->map.player_count + 1, &MemAlloc, &MemFree);
+    result->players     = listPlayerDataInit(result->map.player_count + 1, perm_allocator());
     result->players.len = result->map.player_count + 1;
     clear_memory(result->players.items, sizeof(PlayerData) * result->players.len);
 

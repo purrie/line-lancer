@@ -17,8 +17,8 @@ void * set_memory(void * ptr, uchar val, usize bytes);
 /// Zero initializes memory space
 void * clear_memory(void * ptr, usize bytes);
 
-char * convert_int_to_ascii (int number, Allocator alloc);
-char * convert_float_to_ascii (float number, unsigned int dot_count, Allocator alloc);
+char * convert_int_to_ascii (int number, Alloc alloc);
+char * convert_float_to_ascii (float number, unsigned int dot_count, Alloc alloc);
 
 usize string_length (char * string);
 

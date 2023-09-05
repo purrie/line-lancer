@@ -58,12 +58,13 @@ Result load_levels (ListMap * maps) {
         if (load_level(&maps->items[i], list.paths[i])) {
             TraceLog(LOG_ERROR, "Failed to load map %s", list.paths[i]);
             maps->len -= 1;
+            i++;
             continue;
         }
         TraceLog(LOG_INFO, "Loaded file: %s", list.paths[i]);
 
         EndDrawing();
-        temp_free();
+        temp_reset();
         i ++;
     }
 
@@ -163,6 +164,7 @@ ExecutionMode play_mode (GameState * game) {
 
         render_ingame_ui(game);
         EndDrawing();
+        temp_reset();
     }
     game_state_deinit(game);
     return EXE_MODE_MAIN_MENU;
@@ -199,7 +201,7 @@ ExecutionMode main_menu () {
         }
 
         EndDrawing();
-        temp_free();
+        temp_reset();
     }
 
 
@@ -208,7 +210,7 @@ ExecutionMode main_menu () {
 
 int main(void) {
     int result = 0;
-    SetTraceLogLevel(LOG_INFO);
+    SetTraceLogLevel(LOG_DEBUG);
 
     SetRandomSeed(time(0));
 
@@ -217,7 +219,7 @@ int main(void) {
     GameAssets game_assets = {0};
     GameState game_state = {0};
 
-    game_assets.maps = listMapInit(6, &MemAlloc, &MemFree);
+    game_assets.maps = listMapInit(6, perm_allocator());
     ExecutionMode mode = EXE_MODE_MAIN_MENU;
 
     if (load_levels(&game_assets.maps)) {
@@ -251,7 +253,7 @@ int main(void) {
             };
         }
 
-        temp_free();
+        temp_reset();
     }
     close:
 

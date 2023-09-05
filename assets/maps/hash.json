@@ -399,18 +399,6 @@
                         }, 
                         {
                          "height":0,
-                         "id":10,
-                         "name":"",
-                         "point":true,
-                         "rotation":0,
-                         "type":"castle",
-                         "visible":true,
-                         "width":0,
-                         "x":81.5,
-                         "y":69
-                        }, 
-                        {
-                         "height":0,
                          "id":19,
                          "name":"",
                          "point":true,
@@ -534,18 +522,6 @@
                         }, 
                         {
                          "height":0,
-                         "id":11,
-                         "name":"",
-                         "point":true,
-                         "rotation":0,
-                         "type":"castle",
-                         "visible":true,
-                         "width":0,
-                         "x":543,
-                         "y":243.5
-                        }, 
-                        {
-                         "height":0,
                          "id":20,
                          "name":"",
                          "point":true,
@@ -646,18 +622,6 @@
                          "width":0,
                          "x":969.333333333333,
                          "y":-14.6666666666667
-                        }, 
-                        {
-                         "height":0,
-                         "id":12,
-                         "name":"P2",
-                         "point":true,
-                         "rotation":0,
-                         "type":"castle",
-                         "visible":true,
-                         "width":0,
-                         "x":759,
-                         "y":50
                         }, 
                         {
                          "height":0,
@@ -786,18 +750,6 @@
                         }, 
                         {
                          "height":0,
-                         "id":13,
-                         "name":"",
-                         "point":true,
-                         "rotation":0,
-                         "type":"castle",
-                         "visible":true,
-                         "width":0,
-                         "x":154.666666666667,
-                         "y":526.5
-                        }, 
-                        {
-                         "height":0,
                          "id":22,
                          "name":"",
                          "point":true,
@@ -906,18 +858,6 @@
                          "width":0,
                          "x":322.5,
                          "y":340.5
-                        }, 
-                        {
-                         "height":0,
-                         "id":14,
-                         "name":"",
-                         "point":true,
-                         "rotation":0,
-                         "type":"castle",
-                         "visible":true,
-                         "width":0,
-                         "x":440.666666666667,
-                         "y":483.666666666667
                         }, 
                         {
                          "height":0,
@@ -1056,18 +996,6 @@
                         }, 
                         {
                          "height":0,
-                         "id":15,
-                         "name":"",
-                         "point":true,
-                         "rotation":0,
-                         "type":"castle",
-                         "visible":true,
-                         "width":0,
-                         "x":689.416666666667,
-                         "y":625
-                        }, 
-                        {
-                         "height":0,
                          "id":24,
                          "name":"",
                          "point":true,
@@ -1156,18 +1084,6 @@
                          "width":0,
                          "x":-11,
                          "y":655.5
-                        }, 
-                        {
-                         "height":0,
-                         "id":16,
-                         "name":"P1",
-                         "point":true,
-                         "rotation":0,
-                         "type":"castle",
-                         "visible":true,
-                         "width":0,
-                         "x":286.833333333333,
-                         "y":801
                         }, 
                         {
                          "height":0,
@@ -1296,18 +1212,6 @@
                         }, 
                         {
                          "height":0,
-                         "id":17,
-                         "name":"",
-                         "point":true,
-                         "rotation":0,
-                         "type":"castle",
-                         "visible":true,
-                         "width":0,
-                         "x":568.666666666667,
-                         "y":892
-                        }, 
-                        {
-                         "height":0,
                          "id":26,
                          "name":"",
                          "point":true,
@@ -1395,18 +1299,6 @@
                         }, 
                         {
                          "height":0,
-                         "id":18,
-                         "name":"",
-                         "point":true,
-                         "rotation":0,
-                         "type":"castle",
-                         "visible":true,
-                         "width":0,
-                         "x":864,
-                         "y":880
-                        }, 
-                        {
-                         "height":0,
                          "id":27,
                          "name":"",
                          "point":true,
@@ -1481,7 +1373,7 @@
          "value":2
         }],
  "renderorder":"right-down",
- "tiledversion":"1.10.1",
+ "tiledversion":"1.10.2",
  "tileheight":32,
  "tilesets":[],
  "tilewidth":32,

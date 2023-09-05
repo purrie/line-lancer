@@ -5,7 +5,6 @@
 #include "math.h"
 #include "assets.h"
 #include "std.h"
-#include "bridge.h"
 #include "constants.h"
 #include "alloc.h"
 
@@ -125,11 +124,11 @@ bool load_paths(
 
   usize cursor = path_pos + 1;
   usize path_count = tokens[path_pos].size;
-  map->paths = listPathInit(path_count, &MemAlloc, &MemFree);
+  map->paths = listPathInit(path_count, perm_allocator());
 
   while (path_count --> 0) {
     Vector2 offset = layer_offset;
-    ListLine lines = listLineInit(5, &MemAlloc, &MemFree);
+    ListLine lines = listLineInit(5, perm_allocator());
 
     usize elements = tokens[cursor].size;
     cursor ++;
@@ -288,7 +287,7 @@ usize load_region_objects(
     if (compare_literal(region_object_type, "region")) {
       TraceLog(LOG_INFO, "Saving region");
       usize number_of_points = tokens[polygon].size;
-      ListLine area = listLineInit(number_of_points, &MemAlloc, &MemFree);
+      ListLine area = listLineInit(number_of_points, perm_allocator());
 
       usize point = polygon + 1;
       bool hasv = false;
@@ -338,14 +337,9 @@ usize load_region_objects(
       region->area.lines = area;
     }
 
-    else if (compare_literal(region_object_type, "castle")) {
-      TraceLog(LOG_INFO, "Saving castle at [%.3f, %.3f]", offset.x, offset.y);
-      region->castle.position = offset;
-    }
-
     else if (compare_literal(region_object_type, "guard")) {
       TraceLog(LOG_INFO, "Saving guardian at [%.3f, %.3f]", offset.x, offset.y);
-      region->castle.guardian_spot.position = offset;
+      region->castle.position = offset;
     }
 
     else if (compare_literal(region_object_type, "node")) {
@@ -428,8 +422,8 @@ usize load_region(
   TraceLog(LOG_INFO, "Loading region");
 
   Region region = {0};
-  region.buildings = listBuildingInit(5, &MemAlloc, &MemFree);
-  region.paths = listPathEntryInit(5, &MemAlloc, &MemFree);
+  region.buildings = listBuildingInit(5, perm_allocator());
+  region.paths = listPathPInit(5, perm_allocator());
 
   usize children_count = tokens[region_pos].size;
   region_pos ++;
@@ -495,7 +489,7 @@ usize load_region(
 
   fail:
   listBuildingDeinit(&region.buildings);
-  listPathEntryDeinit(&region.paths);
+  listPathPDeinit(&region.paths);
   return 0;
 }
 
@@ -661,8 +655,8 @@ Result load_level(Map * result, char * path) {
     goto fail;
   }
 
-  result->regions = listRegionInit (10, &MemAlloc, &MemFree);
-  result->paths   = listPathInit   (10, &MemAlloc, &MemFree);
+  result->regions = listRegionInit (10, perm_allocator());
+  result->paths   = listPathInit   (10, perm_allocator());
 
   usize cursor = 1;
 
@@ -780,7 +774,7 @@ fail:
   return FAILURE;
 }
 
-char * map_name_from_path (char * path, Allocator alloc) {
+char * map_name_from_path (char * path, Alloc alloc) {
   usize end = string_length(path);
   while (end --> 0) {
     if (path[end] == '.') {

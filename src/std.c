@@ -33,7 +33,7 @@ void * clear_memory(void * ptr, usize bytes) {
     return ptr;
 }
 
-char * convert_int_to_ascii (int number, Allocator alloc) {
+char * convert_int_to_ascii (int number, Alloc alloc) {
     char buffer[64];
     usize count = 0;
     int test = number;
@@ -76,7 +76,7 @@ char * convert_int_to_ascii (int number, Allocator alloc) {
     result[count] = '\0';
     return result;
 }
-char * convert_float_to_ascii (float number, unsigned int dot_count, Allocator alloc) {
+char * convert_float_to_ascii (float number, unsigned int dot_count, Alloc alloc) {
     char buffer[256] = {0};
 
     usize count = 0;

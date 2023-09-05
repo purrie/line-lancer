@@ -7,14 +7,9 @@
 #define STRINGIFY(x) #x
 #define STRINGIFY_VALUE(x) STRINGIFY(x)
 
-typedef struct Node Node;
-typedef struct Bridge Bridge;
-typedef struct PathBridge PathBridge;
 typedef struct Line Line;
 typedef struct Path Path;
-typedef struct PathEntry PathEntry;
 typedef struct Building Building;
-typedef struct Castle Castle;
 typedef struct Region Region;
 typedef struct Map Map;
 typedef struct Area Area;
@@ -23,8 +18,11 @@ typedef struct Unit Unit;
 typedef struct PlayerData PlayerData;
 typedef struct MagicEffect MagicEffect;
 typedef struct Attack Attack;
+typedef struct WayPoint WayPoint;
+typedef struct FindPoint FindPoint;
+typedef struct NavGraph NavGraph;
+typedef struct GlobalNavGrid GlobalNavGrid;
 
-typedef enum Movement Movement;
 typedef enum BuildingType BuildingType;
 typedef enum PlayerState PlayerState;
 typedef enum MagicType MagicType;
@@ -32,15 +30,13 @@ typedef enum UnitType UnitType;
 typedef enum UnitState UnitState;
 typedef enum Result Result;
 typedef enum Test Test;
+typedef enum GraphType GraphType;
 
 typedef unsigned char uchar;
 typedef unsigned int uint;
-typedef unsigned long int usize;
-typedef long int size;
+typedef unsigned long usize;
+typedef long isize;
 typedef unsigned short ushort;
-
-typedef void * ( * Allocator )(uint size);
-typedef void ( * Deallocator )(void * ptr);
 
 enum Result {
     SUCCESS = 0,
@@ -74,19 +70,19 @@ makeList(ushort, Ushort);
 makeList(usize, Usize);
 makeList(Line, Line);
 makeList(Path, Path);
-makeList(PathEntry, PathEntry);
 makeList(Building, Building);
 makeList(Region, Region);
-makeList(PathBridge, PathBridge);
-makeList(Bridge, Bridge);
 makeList(PlayerData, PlayerData);
 makeList(Map, Map);
 makeList(MagicEffect, MagicEffect);
 makeList(Attack, Attack);
+makeList(Path*, PathP);
 
+makeList(FindPoint, FindPoint);
+makeList(WayPoint*, WayPoint);
+makeList(NavGraph, NavGraph);
 makeList(Unit*, Unit);
 makeList(Region*, RegionP);
-makeList(PathEntry*, PathEntryP);
 
 typedef enum FactionType {
     FACTION_KNIGHTS,
@@ -102,16 +98,12 @@ enum UnitType {
 };
 
 enum UnitState {
-    UNIT_STATE_MOVING = 0,
+    UNIT_STATE_IDLE = 0,
+    UNIT_STATE_MOVING,
+    UNIT_STATE_CHASING,
     UNIT_STATE_FIGHTING,
     UNIT_STATE_SUPPORTING,
     UNIT_STATE_GUARDING,
-};
-
-enum Movement {
-    MOVEMENT_DIR_FORWARD = 0,
-    MOVEMENT_DIR_BACKWARD,
-    MOVEMENT_INVALID,
 };
 
 enum MagicType {
@@ -122,6 +114,48 @@ enum MagicType {
     MAGIC_HELLFIRE,
     MAGIC_TYPE_LAST = MAGIC_HELLFIRE,
 };
+
+enum GraphType {
+    GRAPH_REGION,
+    GRAPH_PATH,
+};
+
+struct WayPoint {
+    Vector2    world_position;
+    usize      nav_world_pos_x;
+    usize      nav_world_pos_y;
+    NavGraph * graph;
+    Unit     * unit;
+    bool       blocked;
+};
+
+struct FindPoint {
+    FindPoint * from;
+    float cost;
+    bool  visited;
+    bool  queued;
+};
+
+struct NavGraph {
+    GraphType type;
+    usize width;
+    usize height;
+    usize offset_x;
+    usize offset_y;
+    ListWayPoint waypoints;
+    union {
+        Region * region;
+        Path * path;
+    };
+    GlobalNavGrid * global;
+};
+
+struct GlobalNavGrid {
+    usize width;
+    usize height;
+    ListWayPoint waypoints;
+    ListFindPoint find_buffer;
+} ;
 
 struct MagicEffect {
     MagicType type;
@@ -148,26 +182,15 @@ struct Unit {
     float     health;
     UnitState state;
     Vector2   position;
-    Movement  move_direction;
+
+    WayPoint * waypoint;
+    ListWayPoint pathfind;
+    usize current_path;
 
     ListMagicEffect effects;
     ListAttack incoming_attacks;
 
-    Node     * location;
     Building * origin;
-};
-
-struct Node {
-    Node    * previous;
-    Node    * next;
-    Unit    * unit;
-    Bridge  * bridge;
-    Vector2   position;
-};
-
-struct Bridge {
-    Node * start;
-    Node * end;
 };
 
 struct Line {
@@ -191,19 +214,9 @@ struct Building {
     Model          model;
     ushort         upgrades;
     float          spawn_timer;
-    ListBridge     spawn_paths;
-    ListBridge     defend_paths;
-    usize          active_spawn;
     usize          units_spawned;
     Region       * region;
-};
-
-struct Castle {
-    Vector2  position;
-    Model    model;
-    Node     guardian_spot;
-    Region * region;
-    Unit     guardian;
+    ListWayPoint   spawn_points;
 };
 
 struct Area {
@@ -214,40 +227,32 @@ struct Area {
 struct Path {
     ListLine lines;
     Model    model;
-    Bridge   bridge;
     Region * region_a;
     Region * region_b;
-};
-
-struct PathBridge {
-    Path   * to;
-    Bridge * bridge;
-};
-
-struct PathEntry {
-    Path           * path;
-    usize            active_redirect;
-    ListPathBridge   redirects;
-    ListBridge       defensive_paths;
-    Bridge           castle_path;
+    NavGraph nav_graph;
+    Map    * map;
 };
 
 struct Region {
     FactionType   faction;
     usize         player_id;
     Area          area;
-    Castle        castle;
+    Unit          castle;
     ListBuilding  buildings;
-    ListPathEntry paths;
+    ListPathP     paths;
+    usize         active_path;
+    NavGraph      nav_graph;
+    Map         * map;
 };
 
 struct Map {
-    char     * name;
-    usize      width;
-    usize      height;
-    uchar      player_count;
-    ListRegion regions;
-    ListPath   paths;
+    char        * name;
+    usize         width;
+    usize         height;
+    uchar         player_count;
+    ListRegion    regions;
+    ListPath      paths;
+    GlobalNavGrid nav_grid;
 };
 
 typedef enum PlayerType {
@@ -297,5 +302,5 @@ struct GameState {
 
 /* Utils *********************************************************************/
 char * faction_to_string (FactionType faction);
-
+char * building_type_to_string (BuildingType type);
 #endif // TYPES_H_

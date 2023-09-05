@@ -1,100 +1,41 @@
 #include "units.h"
 #include "std.h"
 #include "game.h"
-#include "bridge.h"
 #include "constants.h"
 #include <raymath.h>
 
-Result move_node (Node ** from, Movement * direction) {
-    Node * orig = *from;
-    Node * next = NULL;
-    switch (*direction) {
-        case MOVEMENT_DIR_FORWARD: {
-            next = orig->next;
-        } break;
-        case MOVEMENT_DIR_BACKWARD: {
-            next = orig->previous;
-        } break;
-        default: {
-            return FAILURE;
-        }
-    }
-    if (next == NULL) {
-        return FAILURE;
-    }
-
-    if (next->bridge) {
-        if (next->bridge != orig->bridge) {
-            if (next == next->bridge->start) {
-                *direction = MOVEMENT_DIR_FORWARD;
-            }
-            else {
-                *direction = MOVEMENT_DIR_BACKWARD;
-            }
-        }
-    }
-    else {
-        *direction = MOVEMENT_INVALID;
-    }
-    *from = next;
-
-    return SUCCESS;
-}
 
 /* Info **********************************************************************/
-Test is_unit_on_building_path (Unit *const unit) {
-    if (unit->location->bridge->start->previous == NULL)
-        return YES;
-    return NO;
-}
-Test can_unit_progress (Unit *const unit) {
+Test unit_reached_waypoint (Unit *const unit) {
     const float min = 0.1f * 0.1f;
-    if (Vector2DistanceSqr(unit->position, unit->location->position) < min) {
+    if (Vector2DistanceSqr(unit->position, unit->waypoint->world_position) < min) {
         return YES;
     }
     return NO;
 }
-Test is_unit_at_path_end (Unit *const unit) {
-    switch (unit->move_direction) {
-        case MOVEMENT_DIR_BACKWARD: {
-            if (unit->location->previous && unit->location->previous->bridge != unit->location->bridge)
-                return YES;
-        } break;
-        case MOVEMENT_DIR_FORWARD: {
-            if (unit->location->next && unit->location->next->bridge != unit->location->bridge)
-                return YES;
-        } break;
-        default: return NO;
+Test unit_has_path (Unit *const unit) {
+    if (unit->pathfind.len == 0) {
+        return NO;
     }
-    return NO;
-}
-Test is_unit_at_main_path (Unit *const unit, ListPath *const paths) {
-    for (usize i = 0; i < paths->len; i++) {
-        if (unit->location->bridge == &paths->items[i].bridge)
-            return YES;
+    usize next_point = unit->current_path + 1;
+    if (unit->pathfind.len <= next_point) {
+        return NO;
     }
-    return NO;
+    WayPoint * next = unit->pathfind.items[next_point];
+    if (next->blocked || next->unit) {
+        return NO;
+    }
+    return YES;
 }
-Test is_unit_at_own_region (Unit *const unit, Map *const map) {
-    Region * reg = map_get_region_at(map, unit->position);
+Test is_unit_at_own_region (Unit *const unit) {
+    if (unit->waypoint->graph->type != GRAPH_REGION)
+        return NO;
+
+    Region * reg = unit->waypoint->graph->region;
     if (reg && reg->player_id == unit->player_owned) {
         return YES;
     }
     return NO;
-}
-Test can_move_forward (Unit *const unit) {
-    switch (unit->move_direction) {
-        case MOVEMENT_DIR_BACKWARD: {
-            if (unit->location->previous == NULL)
-                return NO;
-        } break;
-        case MOVEMENT_DIR_FORWARD: {
-            if (unit->location->next == NULL)
-                return NO;
-        } break;
-        default: return NO;
-    }
-    return YES;
 }
 Test is_unit_tied_to_building (Unit *const unit) {
     if (unit->origin &&
@@ -114,9 +55,33 @@ Test unit_has_effect (Unit *const unit, MagicType type, MagicEffect * found) {
     }
     return NO;
 }
+Test unit_should_repath (Unit *const unit) {
+    if (unit->current_path >= unit->pathfind.len) return YES;
+    if (unit->pathfind.len == 0) return YES;
+
+    bool is_in_region = unit->waypoint->graph->type == GRAPH_REGION;
+    if (is_in_region == false) return NO;
+
+    WayPoint * destination = unit->pathfind.items[unit->pathfind.len - 1];
+    Region * target = destination->graph->region;
+
+    Region * unit_region = unit->waypoint->graph->region;
+    if (unit_region->active_path >= unit_region->paths.len) {
+        if (target != unit_region) return YES;
+        return NO;
+    }
+    Path * path = unit_region->paths.items[unit_region->active_path];
+
+    Region * next_region = path->region_a == unit_region ? path->region_b : path->region_a;
+    if (target != next_region) {
+        return YES;
+    }
+    return NO;
+}
 
 /* Combat ********************************************************************/
 usize get_unit_range (Unit *const unit) {
+    // TODO see if units for different factions need different ranges
     switch(unit->type) {
         case UNIT_FIGHTER:
             return 1;
@@ -131,15 +96,11 @@ usize get_unit_range (Unit *const unit) {
             }
             break;
         case UNIT_GUARDIAN:
-            // TODO this probably won't be used since the guardian needs to always reach any attacker
-            // Otherwise some units will be able to defeat guardian without a fight
-            // This could be alievated if the guardian could move but that's not something I see happening
             switch (unit->faction) {
-                case FACTION_KNIGHTS: return 2;
-                case FACTION_MAGES: return 5;
+                case FACTION_KNIGHTS: return UNIT_MAX_RANGE + 2;
+                case FACTION_MAGES: return UNIT_MAX_RANGE + 2;
             }
             break;
-        default: {}
     }
     TraceLog(LOG_ERROR, "Failed to resolve unit to get range");
     return 1;
@@ -268,8 +229,8 @@ float get_unit_health (UnitType type, FactionType faction, unsigned int upgrades
             break;
         case UNIT_GUARDIAN:
             switch (faction) {
-                case FACTION_KNIGHTS: return 2000.0f;
-                case FACTION_MAGES:   return 2000.0f;
+                case FACTION_KNIGHTS: return 4000.0f;
+                case FACTION_MAGES:   return 4000.0f;
             }
             break;
     }
@@ -328,70 +289,59 @@ float get_unit_attack_delay  (Unit *const unit) {
     return 1.0f;
 }
 Unit * get_enemy_in_range (Unit *const unit) {
-    usize range = get_unit_range(unit);
-    Node * node = unit->location;
-    Movement direction = unit->move_direction;
-    while (range --> 0) {
-        if (move_node(&node, &direction)) {
-            return NULL;
-        }
-        if (node->unit && node->unit->player_owned != unit->player_owned) {
-            return node->unit;
-        }
+    WayPoint * node = unit->waypoint;
+    NavRangeSearchContext context = {
+        .type = NAV_CONTEXT_HOSTILE,
+        .amount = NAV_CONTEXT_SINGLE,
+        .player_id = unit->player_owned,
+        .range = get_unit_range(unit),
+    };
+    if (nav_range_search(node, &context)) {
+        return NULL;
     }
-    return NULL;
+    return context.unit_found;
+}
+Unit * get_enemy_in_sight (Unit *const unit) {
+    WayPoint * node = unit->waypoint;
+    NavRangeSearchContext context = {
+        .type = NAV_CONTEXT_HOSTILE,
+        .amount = NAV_CONTEXT_SINGLE,
+        .player_id = unit->player_owned,
+        .range = UNIT_MAX_RANGE,
+    };
+    if (nav_range_search(node, &context)) {
+        return NULL;
+    }
+    return context.unit_found;
+
 }
 Result get_enemies_in_range (Unit *const unit, ListUnit * result) {
     result->len = 0;
-    usize range = get_unit_range(unit);
-    Node * node = unit->location->next;
-    for (usize i = 0; i < range; i++) {
-        if (node == NULL)
-            break;
-        if (node->unit && node->unit->player_owned != unit->player_owned) {
-            if (listUnitAppend(result, node->unit)) {
-                return FAILURE;
-            }
-        }
-        node = node->next;
-    }
-    node = unit->location->previous;
-    for (usize i = 0; i < range; i++) {
-        if (node == NULL)
-            break;
-        if (node->unit && node->unit->player_owned != unit->player_owned) {
-            if (listUnitAppend(result, node->unit)) {
-                return FAILURE;
-            }
-        }
-        node = node->previous;
+    WayPoint * node = unit->waypoint;
+    NavRangeSearchContext context = {
+        .type = NAV_CONTEXT_HOSTILE,
+        .amount = NAV_CONTEXT_LIST,
+        .player_id = unit->player_owned,
+        .range = get_unit_range(unit),
+        .unit_list = result,
+    };
+    if (nav_range_search(node, &context)) {
+        return FAILURE;
     }
     return SUCCESS;
 }
 Result get_allies_in_range (Unit *const unit, ListUnit * result) {
     result->len = 0;
-    usize range = get_unit_range(unit);
-    Node * node = unit->location->next;
-    for (usize i = 0; i < range; i++) {
-        if (node == NULL)
-            break;
-        if (node->unit && node->unit->player_owned == unit->player_owned) {
-            if (listUnitAppend(result, node->unit)) {
-                return FAILURE;
-            }
-        }
-        node = node->next;
-    }
-    node = unit->location->previous;
-    for (usize i = 0; i < range; i++) {
-        if (node == NULL)
-            break;
-        if (node->unit && node->unit->player_owned == unit->player_owned) {
-            if (listUnitAppend(result, node->unit)) {
-                return FAILURE;
-            }
-        }
-        node = node->previous;
+    WayPoint * node = unit->waypoint;
+    NavRangeSearchContext context = {
+        .type = NAV_CONTEXT_FRIENDLY,
+        .amount = NAV_CONTEXT_LIST,
+        .player_id = unit->player_owned,
+        .range = get_unit_range(unit),
+        .unit_list = result,
+    };
+    if (nav_range_search(node, &context)) {
+        return FAILURE;
     }
     return SUCCESS;
 }
@@ -401,7 +351,6 @@ void unit_cursify (Unit * unit, usize player_source, PlayerData *const curser) {
     unit->faction = curser->faction;
     unit->type = UNIT_SPECIAL;
     unit->health = get_unit_health(UNIT_SPECIAL, curser->faction, 0);
-    unit->move_direction = !unit->move_direction;
     unit->player_owned = player_source;
     unit->upgrade = 0;
     if (is_unit_tied_to_building(unit)) {
@@ -430,131 +379,29 @@ void unit_kill (GameState * state, Unit * unit) {
 }
 
 /* Movement ******************************************************************/
-Result step_over_unit (Unit * a, Node * anext, Movement adir) {
-    Unit * b = anext->unit;
-    usize guard = get_unit_range(b);
-    while (b != NULL) {
-        if (guard == 0) {
-            return FAILURE;
-        }
-        if (b->state == UNIT_STATE_MOVING) {
-            return FAILURE;
-        }
-        if (b->player_owned != a->player_owned) {
-            return FAILURE;
-        }
-        if (move_node(&anext, &adir)) {
-            return FAILURE;
-        }
-        b = anext->unit;
-        guard--;
+Result unit_progress_path (Unit * unit) {
+    unit->current_path += 1;
+    if (unit->current_path >= unit->pathfind.len) {
+        return FAILURE;
     }
-    a->location->unit = NULL;
-    a->location = anext;
-    a->location->unit = a;
-    a->move_direction = adir;
+    WayPoint * next = unit->pathfind.items[unit->current_path];
+    if (next->blocked || next->unit) {
+        return FAILURE;
+    }
+    unit->waypoint->unit = NULL;
+    unit->waypoint = next;
+    unit->waypoint->unit = unit;
     return SUCCESS;
 }
-Result pass_units (Unit * a, Node * anext, Movement adir, Unit * b) {
-    if (is_unit_on_building_path(a) && is_unit_on_building_path(b) == NO) {
-        // bugfix: this prevents units leaving building path from pushing oncoming other units to walk back towards the building
-        return FAILURE;
-    }
-
-    // if you want to see something funny, disable this check and give units high movement speed :3c
-    if (can_unit_progress(b) == NO) {
-        if (move_node(&anext, &adir)) {
-            return FAILURE;
-        }
-        if (anext->unit == NULL) {
-            a->location->unit = NULL;
-            a->location = anext;
-            a->location->unit = a;
-            a->move_direction = adir;
-            return SUCCESS;
-        }
-        return FAILURE;
-    }
-
-    if (a->location->bridge == b->location->bridge) {
-        if (a->move_direction == b->move_direction) {
-            return step_over_unit(a, anext, adir);
-        }
-        b->location = a->location;
-        a->location = anext;
-        b->location->unit = b;
-        a->location->unit = a;
-        return SUCCESS;
+Result unit_calculate_path (Unit * unit) {
+    Region * region = unit->waypoint->graph->region;
+    if (region->player_id == unit->player_owned) {
+        // follow active path or approach own castle
     }
     else {
-        bool direction_aligned = (a->location->bridge->start == a->location) == (b->location->bridge->end == b->location);
-        bool crossing = adir != b->move_direction;
-
-        if (crossing) {
-            b->location = a->location;
-            a->location = anext;
-            b->location->unit = b;
-            a->location->unit = a;
-            a->move_direction = adir;
-            if (! direction_aligned)
-                b->move_direction = b->move_direction == MOVEMENT_DIR_FORWARD ? MOVEMENT_DIR_BACKWARD : MOVEMENT_DIR_FORWARD;
-            return SUCCESS;
-        }
-        else {
-            return step_over_unit(a, anext, adir);
-        }
+        // go towards castle of selected region path
     }
-}
-Result move_unit_forward (Unit * unit) {
-    Node * next = unit->location;
-    Movement dir = unit->move_direction;
-    if (move_node(&next, &dir)) {
-        return FAILURE;
-    }
-    if (dir == MOVEMENT_INVALID) {
-        TraceLog(LOG_WARNING, "Next node has invalid movement, it's not connected to a bridge");
-        return FATAL;
-    }
-
-    if (next->unit) {
-        return pass_units(unit, next, dir, next->unit);
-    }
-
-    unit->location->unit = NULL;
-    unit->location = next;
-    unit->location->unit = unit;
-    unit->move_direction = dir;
     return SUCCESS;
-}
-Result move_unit_towards (Unit * unit, Node * node) {
-    Movement move = move_direction(unit->location, node);
-    if (move == MOVEMENT_INVALID)
-        return FAILURE;
-    if (node->unit) {
-        return pass_units(unit, node, move, node->unit);
-    }
-    unit->location->unit = NULL;
-    unit->location = node;
-    unit->location->unit = unit;
-    unit->move_direction = move;
-    return SUCCESS;
-}
-Movement move_direction (Node *const from, Node *const to) {
-    if (from->bridge == to->bridge) {
-        if (from->next == to)
-            return MOVEMENT_DIR_FORWARD;
-        if (from->previous == to)
-            return MOVEMENT_DIR_BACKWARD;
-    }
-    else {
-        if (to->bridge) {
-            if (to->bridge->start == to)
-                return MOVEMENT_DIR_FORWARD;
-            else
-                return MOVEMENT_DIR_BACKWARD;
-        }
-    }
-    return MOVEMENT_INVALID;
 }
 
 /* Setup *********************************************************************/
@@ -566,15 +413,24 @@ Unit * unit_init() {
     }
     clear_memory(unit, sizeof(Unit));
 
-    unit->effects = listMagicEffectInit(MAGIC_TYPE_LAST + 1, &MemAlloc, &MemFree);
+    unit->effects = listMagicEffectInit(MAGIC_TYPE_LAST + 1, perm_allocator());
     if (unit->effects.items == NULL) {
         TraceLog(LOG_ERROR, "Failed to allocate effect list");
         MemFree(unit);
         return NULL;
     }
-    unit->incoming_attacks = listAttackInit(4, &MemAlloc, &MemFree);
+    unit->incoming_attacks = listAttackInit(4, perm_allocator());
     if (unit->incoming_attacks.items == NULL) {
         TraceLog(LOG_ERROR, "Failed to allocate attack list");
+        listMagicEffectDeinit(&unit->effects);
+        MemFree(unit);
+        return NULL;
+    }
+    unit->pathfind = listWayPointInit(64, perm_allocator());
+    if (unit->pathfind.items == NULL) {
+        TraceLog(LOG_ERROR, "Failed to allocate pathfinding list");
+        listMagicEffectDeinit(&unit->effects);
+        listAttackDeinit(&unit->incoming_attacks);
         MemFree(unit);
         return NULL;
     }
@@ -583,27 +439,31 @@ Unit * unit_init() {
 void unit_deinit(Unit * unit) {
     if (is_unit_tied_to_building(unit))
         unit->origin->units_spawned -= 1;
-    unit->location->unit = NULL;
+    unit->waypoint->unit = NULL;
     listMagicEffectDeinit(&unit->effects);
     listAttackDeinit(&unit->incoming_attacks);
+    listWayPointDeinit(&unit->pathfind);
     MemFree(unit);
 }
 Unit * unit_from_building (Building *const building) {
     if (building->units_spawned >= BUILDING_MAX_UNITS)
         return NULL;
 
-    Bridge * castle_path = building->defend_paths.items[building->active_spawn].end->next->bridge;
-    Node * spawn;
+    WayPoint * spawn = NULL;
 
-    if (bridge_is_enemy_present(castle_path, building->region->player_id))
-        spawn = building->defend_paths.items[building->active_spawn].start;
-    else
-        spawn = building->spawn_paths.items[building->active_spawn].start;
+    for (usize i = 0; i < building->spawn_points.len; i++) {
+        WayPoint * point = building->spawn_points.items[i];
+        if (point->blocked || point->unit)
+            continue;
+        spawn = point;
+        break;
+    }
 
-    if (spawn->unit) {
-        // no spawn because the path is blocked. gotta wait until the unit moves
+    if (spawn == NULL) {
+        TraceLog(LOG_DEBUG, "Building has no free spawn points");
         return NULL;
     }
+
     UnitType unit_type;
     switch (building->type) {
         case BUILDING_FIGHTER: {
@@ -633,41 +493,43 @@ Unit * unit_from_building (Building *const building) {
     result->health = get_unit_health(result->type, result->faction, result->upgrade);
     result->upgrade = building->upgrades;
     result->faction = building->region->faction;
-    result->location = spawn;
     result->position = building->position;
     result->player_owned = building->region->player_id;
-    result->move_direction = MOVEMENT_DIR_FORWARD;
+    result->state = UNIT_STATE_MOVING;
 
     result->origin = building;
     result->origin->units_spawned += 1;
 
+    result->pathfind.len = 1;
+    result->pathfind.items[0] = spawn;
+    result->current_path = 0;
+    result->waypoint = spawn;
     spawn->unit = result;
+
     return result;
 }
-void setup_unit_guardian (Region * region) {
-    Unit * guardian = &region->castle.guardian;
+Result setup_unit_guardian (Region * region) {
+    Unit * guardian = &region->castle;
     guardian->health       = get_unit_health(UNIT_GUARDIAN, region->faction, 0);
     guardian->player_owned = region->player_id;
     guardian->faction      = region->faction;
-    guardian->position     = region->castle.guardian_spot.position;
     guardian->state        = UNIT_STATE_GUARDING;
     guardian->type         = UNIT_GUARDIAN;
 
     if (guardian->effects.items == NULL) {
-        guardian->effects = listMagicEffectInit(MAGIC_TYPE_LAST + 1, &MemAlloc, &MemFree);
+        guardian->effects = listMagicEffectInit(MAGIC_TYPE_LAST + 1, perm_allocator());
     }
     else {
         guardian->effects.len = 0;
     }
     if (guardian->incoming_attacks.items == NULL) {
-        guardian->incoming_attacks = listAttackInit(6, &MemAlloc, &MemFree);
+        guardian->incoming_attacks = listAttackInit(6, perm_allocator());
     }
     else {
         guardian->incoming_attacks.len = 0;
     }
 
-    guardian->location = &region->castle.guardian_spot;
-    region->castle.guardian_spot.unit = guardian;
+    return SUCCESS;
 }
 void clear_unit_list (ListUnit * list) {
     for(usize i = 0; i < list->len; i++) {
@@ -676,6 +538,7 @@ void clear_unit_list (ListUnit * list) {
     }
     list->len = 0;
 }
+
 /* Visuals *******************************************************************/
 void render_units (GameState *const state) {
     ListUnit * units = &state->units;
@@ -730,6 +593,6 @@ void render_units (GameState *const state) {
 
     for (usize i = 0; i < state->map.regions.len; i++) {
         Region * region = &state->map.regions.items[i];
-        DrawCircleV(region->castle.guardian.position, 6.0f, RED);
+        DrawCircleV(region->castle.position, 6.0f, RED);
     }
 }

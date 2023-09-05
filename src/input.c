@@ -39,38 +39,14 @@ void state_none (GameState * state) {
         state->selected_region = b->region;
         return;
     }
-    Movement dir;
-    Path * p = path_on_point(&state->map, cursor, &dir);
-    if (p) {
-        usize owner;
-        switch (dir) {
-            case MOVEMENT_DIR_FORWARD: {
-                owner = p->region_a->player_id;
-            } break;
-            case MOVEMENT_DIR_BACKWARD: {
-                owner = p->region_b->player_id;
-            } break;
-            case MOVEMENT_INVALID: {
-                TraceLog(LOG_ERROR, "Clicked path has invalid movement direction");
-                return;
-            }
-        }
-        #ifdef DEBUG
-        if (owner != player && IsKeyUp(KEY_LEFT_SHIFT))
-            return;
-        #else
-        if (owner != player)
-            return;
-        #endif
 
-        state->selected_path = p;
-        if (dir == MOVEMENT_DIR_FORWARD)
-            state->selected_region = p->region_a;
-        else
-            state->selected_region = p->region_b;
-        state->current_input = INPUT_CLICKED_PATH;
+    if (path_by_position(&state->map, cursor, &state->selected_path)) {
         return;
     }
+    if (region_by_position(&state->map, cursor, &state->selected_region)) {
+        return;
+    }
+    state->current_input = INPUT_CLICKED_PATH;
 }
 
 void state_clicked_building (GameState * state) {
@@ -85,11 +61,6 @@ void state_clicked_building (GameState * state) {
         return;
     }
 
-    Path * path = path_on_point(&state->map, cursor, NULL);
-    if (path) {
-        building_set_spawn_path(state->selected_building, path);
-    }
-
     state->selected_region = NULL;
     state->selected_building = NULL;
     state->current_input = INPUT_NONE;
@@ -100,18 +71,18 @@ void state_clicked_path (GameState * state) {
         return;
     }
 
-    Vector2 cursor = GetScreenToWorld2D(GetMousePosition(), state->camera);
-    Movement dir;
-    Path * path = path_on_point(&state->map, cursor, &dir);
-    if (path == NULL) {
-        goto clear;
+    for (usize p = 0; p < state->selected_region->paths.len; p++) {
+        if (state->selected_path == state->selected_region->paths.items[p]) {
+            if (state->selected_region->active_path == p) {
+                state->selected_region->active_path = state->selected_region->paths.len;
+            }
+            else {
+                state->selected_region->active_path = p;
+            }
+            break;
+        }
     }
-
-    if (region_connect_paths(state->selected_region, state->selected_path, path)) {
-        TraceLog(LOG_ERROR, "Couldn't connect paths");
-    }
-
-    clear:
+    // Vector2 cursor = GetScreenToWorld2D(GetMousePosition(), state->camera);
     state->selected_path = NULL;
     state->selected_region = NULL;
     state->current_input = INPUT_NONE;

@@ -4,201 +4,6 @@
 #include "constants.h"
 #include "level.h"
 
-void redirect_building_paths (GameState * state, usize player_index, ListRegionP * ai_regions) {
-    ListPathEntryP endangered_paths = listPathEntryPInit(6, &temp_alloc, NULL);
-    ListPathEntryP hostile_paths = listPathEntryPInit(6, &temp_alloc, NULL);
-
-    for (usize i = 0; i < ai_regions->len; i++) {
-        Region * region = ai_regions->items[i];
-
-        if (region->paths.len < 2)
-            continue;
-
-        endangered_paths.len = 0;
-        hostile_paths.len = 0;
-
-        for (usize p = 0; p < region->paths.len; p++) {
-            PathEntry * entry = &region->paths.items[p];
-            if (path_enemies_present(entry, player_index)) {
-                listPathEntryPAppend(&endangered_paths, entry);
-            }
-            else if (entry->path->region_a->player_id != entry->path->region_b->player_id) {
-                listPathEntryPAppend(&hostile_paths, entry);
-            }
-        }
-        if (( endangered_paths.len + hostile_paths.len ) == 0) {
-            for (usize p = 0; p < region->paths.len; p++) {
-                PathEntry * entry = &region->paths.items[p];
-                Region * other;
-
-                if (entry->path->region_a == region) {
-                    other = entry->path->region_b;
-                }
-                else {
-                    other = entry->path->region_a;
-                }
-
-                for (usize r = 0; r < other->paths.len; r++) {
-                    PathEntry * other_entry = &other->paths.items[r];
-                    if (path_enemies_present(other_entry, player_index)) {
-                        listPathEntryPAppend(&endangered_paths, entry);
-                        break;
-                    }
-                    else if (other_entry->path->region_a->player_id != other_entry->path->region_b->player_id) {
-                        listPathEntryPAppend(&hostile_paths, entry);
-                        break;
-                    }
-                }
-            }
-        }
-
-        if (( endangered_paths.len + hostile_paths.len ) > 0) {
-            usize index = state->players.items[player_index].seed % (endangered_paths.len ? endangered_paths.len : hostile_paths.len);
-            for (usize b = 0; b < region->buildings.len; b++) {
-                Building * building = &region->buildings.items[b];
-                switch (building->type) {
-                    case BUILDING_EMPTY:
-                    case BUILDING_RESOURCE:
-                        continue;
-                    case BUILDING_FIGHTER:
-                    case BUILDING_ARCHER:
-                    case BUILDING_SUPPORT:
-                    case BUILDING_SPECIAL: {
-                        if (endangered_paths.len) {
-                            Path * path = endangered_paths.items[index]->path;
-                            building_set_spawn_path(building, path);
-                            index = (index + 1) % endangered_paths.len;
-                        }
-                        else {
-                            Path * path = hostile_paths.items[index]->path;
-                            building_set_spawn_path(building, path);
-                            index = (index + 1) % hostile_paths.len;
-                        }
-                    } break;
-                }
-            }
-        }
-        else {
-            usize index = state->players.items[player_index].seed % region->paths.len;
-            for (usize b = 0; b < region->buildings.len; b++) {
-                Building * building = &region->buildings.items[b];
-                switch (building->type) {
-                    case BUILDING_EMPTY:
-                    case BUILDING_RESOURCE:
-                        continue;
-                    case BUILDING_FIGHTER:
-                    case BUILDING_ARCHER:
-                    case BUILDING_SUPPORT:
-                    case BUILDING_SPECIAL: {
-                        Path * path = region->paths.items[index].path;
-                        building_set_spawn_path(building, path);
-                        index = (index + 1) % region->paths.len;
-                    } break;
-                }
-            }
-        }
-
-    }
-}
-void redirect_region_paths (GameState * state, usize player_index, ListRegionP * ai_regions) {
-    ListPathEntryP endangered_paths = listPathEntryPInit(6, &temp_alloc, NULL);
-    ListPathEntryP hostile_paths = listPathEntryPInit(6, &temp_alloc, NULL);
-    ListPathEntryP safe_paths = listPathEntryPInit(6, &temp_alloc, NULL);
-
-    for (usize i = 0; i < ai_regions->len; i++) {
-        Region * region = ai_regions->items[i];
-
-        if (region->paths.len < 2)
-            continue;
-
-        endangered_paths.len = 0;
-        hostile_paths.len = 0;
-        safe_paths.len = 0;
-
-        for (usize p = 0; p < region->paths.len; p++) {
-            PathEntry * entry = &region->paths.items[p];
-            if (path_enemies_present(entry, player_index)) {
-                listPathEntryPAppend(&endangered_paths, entry);
-            }
-            else if (entry->path->region_a->player_id != entry->path->region_b->player_id) {
-                listPathEntryPAppend(&hostile_paths, entry);
-            }
-            else {
-                listPathEntryPAppend(&safe_paths, entry);
-            }
-        }
-
-        if (safe_paths.len == 0)
-            continue;
-
-        if (endangered_paths.len + hostile_paths.len > 0) {
-            usize hostile_index  = 0;
-
-            hostile_index = state->players.items[player_index].seed % (endangered_paths.len ? endangered_paths.len : hostile_paths.len);
-            for (usize f = 0; f < safe_paths.len; f++) {
-                Path * from = safe_paths.items[f]->path;
-                Path * to = NULL;
-                if (endangered_paths.len) {
-                    to = endangered_paths.items[hostile_index]->path;
-                    hostile_index = (hostile_index + 1) % endangered_paths.len;
-                }
-                else {
-                    to = hostile_paths.items[hostile_index]->path;
-                    hostile_index = (hostile_index + 1) % hostile_paths.len;
-                }
-                region_connect_paths(region, from, to);
-            }
-        }
-        else {
-            for (usize p = 0; p < region->paths.len; p++) {
-                PathEntry * entry = &region->paths.items[p];
-                Region * other;
-
-                if (entry->path->region_a == region) {
-                    other = entry->path->region_b;
-                }
-                else {
-                    other = entry->path->region_a;
-                }
-
-                for (usize r = 0; r < other->paths.len; r++) {
-                    PathEntry * other_entry = &other->paths.items[r];
-                    if (other_entry->path->region_a->player_id != other_entry->path->region_b->player_id) {
-                        listPathEntryPAppend(&endangered_paths, entry);
-                        break;
-                    }
-                }
-            }
-
-            if (endangered_paths.len == 0) {
-                usize start = state->players.items[player_index].seed % region->paths.len;
-                if (start == 0)
-                    start = 1;
-
-                for (usize p = 0; p < region->paths.len; p++) {
-                    usize next = (p + start) % region->paths.len;
-                    region_connect_paths(region, region->paths.items[p].path, region->paths.items[next].path);
-                }
-            }
-            else {
-                usize next = state->players.items[player_index].seed % endangered_paths.len;
-                for (usize p = 0; p < region->paths.len; p++) {
-                    Path * from = region->paths.items[p].path;
-                    Path * to = endangered_paths.items[next]->path;
-                    if (from == to) {
-                        if (endangered_paths.len == 1)
-                            continue;
-                        next = (next + 1) % endangered_paths.len;
-                        to = endangered_paths.items[next]->path;
-                    }
-                    region_connect_paths(region, from, to);
-                    next = (next + 1) % endangered_paths.len;
-                }
-            }
-        }
-    }
-}
-
 int sort_regions_by_risk (Region ** a, Region ** b) {
     Region * aa = *a;
     Region * bb = *b;
@@ -206,20 +11,106 @@ int sort_regions_by_risk (Region ** a, Region ** b) {
     int b_bad_neighbors = 0;
 
     for (usize i = 0; i < aa->paths.len; i++) {
-        PathEntry * entry = &aa->paths.items[i];
-        if (entry->path->region_a->player_id != entry->path->region_b->player_id)
+        Path * entry = aa->paths.items[i];
+        if (entry->region_a->player_id != entry->region_b->player_id)
             a_bad_neighbors ++;
     }
 
     for (usize i = 0; i < bb->paths.len; i++) {
-        PathEntry * entry = &bb->paths.items[i];
-        if (entry->path->region_a->player_id != entry->path->region_b->player_id)
+        Path * entry = bb->paths.items[i];
+        if (entry->region_a->player_id != entry->region_b->player_id)
             b_bad_neighbors ++;
     }
 
     return a_bad_neighbors - b_bad_neighbors;
 }
 
+void redirect_region_paths (GameState * state, usize player_index, ListRegionP * ai_regions) {
+    ListRegionP frontline = listRegionPInit(state->map.regions.len, temp_allocator());
+    ListRegionP in_danger = listRegionPInit(state->map.regions.len, temp_allocator());
+    ListRegionP safe_regions = listRegionPInit(state->map.regions.len, temp_allocator());
+    usize player_seed = state->players.items[player_index].seed;
+
+    for (usize i = 0; i < ai_regions->len; i++) {
+        Region * region = ai_regions->items[i];
+
+        for (usize g = 0; g < region->nav_graph.waypoints.len; g++) {
+            WayPoint * point = region->nav_graph.waypoints.items[g];
+            if (point && point->unit && point->unit->player_owned != player_index) {
+                if (listRegionPAppend(&in_danger, region)) {
+                    TraceLog(LOG_ERROR, "Failed to add region to endangered regions in ai calculation");
+                }
+                goto next_region;
+            }
+        }
+        for (usize p = 0; p < region->paths.len; p++) {
+            Path * path = region->paths.items[p];
+            if (path->region_a->player_id != player_index || path->region_b->player_id != player_index) {
+                if (listRegionPAppend(&frontline, region)) {
+                    TraceLog(LOG_ERROR, "Failed to add region to frontline list in ai calculation");
+                }
+                goto next_region;
+            }
+        }
+        if (listRegionPAppend(&safe_regions, region)) {
+            TraceLog(LOG_ERROR, "Failed to add region to list of safe regions");
+        }
+
+        next_region: {}
+    }
+
+    // All regions in danger have disabled out routing so units can focus on defense
+    for (usize d = 0; d < in_danger.len; d++) {
+        Region * region = in_danger.items[d];
+        region->active_path = region->paths.len;
+    }
+
+    // Frontline regions send units to enemy regions
+    for (usize f = 0; f < frontline.len; f++) {
+        Region * region = frontline.items[f];
+        usize index = (player_seed + state->turn / (FPS * 100)) % region->paths.len;
+        while (1) {
+            Path * path = region->paths.items[index];
+            if (path->region_a->player_id != player_index || path->region_b->player_id != player_index) {
+                break;
+            }
+            index = ( index + 1 ) % region->paths.len;
+        }
+        region->active_path = index;
+    }
+
+    // safe regions prioritize sending units to regions in danger, when neighboring none of those, they send units out at random
+    for (usize s = 0; s < safe_regions.len; s++) {
+        Region * region = safe_regions.items[s];
+        Region * danger_zone = NULL;
+        usize danger_index = 0;
+        for (usize p = 0; p < region->paths.len; p++) {
+            usize index = ( p + player_seed ) % region->paths.len;
+            Path * path = region->paths.items[index];
+            Region * other = path->region_a == region ? path->region_b : path->region_a;
+            bool is_in_danger = false;
+            for (usize d = 0; d < in_danger.len; d++) {
+                Region * danger_test = in_danger.items[d];
+                if (danger_test == other) {
+                    is_in_danger = true;
+                    break;
+                }
+            }
+            if (is_in_danger) {
+                danger_zone = other;
+                danger_index = p;
+            }
+        }
+        if (danger_zone) {
+            region->active_path = danger_index;
+            goto next_safe;
+        }
+        usize time_offset = state->turn / (FPS * 60);
+        usize index = (time_offset + player_seed) % ( region->paths.len + 1 );
+        region->active_path = index;
+        next_safe: {}
+    }
+}
 void make_purchasing_decision (GameState * state, usize player_index, ListRegionP * ai_regions) {
     PlayerData * ai = &state->players.items[player_index];
 
@@ -241,7 +132,7 @@ void make_purchasing_decision (GameState * state, usize player_index, ListRegion
     bool wanted_upgrade = false;
 
     // choose what to buy
-    if (upkeep + 0.3f > income) {
+    if (upkeep + 0.3f >= income) {
         wanted_building = BUILDING_RESOURCE;
     }
     else {
@@ -424,7 +315,7 @@ void simulate_ai (GameState * state) {
     if (state->turn % FPS != 0) {
         return;
     }
-    ListRegionP ai_regions = listRegionPInit(state->map.regions.len, &temp_alloc, NULL);
+    ListRegionP ai_regions = listRegionPInit(state->map.regions.len, temp_allocator());
 
     for (usize i = 1; i < state->players.len; i++) {
         if (state->players.items[i].type != PLAYER_AI)
@@ -442,6 +333,5 @@ void simulate_ai (GameState * state) {
 
         make_purchasing_decision(state, i, &ai_regions);
         redirect_region_paths(state, i, &ai_regions);
-        redirect_building_paths(state, i, &ai_regions);
     }
 }

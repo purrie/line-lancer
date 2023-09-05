@@ -273,7 +273,7 @@ Test is_area_clockwise(Area *const area) {
 }
 
 Model generate_area_mesh(Area *const area, const float layer) {
-  temp_free();
+  temp_reset();
   Mesh mesh = {0};
   const ListLine lines = area->lines;
   const Test clockwise = is_area_clockwise(area);
@@ -294,8 +294,8 @@ Model generate_area_mesh(Area *const area, const float layer) {
   }
 
   {
-    ListUshort indices = listUshortInit(3, &MemAlloc, &MemFree);
-    ListUsize points   = listUsizeInit(lines.len, &MemAlloc, &MemFree);
+    ListUshort indices = listUshortInit(3, perm_allocator());
+    ListUsize points   = listUsizeInit(lines.len, perm_allocator());
     usize index   = 0;
     usize counter = 0;
 
@@ -326,8 +326,6 @@ Model generate_area_mesh(Area *const area, const float layer) {
       Test invalid = tri_clockwise || outside || cuts_through;
 
       if (invalid) {
-        TraceLog(LOG_WARNING, "   Failing triangle! [%.1f, %.1f] [%.1f, %.1f] [%.1f, %.1f] Clockwise = %d, Outside = %d, Cuts = %d", start.x, start.y, mid.x, mid.y, end.x, end.y, tri_clockwise, outside, cuts_through);
-
         if (counter > lines.len) {
           TraceLog(LOG_ERROR, "Failed to generate mesh for area");
           listUshortDeinit(&indices);
@@ -341,7 +339,6 @@ Model generate_area_mesh(Area *const area, const float layer) {
         continue;
       }
       counter = 0;
-      TraceLog(LOG_INFO, "   Building triangle [%.1f, %.1f] [%.1f, %.1f] [%.1f, %.1f]", start.x, start.y, mid.x, mid.y, end.x, end.y);
 
       listUshortAppend(&indices, point_ib);
       listUshortAppend(&indices, point_im);
@@ -369,7 +366,7 @@ void generate_map_mesh(Map * map) {
   TraceLog(LOG_INFO, "Generating meshes");
   for (usize i = 0; i < map->paths.len; i++) {
     TraceLog(LOG_INFO, "  Generating path mesh #%d", i);
-    map->paths.items[i].model = generate_line_mesh(map->paths.items[i].lines, 20.0f, 3, LAYER_PATH);
+    map->paths.items[i].model = generate_line_mesh(map->paths.items[i].lines, (float)PATH_THICKNESS, 3, LAYER_PATH);
   }
   float b_size = building_size();
   for (usize i = 0; i < map->regions.len; i++) {
@@ -377,9 +374,6 @@ void generate_map_mesh(Map * map) {
     TraceLog(LOG_INFO, "  Generating region mesh");
     Region * region = &map->regions.items[i];
     region->area.model = generate_area_mesh(&region->area, LAYER_MAP);
-
-    TraceLog(LOG_INFO, "  Generating castle mesh");
-    region->castle.model = generate_building_mesh(region->castle.position, b_size, LAYER_BUILDING);
 
     for (usize b = 0; b < region->buildings.len; b++) {
       TraceLog(LOG_INFO, "  Generating building mesh #%d", b);

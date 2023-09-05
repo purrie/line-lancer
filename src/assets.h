@@ -8,6 +8,6 @@ Result  load_level   (Map * map, char * path);
 Result  finalize_map (Map * map);
 void    assets_deinit (GameAssets * assets);
 
-char * map_name_from_path (char * path, Allocator alloc);
+char * map_name_from_path (char * path, Alloc alloc);
 
 #endif // ASSETS_H_

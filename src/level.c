@@ -1,11 +1,12 @@
 #include "std.h"
-#include "bridge.h"
 #include "level.h"
 #include "math.h"
 #include "alloc.h"
 #include "constants.h"
 #include "game.h"
 #include "mesh.h"
+#include "pathfinding.h"
+#include "units.h"
 #include <raymath.h>
 
 /* Line Functions **********************************************************/
@@ -108,6 +109,46 @@ void create_sublines (
     const Line line = { last, to };
     listLineAppend(dest, line);
 }
+Result lines_bounds (ListLine *const lines, Rectangle * result) {
+    if (lines->len == 0)
+        return FAILURE;
+
+    *result = (Rectangle){ lines->items[0].a.x, lines->items[0].a.y, 0, 0 };
+
+    for (usize i = 0; i < lines->len; i++) {
+        *result = RectangleEnvelop(*result, lines->items[i].b);
+    }
+
+    return SUCCESS;
+}
+Test lines_check_hit (ListLine *const lines, Vector2 point, float distance) {
+    // TODO this function seems to not work correctly
+    for (usize i = 0; i < lines->len; i++) {
+        Line line = lines->items[i];
+
+        float angle = Vector2Angle(line.a, line.b);
+        float length = Vector2DistanceSqr(line.a, line.b);
+        Vector2 local_point = Vector2Subtract(point, line.a);
+        Vector2 rotated = Vector2Rotate(local_point, -angle);
+        float dist = rotated.y < 0.0f ? -rotated.y : rotated.y;
+
+        if (rotated.x < -5.0f) continue;
+        if (rotated.x * rotated.x > length + 5.0f) continue;
+
+        if (dist <= distance)
+            return YES;
+
+        /* Vector2 normalized_line = Vector2Subtract(line.b, line.a); */
+        /* Vector2 normalized_point = Vector2Subtract(line.a, point); */
+        /* float closest = normalized_line.x * normalized_point.y - normalized_line.y * normalized_point.x; */
+
+        /* float line_distance = Vector2Distance(line.a, line.b); */
+        /* closest = closest / line_distance; */
+        /* if (closest <= distance) */
+        /*     return YES; */
+    }
+    return NO;
+}
 
 void bevel_lines (ListLine * lines, usize resolution, float depth, bool enclosed) {
     if (enclosed) {
@@ -132,7 +173,7 @@ void bevel_lines (ListLine * lines, usize resolution, float depth, bool enclosed
     }
 
     usize lines_count = lines->len * resolution + lines->len;
-    ListLine beveled = listLineInit(lines_count, lines->alloc, lines->dealloc);
+    ListLine beveled = listLineInit(lines_count, lines->mem);
 
     Vector2 a, b, c;
     const usize last = lines->len - 1;
@@ -208,7 +249,7 @@ bool area_contains_point (const Area *const area, const Vector2 point) {
         return false;
     }
 
-    ListVector2 intersections = listVector2Init(area->lines.len, &temp_alloc, NULL);
+    ListVector2 intersections = listVector2Init(area->lines.len, temp_allocator());
 
     Vector2 a = { aabb.x - aabb.width, aabb.y - aabb.height };
     Line line = { a, point };
@@ -328,23 +369,6 @@ float building_trigger_interval (Building *const building) {
     TraceLog(LOG_WARNING, "Attempted to obtain trigger interval from unhandled building: T: %s, F:%s", building_type_to_string(building->type), faction_to_string(building->region->faction));
     return 0.0f;
 }
-char * building_type_to_string (BuildingType type) {
-    switch (type) {
-        case BUILDING_EMPTY:
-            return "Empty Building";
-        case BUILDING_RESOURCE:
-            return "Resource";
-        case BUILDING_ARCHER:
-            return "Archery";
-        case BUILDING_FIGHTER:
-            return "Fighters";
-        case BUILDING_SUPPORT:
-            return "Support";
-        case BUILDING_SPECIAL:
-            return "Special";
-    }
-    return "Invalid building type (unhandled)";
-}
 float building_size () {
     return 10.0f;
 }
@@ -372,176 +396,37 @@ Building * get_building_by_position (Map *const map, Vector2 position) {
 
     return NULL;
 }
-Result building_set_spawn_path (Building * building, Path *const path) {
-    for (usize i = 0; i < building->spawn_paths.len; i++) {
-        Bridge bridge = building->spawn_paths.items[i];
-        if (bridge.end->next == path->bridge.end || bridge.end->next == path->bridge.start) {
-            building->active_spawn = i;
-            return SUCCESS;
-        }
-    }
-    return FAILURE;
-}
-Test path_enemies_present (PathEntry *const path, usize player_id) {
-    if (bridge_is_enemy_present(&path->castle_path, player_id)) return YES;
-    if (bridge_is_enemy_present(&path->path->bridge, player_id)) return YES;
-    return NO;
-}
 
 /* Path Functions **********************************************************/
-Path * path_on_point (Map *const map, Vector2 point, Movement * direction) {
-    for (usize i = 0; i < map->paths.len; i++) {
-        Path * path = &map->paths.items[i];
-        if (CheckCollisionPointCircle(point, path->bridge.start->position, 10.0f)) {
-            if (direction)
-                *direction = MOVEMENT_DIR_FORWARD;
-            return path;
-        }
-        if (CheckCollisionPointCircle(point, path->bridge.end->position, 10.0f)) {
-            if (direction)
-                *direction = MOVEMENT_DIR_BACKWARD;
-            return path;
-        }
-    }
-    if (direction)
-        *direction = MOVEMENT_INVALID;
-    return NULL;
-}
-Vector2 path_start_point(Path *const path, Region *const from) {
-    if (path->region_a == from) {
-        return path->lines.items[0].a;
-    }
-    else if (path->region_b == from) {
-        usize last = path->lines.len - 1;
-        return path->lines.items[last].b;
-    }
-    else {
-        TraceLog(LOG_ERROR, "Tried to get point start for region that isn't connected to path");
-        return Vector2Zero();
-    }
-}
-Node * path_start_node (Path *const path, Region *const from, Movement * direction_forward) {
-    if (path->region_a == from) {
-        if (direction_forward) {
-            *direction_forward = MOVEMENT_DIR_FORWARD;
-        }
-        return path->bridge.start;
-    }
-    else if (path->region_b == from) {
-        if (direction_forward) {
-            *direction_forward = MOVEMENT_DIR_BACKWARD;
-        }
-        return path->bridge.end;
-    }
-    else
-        return NULL;
-}
-Result path_follow(Path *const path, Region *const from, float distance, Vector2 * value) {
-    if (path->region_a == NULL || path->region_b == NULL || path->region_a == path->region_b) {
-        TraceLog(LOG_ERROR, "Path is not correctly initialized");
-        return FAILURE;
-    }
-
-    float progress = 0.0f;
-    bool reverse = from == path->region_b;
-    for (usize i = 0; i < path->lines.len; i++) {
-        usize index = reverse ? path->lines.len - i - 1 : i;
-
-        Vector2 a = path->lines.items[index].a;
-        Vector2 b = path->lines.items[index].b;
-
-        float length = Vector2Distance(a, b);
-        if (progress + length > distance) {
-            float t = ((progress + length) - distance) / length;
-            if (reverse) {
-                // TODO this seems wrong
-                *value = Vector2Lerp(a, b, t);
-            }
-            else {
-                *value = Vector2Lerp(b, a, t);
-            }
+Result path_by_position (Map *const map, Vector2 position, Path ** result) {
+    for (usize p = 0; p < map->paths.len; p++) {
+        Path * path = &map->paths.items[p];
+        if (lines_check_hit(&path->lines, position, PATH_THICKNESS)) {
+            *result = path;
             return SUCCESS;
         }
-        progress += length;
     }
-
     return FAILURE;
-}
-Region * path_end_region(Path *const path, Region *const from) {
-    return path->region_a == from ? path->region_b : path->region_a;
-}
-float path_length(Path *const path) {
-    float sum = 0.0f;
-    for (usize i = 0; i < path->lines.len; i++) {
-        float d = Vector2Distance(path->lines.items[i].a, path->lines.items[i].b);
-        sum += d;
-    }
-
-    return sum;
 }
 
 Result path_clone (Path * dest, Path *const src) {
-    dest->lines = listLineInit(src->lines.len, src->lines.alloc, src->lines.dealloc);
+    dest->lines = listLineInit(src->lines.len, src->lines.mem);
     dest->lines.len = src->lines.len;
     copy_memory(dest->lines.items, src->lines.items, sizeof(Line) * src->lines.len);
     return SUCCESS;
 }
 void path_deinit (Path * path) {
-    bridge_deinit(&path->bridge);
+    listWayPointDeinit(&path->nav_graph.waypoints);
     UnloadModel(path->model);
     listLineDeinit(&path->lines);
     clear_memory(path, sizeof(Path));
 }
 
 /* Region Functions **********************************************************/
-void region_update_paths (Region * region) {
-    for (usize e = 0; e < region->paths.len; e++) {
-        PathEntry * entry = &region->paths.items[e];
-        Movement dir;
-        Node * start = path_start_node(entry->path, region, &dir);
-        Node * connect;
-        bool is_owner_same = entry->path->region_a->player_id == entry->path->region_b->player_id;
-
-        if (is_owner_same) {
-            Node * start_node = entry->redirects.items[entry->active_redirect].bridge->start;
-            Node * end_node = entry->redirects.items[entry->active_redirect].bridge->end;
-
-            connect = Vector2DistanceSqr(start->position, start_node->position) >
-                      Vector2DistanceSqr(start->position, end_node->position) ?
-                      end_node : start_node;
-        }
-        else
-            connect = entry->castle_path.start;
-
-        if (dir == MOVEMENT_DIR_FORWARD)
-            start->previous = connect;
-        else
-            start->next = connect;
-
-        if (is_owner_same) {
-            usize next = (e + 1) % region->paths.len;
-            entry->castle_path.end->next = region->paths.items[next].castle_path.end;
-        }
-        else {
-            entry->castle_path.end->next = &region->castle.guardian_spot;
-        }
-    }
-}
 void region_change_ownership (GameState * state, Region * region, usize player_id) {
     region->player_id = player_id;
     region->faction = state->players.items[player_id].faction;
-    region_update_paths(region);
-    for (usize i = 0; i < region->paths.len; i++) {
-        Region * other;
-        PathEntry * entry = &region->paths.items[i];
-        if (entry->path->region_a == region) {
-            other = entry->path->region_b;
-        }
-        else {
-            other = entry->path->region_a;
-        }
-        region_update_paths(other);
-    }
+    region->active_path = region->paths.len;
     setup_unit_guardian(region);
 
     for (usize i = 0; i < region->buildings.len; i++) {
@@ -549,90 +434,33 @@ void region_change_ownership (GameState * state, Region * region, usize player_i
         demolish_building(b);
     }
 }
-Region * region_by_guardian (ListRegion *const regions, Unit *const guardian) {
-    for (usize i = 0; i < regions->len; i++) {
-        Region * region = &regions->items[i];
-        if (&region->castle.guardian == guardian) {
-            return region;
-        }
-    }
-    TraceLog(LOG_ERROR, "Attempted to get region from a non-guardian unit");
-    return NULL;
+Region * region_by_unit (Unit *const unit) {
+    return unit->waypoint->graph->region;
 }
-PathEntry * region_path_entry (Region *const region, Path *const path) {
-    for (usize i = 0; i < region->paths.len; i++) {
-        PathEntry * entry = &region->paths.items[i];
-        if (entry->path == path) {
-            return entry;
+Result region_by_position (Map *const map, Vector2 position, Region ** result) {
+    for (usize r = 0; r < map->regions.len; r++) {
+        Region * region = &map->regions.items[r];
+        if (area_contains_point(&region->area, position)) {
+            *result = region;
+            return SUCCESS;
         }
-    }
-    return NULL;
-}
-PathEntry * region_path_entry_from_bridge (Region *const region, Bridge *const bridge) {
-    for (usize i = 0; i < region->paths.len; i++) {
-        PathEntry * entry = &region->paths.items[i];
-        if (&entry->path->bridge == bridge) {
-            return entry;
-        }
-    }
-    return NULL;
-}
-
-Result region_connect_paths (Region * region, Path * from, Path * to) {
-    if (from->region_a->player_id != from->region_b->player_id)
-        return FAILURE;
-
-    for (usize f = 0; f < region->paths.len; f++) {
-        PathEntry * entry = &region->paths.items[f];
-
-        if (entry->path != from) {
-            continue;
-        }
-
-        for (usize s = 0; s < entry->redirects.len; s++) {
-            if (entry->redirects.items[s].to == to) {
-                entry->active_redirect = s;
-                Movement dir;
-                Node * node = path_start_node(entry->path, region, &dir);
-                Node * next = NULL;
-                Node * start = entry->redirects.items[s].bridge->start;
-
-                if (start->previous == node) {
-                    next = start;
-                }
-                else {
-                    next = entry->redirects.items[s].bridge->end;
-                }
-
-                if (dir == MOVEMENT_DIR_FORWARD) {
-                    node->previous = next;
-                }
-                else {
-                    node->next = next;
-                }
-
-                return SUCCESS;
-            }
-        }
-        break;
     }
     return FAILURE;
 }
+
 Result region_clone (Region * dest, Region *const src) {
     dest->player_id = src->player_id;
     dest->faction = src->faction;
 
-    dest->area.lines = listLineInit(src->area.lines.len, src->area.lines.alloc, src->area.lines.dealloc);
+    dest->area.lines = listLineInit(src->area.lines.len, src->area.lines.mem);
     dest->area.lines.len = src->area.lines.len;
     copy_memory(dest->area.lines.items, src->area.lines.items, sizeof(Line) * src->area.lines.len);
 
+    dest->nav_graph = (NavGraph){0};
+    dest->castle = (Unit){0};
     dest->castle.position = src->castle.position;
-    dest->castle.region = dest;
 
-    dest->castle.guardian_spot.position = src->castle.guardian_spot.position;
-    dest->castle.guardian_spot.unit = &dest->castle.guardian;
-
-    dest->buildings = listBuildingInit(src->buildings.len, src->buildings.alloc, src->buildings.dealloc);
+    dest->buildings = listBuildingInit(src->buildings.len, src->buildings.mem);
     dest->buildings.len = src->buildings.len;
     for (usize b = 0; b < dest->buildings.len; b++) {
         Building * to = &dest->buildings.items[b];
@@ -642,49 +470,35 @@ Result region_clone (Region * dest, Region *const src) {
         to->region = dest;
     }
 
-    dest->paths = listPathEntryInit(src->paths.len, src->paths.alloc, src->paths.dealloc);
+    dest->paths = listPathPInit(src->paths.len, src->paths.mem);
+    dest->active_path = src->paths.len;
+
 
     return SUCCESS;
 }
 void region_deinit (Region * region) {
-    for (usize e = 0; e < region->paths.len; e++) {
-        PathEntry * entry = &region->paths.items[e];
-        bridge_deinit(&entry->castle_path);
-        for (usize r = 0; r < entry->redirects.len; r++) {
-            PathBridge * pb = &entry->redirects.items[r];
-            if (pb->bridge->start) {
-                bridge_deinit(pb->bridge);
-            }
-            else {
-                MemFree(pb->bridge);
-            }
-        }
-        for (usize d = 0; d < entry->defensive_paths.len; d++) {
-            bridge_deinit(&entry->defensive_paths.items[d]);
-        }
-        listBridgeDeinit(&entry->defensive_paths);
-        listPathBridgeDeinit(&entry->redirects);
-    }
-    listPathEntryDeinit(&region->paths);
-
     for (usize b = 0; b < region->buildings.len; b++) {
+        TraceLog(LOG_DEBUG, "  Deiniting building nr %zu", b);
         Building * building = &region->buildings.items[b];
         UnloadModel(building->model);
-        for (usize p = 0; p < building->spawn_paths.len; p++) {
-            bridge_deinit(&building->spawn_paths.items[p]);
-            bridge_deinit(&building->defend_paths.items[p]);
-        }
-        listBridgeDeinit(&building->spawn_paths);
-        listBridgeDeinit(&building->defend_paths);
+        listWayPointDeinit(&building->spawn_points);
     }
+    TraceLog(LOG_DEBUG, "  Releasing Buildings");
     listBuildingDeinit(&region->buildings);
+    TraceLog(LOG_DEBUG, "  Releasing Paths");
+    listPathPDeinit(&region->paths);
 
-    listMagicEffectDeinit(&region->castle.guardian.effects);
+    TraceLog(LOG_DEBUG, "  Releasing Effects");
+    listMagicEffectDeinit(&region->castle.effects);
+    TraceLog(LOG_DEBUG, "  Releasing Attacks");
+    listAttackDeinit(&region->castle.incoming_attacks);
 
+    TraceLog(LOG_DEBUG, "  Releasing Area");
     listLineDeinit(&region->area.lines);
+    TraceLog(LOG_DEBUG, "  Unloading Model");
     UnloadModel(region->area.model);
-
-    UnloadModel(region->castle.model);
+    TraceLog(LOG_DEBUG, "  Deinitializing region nav grid");
+    listWayPointDeinit(&region->nav_graph.waypoints);
 
     clear_memory(region, sizeof(Region));
 }
@@ -749,9 +563,6 @@ void render_map (Map * map) {
         for (usize b = 0; b < buildings->len; b++) {
             DrawCircleV(buildings->items[b].position, 20.0f, BLUE);
         }
-        Vector2 castle = map->regions.items[i].castle.position;
-        /* TraceLog(LOG_INFO, "Castle pos = [%.2f, %.2f]", castle.x, castle.y); */
-        DrawCircleV(castle, 30.0f, RED);
     }
     for (usize i = 0; i < map->paths.len; i++) {
         ListLine * lines = &map->paths.items[i].lines;
@@ -781,8 +592,6 @@ void render_map_mesh (Map * map) {
         ListBuilding * buildings = &region->buildings;
         for (usize b = 0; b < buildings->len; b++) {
             Building * building = &buildings->items[b];
-            if (building->type != BUILDING_EMPTY && building->type != BUILDING_RESOURCE)
-                render_bridge(&building->spawn_paths.items[building->active_spawn], BLACK, RED, BLUE);
             switch (building->type) {
                 case BUILDING_EMPTY: {
                     DrawModel(building->model, Vector3Zero(), 1.0f, BLUE);
@@ -805,25 +614,29 @@ void render_map_mesh (Map * map) {
             }
         }
 
-        DrawModel(region->castle.model, Vector3Zero(), 1.0f, RED);
-
-        for (usize e = 0; e < region->paths.len; e++) {
-            PathEntry * entry = &region->paths.items[e];
-            if (entry->path->region_a->player_id == entry->path->region_b->player_id) {
-                render_bridge(entry->redirects.items[entry->active_redirect].bridge, BLACK, RED, BLUE);
-            }
-            else {
-                render_bridge(&entry->castle_path, BLACK, RED, BLUE);
-            }
-        }
     }
 
     #ifdef RENDER_PATHS
     for (usize i = 0; i < map->paths.len; i++) {
         Path * path = &map->paths.items[i];
         DrawModel(path->model, Vector3Zero(), 1.0f, ORANGE);
+        #ifdef RENDER_PATHS_DEBUG
+        for (usize l = 0; l < path->lines.len; l++) {
+            Line line = path->lines.items[l];
+            DrawLineEx(line.a, line.b, 3.0f, DARKPURPLE);
+        }
+        #endif
+    }
+    #endif
 
-        render_bridge(&path->bridge, BLACK, RED, BLUE);
+    #ifdef RENDER_NAV_GRID
+    for (usize p = 0; p < map->paths.len; p++) {
+        Path * path = &map->paths.items[p];
+        nav_render(&path->nav_graph);
+    }
+    for (usize r = 0; r < map->regions.len; r++) {
+        Region * region = &map->regions.items[r];
+        nav_render(&region->nav_graph);
     }
     #endif
 }
@@ -845,14 +658,15 @@ Result map_clone (Map * dest, Map *const src) {
     dest->width = src->width;
     dest->height = src->height;
     dest->player_count = src->player_count;
-    dest->paths = listPathInit(src->paths.len, &MemAlloc, &MemFree);
-    dest->regions = listRegionInit(src->regions.len, &MemAlloc, &MemFree);
+    dest->paths = listPathInit(src->paths.len, perm_allocator());
+    dest->regions = listRegionInit(src->regions.len, perm_allocator());
 
     for (usize p = 0; p < src->paths.len; p++) {
         dest->paths.len ++;
         if (path_clone(&dest->paths.items[p], &src->paths.items[p])) {
             goto fail;
         }
+        dest->paths.items[p].map = dest;
     }
 
     for (usize r = 0; r < src->regions.len; r++) {
@@ -860,6 +674,7 @@ Result map_clone (Map * dest, Map *const src) {
         if (region_clone(&dest->regions.items[r], &src->regions.items[r])) {
             goto fail;
         }
+        dest->regions.items[r].map = dest;
     }
 
     return SUCCESS;
@@ -870,75 +685,131 @@ Result map_clone (Map * dest, Map *const src) {
 }
 void map_deinit (Map * map) {
     for (usize p = 0; p < map->paths.len; p++) {
+        TraceLog(LOG_DEBUG, "Deinitializing path %zu", p);
         path_deinit(&map->paths.items[p]);
     }
     for (usize r = 0; r < map->regions.len; r++) {
+        TraceLog(LOG_DEBUG, "Deinitializing region %zu", r);
         region_deinit(&map->regions.items[r]);
     }
+    nav_deinit_global(&map->nav_grid);
     listPathDeinit(&map->paths);
     listRegionDeinit(&map->regions);
     clear_memory(map, sizeof(Map));
 }
 Result map_make_connections (Map * map) {
-  TraceLog(LOG_INFO, "Connecting map");
-  // connect path <-> region
-  for (usize i = 0; i < map->paths.len; i++) {
-    Path * path = &map->paths.items[i];
+    TraceLog(LOG_INFO, "Connecting map");
+    if (nav_init_global_grid(map)) {
+        TraceLog(LOG_ERROR, "!Failed to initialize map nav grid");
+        return FAILURE;
+    }
+    for (usize i = 0; i < map->regions.len; i++) {
+        TraceLog(LOG_DEBUG, " Connecting region %zu", i);
+        Region * region = &map->regions.items[i];
 
-    for (usize r = 0; r < map->regions.len; r++) {
-      Region * region = &map->regions.items[r];
-
-      Vector2 a = path->lines.items[0].a;
-      Vector2 b = path->lines.items[path->lines.len - 1].b;
-
-      if (area_contains_point(&region->area, a)) {
-        path->region_a = region;
-        TraceLog(LOG_INFO, "Connecting region %d to start of path %d", r, i);
-      }
-      if (area_contains_point(&region->area, b)) {
-        path->region_b = region;
-        TraceLog(LOG_INFO, "Connecting region %d to end of path %d", r, i);
-      }
-
-      if (path->region_a && path->region_b) {
-        if (path->region_a == path->region_b) {
-          return FAILURE;
+        if (nav_init_region(region)) {
+            TraceLog(LOG_ERROR, "!Failed to initialize region %zu navigation grid", i);
+            return FAILURE;
         }
 
-        if (bridge_over_path(path)) {
-          return FAILURE;
+        for (usize b = 0; b < region->buildings.len; b++) {
+            TraceLog(LOG_DEBUG, "  Connecting building %zu", b);
+            Building * building = &region->buildings.items[b];
+            building->region = region;
+            building->spawn_points = listWayPointInit(8, perm_allocator());
+            WayPoint * point;
+
+            if (nav_find_waypoint(&region->nav_graph, building->position, &point)) {
+                TraceLog(LOG_ERROR, "!Failed to find navigation position for building nr %zu", b);
+                return FAILURE;
+            }
+            if (point == NULL) {
+                TraceLog(LOG_ERROR, "!The point the building %zu is at doesn't have nav grid coverage", b);
+                return FAILURE;
+            }
+            if (point->blocked) {
+                TraceLog(LOG_ERROR, "!The position of the building %zu overlaps with another one", b);
+                return FAILURE;
+            }
+
+            building->position = point->world_position;
+            point->blocked = true;
+            if (nav_gather_points(point, &building->spawn_points)) {
+                TraceLog(LOG_ERROR, "!Failed to gather spawn points");
+                return FAILURE;
+            }
         }
 
-        PathEntry pea = { .path = path, .redirects = listPathBridgeInit(6, &MemAlloc, &MemFree), .defensive_paths = listBridgeInit(6, &MemAlloc, &MemFree) };
-        PathEntry peb = { .path = path, .redirects = listPathBridgeInit(6, &MemAlloc, &MemFree), .defensive_paths = listBridgeInit(6, &MemAlloc, &MemFree) };
-        listPathEntryAppend(&path->region_a->paths, pea);
-        listPathEntryAppend(&path->region_b->paths, peb);
-        TraceLog(LOG_INFO, "Path connected");
-        break;
-      }
+        WayPoint * point;
+        TraceLog(LOG_DEBUG, "Castle position [%.1f, %.1f]", region->castle.position.x, region->castle.position.y);
+        if (nav_find_waypoint(&region->nav_graph, region->castle.position, &point)) {
+            TraceLog(LOG_ERROR, "!Failed to find position for the castle");
+            return FAILURE;
+        }
+        if (point == NULL) {
+            TraceLog(LOG_ERROR, "!Position of the castle is outside of region's nav grid");
+            return FAILURE;
+        }
+        if (point->blocked) {
+            TraceLog(LOG_ERROR, "!Position of the castle overlaps with a building");
+            return FAILURE;
+        }
+        setup_unit_guardian(region);
+        point->unit = &region->castle;
+        region->castle.waypoint = point;
+        region->castle.position = point->world_position;
+
+        TraceLog(LOG_DEBUG, "+Completed connecting region %zu", i);
     }
-  }
+    TraceLog(LOG_DEBUG, "Completed connecting regions, connecting paths to regions");
 
-  for (usize i = 0; i < map->regions.len; i++) {
-    Region * region = &map->regions.items[i];
+    // connect path <-> region
+    for (usize i = 0; i < map->paths.len; i++) {
+        TraceLog(LOG_DEBUG, " Connecting path %zu", i);
+        Path * path = &map->paths.items[i];
 
-    for (usize b = 0; b < region->buildings.len; b++) {
-      region->buildings.items[b].region = region;
-      region->buildings.items[b].spawn_paths = listBridgeInit(region->paths.len, &MemAlloc, &MemFree);
-      region->buildings.items[b].defend_paths = listBridgeInit(region->paths.len, &MemAlloc, &MemFree);
+        for (usize r = 0; r < map->regions.len; r++) {
+            Region * region = &map->regions.items[r];
+
+            Vector2 a = path->lines.items[0].a;
+            Vector2 b = path->lines.items[path->lines.len - 1].b;
+
+            if (area_contains_point(&region->area, a)) {
+                path->region_a = region;
+                TraceLog(LOG_DEBUG, "Connecting region %d to start of path %d", r, i);
+            }
+            if (area_contains_point(&region->area, b)) {
+                path->region_b = region;
+                TraceLog(LOG_DEBUG, "Connecting region %d to end of path %d", r, i);
+            }
+
+            if (path->region_a && path->region_b) {
+                if (path->region_a == path->region_b) {
+                    TraceLog(LOG_ERROR, "!Path has both ends in the same region");
+                    return FAILURE;
+                }
+                if (nav_init_path(path)) {
+                    TraceLog(LOG_ERROR, "!Failed to initialize path's navigation grid");
+                    return FAILURE;
+                }
+
+                if (listPathPAppend(&path->region_a->paths, path)) {
+                    TraceLog(LOG_ERROR, "!Failed to add path to region a");
+                    return FAILURE;
+                }
+                if (listPathPAppend(&path->region_b->paths, path)) {
+
+                    TraceLog(LOG_ERROR, "!Failed to add path to region b");
+                    return FAILURE;
+                }
+                TraceLog(LOG_INFO, "Path connected");
+                break;
+            }
+        }
     }
+    TraceLog(LOG_INFO, "Map connected successfully");
 
-    region->castle.region = region;
-
-    if (bridge_region(region)) {
-      return FAILURE;
-    }
-
-    region_update_paths(region);
-    setup_unit_guardian(region);
-  }
-
-  return SUCCESS;
+    return SUCCESS;
 }
 void map_subdivide_paths (Map * map) {
   TraceLog(LOG_INFO, "Smoothing map meshes");
@@ -954,7 +825,7 @@ void map_subdivide_paths (Map * map) {
     }
     depth = sqrtf(depth) * 0.25f;
 
-    bevel_lines(&map->paths.items[i].lines, MAP_BEVEL, depth, false);
+    bevel_lines(&map->paths.items[i].lines, PATH_BEVEL, depth, false);
   }
 
   for (usize i = 0; i < map->regions.len; i++) {
@@ -973,11 +844,11 @@ void map_subdivide_paths (Map * map) {
   }
 }
 Result map_prepare_to_play (Map * map) {
+  map_clamp(map);
+  map_subdivide_paths(map);
   if(map_make_connections(map)) {
     return FAILURE;
   }
-  map_clamp(map);
-  map_subdivide_paths(map);
   generate_map_mesh(map);
   return SUCCESS;
 }
