@@ -245,10 +245,9 @@ void move_units (GameState * state, float delta_time) {
                         .waypoint = context.unit_found->waypoint,
                         .type = NAV_TARGET_WAYPOINT
                     };
-                    if (nav_find_path(unit->waypoint, target, &unit->pathfind)) {
-                        TraceLog(LOG_ERROR, "Failed to pathfind towards enemy");
+                    if (nav_find_path(unit->waypoint, target, &unit->pathfind) == SUCCESS) {
+                        continue;
                     }
-                    continue;
                 }
 
                 if (unit->waypoint->graph->type == GRAPH_PATH) {
@@ -281,6 +280,7 @@ void move_units (GameState * state, float delta_time) {
                         }
                         continue;
                     }
+                go_idle: {}
                     usize allowed_attempts = 10;
                     while (allowed_attempts --> 0) {
                         usize random = GetRandomValue(0, region->nav_graph.waypoints.len - 1);
@@ -306,8 +306,7 @@ void move_units (GameState * state, float delta_time) {
                         .type = NAV_TARGET_WAYPOINT
                     };
                     if (nav_find_path(unit->waypoint, target, &unit->pathfind)) {
-                        TraceLog(LOG_ERROR, "Failed to pathfind towards enemy castle");
-                        unit->cooldown = FPS;
+                        goto go_idle;
                     }
                 }
 
