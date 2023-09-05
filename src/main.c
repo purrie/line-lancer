@@ -135,6 +135,7 @@ ExecutionMode level_select (GameAssets * assets, GameState * game) {
         }
 
         EndDrawing();
+        temp_reset();
     }
 
 
