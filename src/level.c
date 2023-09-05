@@ -122,7 +122,6 @@ Result lines_bounds (ListLine *const lines, Rectangle * result) {
     return SUCCESS;
 }
 Test lines_check_hit (ListLine *const lines, Vector2 point, float distance) {
-    // TODO this function seems to not work correctly
     for (usize i = 0; i < lines->len; i++) {
         Line line = lines->items[i];
 
@@ -132,20 +131,11 @@ Test lines_check_hit (ListLine *const lines, Vector2 point, float distance) {
         Vector2 rotated = Vector2Rotate(local_point, -angle);
         float dist = rotated.y < 0.0f ? -rotated.y : rotated.y;
 
-        if (rotated.x < -5.0f) continue;
-        if (rotated.x * rotated.x > length + 5.0f) continue;
+        if (rotated.x < -distance) continue;
+        if (rotated.x * rotated.x > length + distance) continue;
 
         if (dist <= distance)
             return YES;
-
-        /* Vector2 normalized_line = Vector2Subtract(line.b, line.a); */
-        /* Vector2 normalized_point = Vector2Subtract(line.a, point); */
-        /* float closest = normalized_line.x * normalized_point.y - normalized_line.y * normalized_point.x; */
-
-        /* float line_distance = Vector2Distance(line.a, line.b); */
-        /* closest = closest / line_distance; */
-        /* if (closest <= distance) */
-        /*     return YES; */
     }
     return NO;
 }
