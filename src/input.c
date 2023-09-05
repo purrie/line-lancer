@@ -4,6 +4,36 @@
 #include "constants.h"
 #include <raymath.h>
 
+void clamp_camera (GameState * state) {
+    Vector2 map = { state->map.width, state->map.height };
+    Vector2 limit_top    = map;
+    Vector2 limit_bottom = Vector2Zero();
+
+    Vector2 screen = (Vector2) { GetScreenWidth(), GetScreenHeight() };
+    Vector2 pixels = Vector2Divide(screen, (Vector2) { state->camera.zoom, state->camera.zoom });
+    Vector2 diff = Vector2Subtract(pixels, map);
+
+    diff.x = diff.x < 0.0f ? 0.0f : diff.x * 0.5f;
+    diff.y = diff.y < 0.0f ? 0.0f : diff.y * 0.5f;
+
+    limit_top = Vector2Add(limit_top, diff);
+    limit_bottom = Vector2Subtract(limit_bottom, diff);
+
+    if (state->camera.target.x > limit_top.x)
+        state->camera.target.x = limit_top.x;
+    if (state->camera.target.y > limit_top.y)
+        state->camera.target.y = limit_top.y;
+
+    if (state->camera.target.x < limit_bottom.x)
+        state->camera.target.x = limit_bottom.x;
+    if (state->camera.target.y < limit_bottom.y)
+        state->camera.target.y = limit_bottom.y;
+}
+void camera_zoom (GameState * state) {
+    float wheel = GetMouseWheelMove();
+    state->camera.zoom += wheel * 0.1f;
+    clamp_camera(state);
+}
 
 void state_none (GameState * state) {
     if(IsMouseButtonPressed(MOUSE_BUTTON_LEFT) == false) {
@@ -48,7 +78,6 @@ void state_none (GameState * state) {
     }
     state->current_input = INPUT_CLICKED_PATH;
 }
-
 void state_clicked_building (GameState * state) {
     if (IsMouseButtonReleased(MOUSE_BUTTON_LEFT) == false) {
         return;
@@ -65,7 +94,6 @@ void state_clicked_building (GameState * state) {
     state->selected_building = NULL;
     state->current_input = INPUT_NONE;
 }
-
 void state_clicked_path (GameState * state) {
     if (IsMouseButtonReleased(MOUSE_BUTTON_LEFT) == false) {
         return;
@@ -79,6 +107,12 @@ void state_clicked_path (GameState * state) {
             else {
                 state->selected_region->active_path = p;
             }
+            for (usize w = 0; w < state->selected_region->nav_graph.waypoints.len; w++) {
+                WayPoint * point = state->selected_region->nav_graph.waypoints.items[w];
+                if (point && point->unit && point->unit->player_owned == state->selected_region->player_id) {
+                    point->unit->pathfind.len = 0;
+                }
+            }
             break;
         }
     }
@@ -87,7 +121,6 @@ void state_clicked_path (GameState * state) {
     state->selected_region = NULL;
     state->current_input = INPUT_NONE;
 }
-
 void state_building (GameState * state) {
     if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT) == false) {
         return;
@@ -153,33 +186,6 @@ void state_building (GameState * state) {
         }
     }
 }
-
-void clamp_camera (GameState * state) {
-    Vector2 map = { state->map.width, state->map.height };
-    Vector2 limit_top    = map;
-    Vector2 limit_bottom = Vector2Zero();
-
-    Vector2 screen = (Vector2) { GetScreenWidth(), GetScreenHeight() };
-    Vector2 pixels = Vector2Divide(screen, (Vector2) { state->camera.zoom, state->camera.zoom });
-    Vector2 diff = Vector2Subtract(pixels, map);
-
-    diff.x = diff.x < 0.0f ? 0.0f : diff.x * 0.5f;
-    diff.y = diff.y < 0.0f ? 0.0f : diff.y * 0.5f;
-
-    limit_top = Vector2Add(limit_top, diff);
-    limit_bottom = Vector2Subtract(limit_bottom, diff);
-
-    if (state->camera.target.x > limit_top.x)
-        state->camera.target.x = limit_top.x;
-    if (state->camera.target.y > limit_top.y)
-        state->camera.target.y = limit_top.y;
-
-    if (state->camera.target.x < limit_bottom.x)
-        state->camera.target.x = limit_bottom.x;
-    if (state->camera.target.y < limit_bottom.y)
-        state->camera.target.y = limit_bottom.y;
-}
-
 void state_map_movement (GameState * state) {
     if (IsMouseButtonReleased(MOUSE_BUTTON_LEFT)) {
         state->current_input = INPUT_NONE;
@@ -191,12 +197,6 @@ void state_map_movement (GameState * state) {
     state->camera.target = Vector2Subtract(state->camera.target, move);
     state->selected_point = cursor;
 
-    clamp_camera(state);
-}
-
-void camera_zoom (GameState * state) {
-    float wheel = GetMouseWheelMove();
-    state->camera.zoom += wheel * 0.1f;
     clamp_camera(state);
 }
 
