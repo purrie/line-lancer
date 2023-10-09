@@ -167,7 +167,7 @@ struct Attack {
     usize   damage;
     float   timer;
     float   delay;
-    usize   origin_attacker;
+    usize   attacker_faction;
     Vector2 origin_position;
 };
 
