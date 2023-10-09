@@ -46,7 +46,7 @@ Result nav_init_region      (Region * region);
 void   nav_deinit_global    (GlobalNavGrid * nav);
 
 /* Lookup *********************************************************************/
-Result nav_find_waypoint (NavGraph *const graph, Vector2 point, WayPoint ** nullable_result);
+Result nav_find_waypoint (const NavGraph * graph, Vector2 point, WayPoint ** nullable_result);
 Result nav_range_search  (WayPoint * start, NavRangeSearchContext * context);
 Test   nav_find_enemies  (NavGraph * graph, usize player_id, ListUnit * result);
 Result nav_gather_points (WayPoint * around, ListWayPoint * result);

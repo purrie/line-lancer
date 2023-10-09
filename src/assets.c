@@ -28,7 +28,7 @@ StringSlice make_slice_u(uchar * from, usize start, usize end) {
     s.len = end - start;
     return s;
 }
-bool compare_literal(StringSlice slice, char *const literal) {
+bool compare_literal(StringSlice slice, const char * literal) {
     usize i = 0;
     for(; i < slice.len; i++) {
         if (literal[i] == '\0') {

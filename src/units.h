@@ -6,14 +6,14 @@
 #include "pathfinding.h"
 
 /* Info **********************************************************************/
-Test is_unit_at_own_region (Unit *const unit);
-Test unit_reached_waypoint (Unit *const unit);
-Test unit_has_path         (Unit *const unit);
-Test unit_has_effect       (Unit *const unit, MagicType type, MagicEffect * found);
-Test unit_should_repath    (Unit *const unit);
+Test is_unit_at_own_region (const Unit * unit);
+Test unit_reached_waypoint (const Unit * unit);
+Test unit_has_path         (const Unit * unit);
+Test unit_has_effect       (const Unit * unit, MagicType type, MagicEffect * found);
+Test unit_should_repath    (const Unit * unit);
 
 /* Spawing *******************************************************************/
-Unit * unit_from_building  (Building *const building);
+Unit * unit_from_building  (const Building * building);
 Result setup_unit_guardian (Region * region);
 
 /* Despawning ****************************************************************/
@@ -25,20 +25,20 @@ Result unit_progress_path  (Unit * unit);
 Result unit_calculate_path (Unit * unit);
 
 /* Combat ********************************************************************/
-float  get_unit_attack        (Unit *const unit);
-usize  get_unit_range         (Unit *const unit);
+float  get_unit_attack        (const Unit * unit);
+usize  get_unit_range         (const Unit * unit);
 float  get_unit_health        (UnitType type, FactionType faction, unsigned int upgrades);
-float  get_unit_wounds        (Unit *const unit);
-Result get_unit_support_power (Unit *const unit, MagicEffect * effect);
-usize  get_unit_cooldown      (Unit *const unit);
-float  get_unit_attack_delay  (Unit *const unit);
-Unit * get_enemy_in_range     (Unit *const unit);
-Unit * get_enemy_in_sight     (Unit *const unit);
-Result get_enemies_in_range   (Unit *const unit, ListUnit * result);
-Result get_allies_in_range    (Unit *const unit, ListUnit * result);
+float  get_unit_wounds        (const Unit * unit);
+Result get_unit_support_power (const Unit * unit, MagicEffect * effect);
+usize  get_unit_cooldown      (const Unit * unit);
+float  get_unit_attack_delay  (const Unit * unit);
+Unit * get_enemy_in_range     (const Unit * unit);
+Unit * get_enemy_in_sight     (const Unit * unit);
+Result get_enemies_in_range   (const Unit * unit, ListUnit * result);
+Result get_allies_in_range    (const Unit * unit, ListUnit * result);
 void   unit_kill              (GameState * state, Unit * unit);
 
 /* Rendering *****************************************************************/
-void   render_units       (GameState *const state);
+void   render_units       (const GameState * state);
 
 #endif // UNITS_H_

@@ -10,7 +10,7 @@ implementList(WayPoint*, WayPoint)
 implementList(NavGraph, NavGraph)
 
 /* Uitls *********************************************************************/
-Result nav_position_global_world (GlobalNavGrid *const nav, usize x, usize y, Vector2 * position) {
+Result nav_position_global_world (const GlobalNavGrid * nav, usize x, usize y, Vector2 * position) {
     if (x >= nav->width || y >= nav->height) {
         return FAILURE;
     }
@@ -18,7 +18,7 @@ Result nav_position_global_world (GlobalNavGrid *const nav, usize x, usize y, Ve
     position->y = y * NAV_GRID_SIZE + NAV_GRID_SIZE;
     return SUCCESS;
 }
-Result nav_position_world_global (GlobalNavGrid *const nav, Vector2 position, usize * out_x, usize * out_y) {
+Result nav_position_world_global (const GlobalNavGrid * nav, Vector2 position, usize * out_x, usize * out_y) {
     Vector2 pos = { position.x + NAV_GRID_SIZE, position.y + NAV_GRID_SIZE };
     if (pos.x < 0.0f || pos.y < 0.0f) {
         return FAILURE;
@@ -249,7 +249,7 @@ void nav_deinit_global (GlobalNavGrid * nav) {
 }
 
 /* Lookups *******************************************************************/
-Result nav_find_waypoint (NavGraph *const graph, Vector2 point, WayPoint ** nullable_result) {
+Result nav_find_waypoint (const NavGraph * graph, Vector2 point, WayPoint ** nullable_result) {
     if (point.x < 0.0f || point.y < 0.0f)
         return FAILURE;
     usize x, y;

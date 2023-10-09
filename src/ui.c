@@ -102,7 +102,7 @@ BuildingDialog building_dialog (Vector2 position) {
     return result;
 }
 
-Result ui_building_action_click (GameState *const state, Vector2 cursor, BuildingAction * action) {
+Result ui_building_action_click (const GameState * state, Vector2 cursor, BuildingAction * action) {
     Vector2 building_pos = GetWorldToScreen2D(state->selected_building->position, state->camera);
     BuildingDialog dialog = building_dialog(building_pos);
     if (CheckCollisionPointRec(cursor, dialog.demolish)) {
@@ -117,7 +117,7 @@ Result ui_building_action_click (GameState *const state, Vector2 cursor, Buildin
     }
     return SUCCESS;
 }
-Result ui_building_buy_click (GameState *const state, Vector2 cursor, BuildingType * result) {
+Result ui_building_buy_click (const GameState * state, Vector2 cursor, BuildingType * result) {
     if (state->selected_building->type != BUILDING_EMPTY) {
         return FAILURE;
     }
@@ -150,7 +150,7 @@ Result ui_building_buy_click (GameState *const state, Vector2 cursor, BuildingTy
     return SUCCESS;
 }
 
-void render_empty_building_dialog (GameState *const state) {
+void render_empty_building_dialog (const GameState * state) {
     Vector2 cursor = GetMousePosition();
     Vector2 ui_box = GetWorldToScreen2D(state->selected_building->position, state->camera);
     EmptyDialog dialog = empty_dialog(ui_box);
@@ -180,7 +180,7 @@ void render_empty_building_dialog (GameState *const state) {
         draw_button(dialog.resource, "Cash", cursor, UI_LAYOUT_CENTER, color_bg, color_hover, color_frame);
     }
 }
-void render_upgrade_building_dialog (GameState *const state) {
+void render_upgrade_building_dialog (const GameState * state) {
     Vector2 cursor = GetMousePosition();
     Vector2 building_pos = GetWorldToScreen2D(state->selected_building->position, state->camera);
     BuildingDialog dialog = building_dialog(building_pos);
@@ -239,7 +239,7 @@ void render_upgrade_building_dialog (GameState *const state) {
     draw_button(dialog.upgrade, "Upgrade", cursor, UI_LAYOUT_CENTER, color_bg, color_hover, color_frame);
     draw_button(dialog.demolish, "Demolish", cursor, UI_LAYOUT_CENTER, color_bg, color_hover, color_frame);
 }
-void render_resource_bar (GameState *const state) {
+void render_resource_bar (const GameState * state) {
     usize player_index;
     if (get_local_player_index(state, &player_index)) {
         player_index = 1;
@@ -311,7 +311,7 @@ void render_resource_bar (GameState *const state) {
     DrawText(upkeep_value_label , rect_upkeep.x , rect_upkeep.y , UI_FONT_SIZE_BAR, WHITE);
     DrawText(per_second, rect_upkeep_per_second.x, rect_upkeep_per_second.y, UI_FONT_SIZE_BAR, WHITE);
 }
-void render_ingame_ui (GameState *const state) {
+void render_ingame_ui (const GameState * state) {
     if (state->current_input == INPUT_OPEN_BUILDING) {
         if (state->selected_building->type == BUILDING_EMPTY) {
             render_empty_building_dialog(state);

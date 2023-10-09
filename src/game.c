@@ -10,7 +10,7 @@
 #include <raymath.h>
 
 /* Information ***************************************************************/
-PlayerData * get_local_player (GameState *const state) {
+PlayerData * get_local_player (const GameState * state) {
     for (usize i = 0; i < state->players.len; i++) {
         PlayerData * player = &state->players.items[i];
         if (player->type == PLAYER_LOCAL) {
@@ -19,7 +19,7 @@ PlayerData * get_local_player (GameState *const state) {
     }
     return NULL;
 }
-Result get_local_player_index (GameState *const state, usize * result) {
+Result get_local_player_index (const GameState * state, usize * result) {
     for (usize i = 0; i < state->players.len; i++) {
         PlayerData * player = &state->players.items[i];
         if (player->type == PLAYER_LOCAL) {
@@ -51,7 +51,7 @@ usize find_unit (ListUnit * units, Unit * unit) {
     }
     return units->len;
 }
-Test support_can_support (Unit *const unit, ListUnit * buffer) {
+Test support_can_support (const Unit * unit, ListUnit * buffer) {
     switch (unit->faction) {
         case FACTION_KNIGHTS: {
             if (get_allies_in_range(unit, buffer)) {
@@ -617,7 +617,7 @@ Camera2D setup_camera(Map * map) {
 
     return cam;
 }
-Result game_state_prepare (GameState * result, Map *const prefab) {
+Result game_state_prepare (GameState * result, const Map * prefab) {
     // TODO use map name
     TraceLog(LOG_INFO, "Cloning map for gameplay");
     if (map_clone(&result->map, prefab)) {

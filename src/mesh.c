@@ -257,7 +257,7 @@ Test is_clockwise (Vector2 a, Vector2 b, Vector2 c) {
   return val > 0.0f ? YES : NO;
 }
 
-Test is_area_clockwise(Area *const area) {
+Test is_area_clockwise(const Area * area) {
   unsigned int cl = 0;
   unsigned int cc = 0;
   for (usize i = 0; i < area->lines.len; i++) {
@@ -272,7 +272,7 @@ Test is_area_clockwise(Area *const area) {
   return cl > cc ? YES : NO;
 }
 
-Model generate_area_mesh(Area *const area, const float layer) {
+Model generate_area_mesh(const Area * area, const float layer) {
   temp_reset();
   Mesh mesh = {0};
   const ListLine lines = area->lines;

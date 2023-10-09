@@ -6,14 +6,14 @@
 
 
 /* Info **********************************************************************/
-Test unit_reached_waypoint (Unit *const unit) {
+Test unit_reached_waypoint (const Unit * unit) {
     const float min = 0.1f * 0.1f;
     if (Vector2DistanceSqr(unit->position, unit->waypoint->world_position) < min) {
         return YES;
     }
     return NO;
 }
-Test unit_has_path (Unit *const unit) {
+Test unit_has_path (const Unit * unit) {
     if (unit->pathfind.len == 0) {
         return NO;
     }
@@ -27,7 +27,7 @@ Test unit_has_path (Unit *const unit) {
     }
     return YES;
 }
-Test is_unit_at_own_region (Unit *const unit) {
+Test is_unit_at_own_region (const Unit * unit) {
     if (unit->waypoint->graph->type != GRAPH_REGION)
         return NO;
 
@@ -37,14 +37,14 @@ Test is_unit_at_own_region (Unit *const unit) {
     }
     return NO;
 }
-Test is_unit_tied_to_building (Unit *const unit) {
+Test is_unit_tied_to_building (const Unit * unit) {
     if (unit->origin &&
         unit->origin->region->player_id == unit->player_owned &&
         unit->origin->units_spawned > 0)
         return YES;
     return NO;
 }
-Test unit_has_effect (Unit *const unit, MagicType type, MagicEffect * found) {
+Test unit_has_effect (const Unit * unit, MagicType type, MagicEffect * found) {
     for (usize e = 0; e < unit->effects.len; e++) {
         if (unit->effects.items[e].type == type) {
             if (found != NULL) {
@@ -55,7 +55,7 @@ Test unit_has_effect (Unit *const unit, MagicType type, MagicEffect * found) {
     }
     return NO;
 }
-Test unit_should_repath (Unit *const unit) {
+Test unit_should_repath (const Unit * unit) {
     if (unit->current_path >= unit->pathfind.len) return YES;
     if (unit->pathfind.len == 0) return YES;
 
@@ -80,7 +80,7 @@ Test unit_should_repath (Unit *const unit) {
 }
 
 /* Combat ********************************************************************/
-usize get_unit_range (Unit *const unit) {
+usize get_unit_range (const Unit * unit) {
     // TODO see if units for different factions need different ranges
     switch(unit->type) {
         case UNIT_FIGHTER:
@@ -105,7 +105,7 @@ usize get_unit_range (Unit *const unit) {
     TraceLog(LOG_ERROR, "Failed to resolve unit to get range");
     return 1;
 }
-float get_unit_attack (Unit *const unit) {
+float get_unit_attack (const Unit * unit) {
     float attack;
     switch (unit->type) {
         case UNIT_FIGHTER: {
@@ -177,7 +177,7 @@ float get_unit_attack (Unit *const unit) {
     }
     return attack + bonus;
 }
-Result get_unit_support_power (Unit *const unit, MagicEffect * effect) {
+Result get_unit_support_power (const Unit * unit, MagicEffect * effect) {
     if (unit->type != UNIT_SUPPORT)
         return FAILURE;
     switch (unit->faction) {
@@ -237,10 +237,10 @@ float get_unit_health (UnitType type, FactionType faction, unsigned int upgrades
     TraceLog(LOG_ERROR, "Tried to obtain health of unsupported unit type");
     return 1.0f;
 }
-float get_unit_wounds (Unit *const unit) {
+float get_unit_wounds (const Unit * unit) {
     return get_unit_health(unit->type, unit->faction, unit->upgrade) - unit->health;
 }
-usize get_unit_cooldown (Unit *const unit) {
+usize get_unit_cooldown (const Unit * unit) {
     switch (unit->faction) {
         case FACTION_KNIGHTS: {
             switch (unit->type) {
@@ -264,7 +264,7 @@ usize get_unit_cooldown (Unit *const unit) {
     TraceLog(LOG_ERROR, "Attempted to get cooldown from unsupported unit");
     return FPS;
 }
-float get_unit_attack_delay  (Unit *const unit) {
+float get_unit_attack_delay  (const Unit * unit) {
     switch (unit->faction) {
         case FACTION_KNIGHTS: {
             switch (unit->type) {
@@ -288,7 +288,7 @@ float get_unit_attack_delay  (Unit *const unit) {
     TraceLog(LOG_ERROR, "Attempted to get cooldown from unsupported unit");
     return 1.0f;
 }
-Unit * get_enemy_in_range (Unit *const unit) {
+Unit * get_enemy_in_range (const Unit * unit) {
     WayPoint * node = unit->waypoint;
     NavRangeSearchContext context = {
         .type = NAV_CONTEXT_HOSTILE,
@@ -301,7 +301,7 @@ Unit * get_enemy_in_range (Unit *const unit) {
     }
     return context.unit_found;
 }
-Unit * get_enemy_in_sight (Unit *const unit) {
+Unit * get_enemy_in_sight (const Unit * unit) {
     WayPoint * node = unit->waypoint;
     NavRangeSearchContext context = {
         .type = NAV_CONTEXT_HOSTILE,
@@ -315,7 +315,7 @@ Unit * get_enemy_in_sight (Unit *const unit) {
     return context.unit_found;
 
 }
-Result get_enemies_in_range (Unit *const unit, ListUnit * result) {
+Result get_enemies_in_range (const Unit * unit, ListUnit * result) {
     result->len = 0;
     WayPoint * node = unit->waypoint;
     NavRangeSearchContext context = {
@@ -330,7 +330,7 @@ Result get_enemies_in_range (Unit *const unit, ListUnit * result) {
     }
     return SUCCESS;
 }
-Result get_allies_in_range (Unit *const unit, ListUnit * result) {
+Result get_allies_in_range (const Unit * unit, ListUnit * result) {
     result->len = 0;
     WayPoint * node = unit->waypoint;
     NavRangeSearchContext context = {
@@ -345,7 +345,7 @@ Result get_allies_in_range (Unit *const unit, ListUnit * result) {
     }
     return SUCCESS;
 }
-void unit_cursify (Unit * unit, usize player_source, PlayerData *const curser) {
+void unit_cursify (Unit * unit, usize player_source, const PlayerData * curser) {
     unit->effects.len = 0;
     unit->incoming_attacks.len = 0;
     unit->faction = curser->faction;
@@ -445,7 +445,7 @@ void unit_deinit(Unit * unit) {
     listWayPointDeinit(&unit->pathfind);
     MemFree(unit);
 }
-Unit * unit_from_building (Building *const building) {
+Unit * unit_from_building (const Building * building) {
     if (building->units_spawned >= BUILDING_MAX_UNITS)
         return NULL;
 
@@ -497,7 +497,7 @@ Unit * unit_from_building (Building *const building) {
     result->player_owned = building->region->player_id;
     result->state = UNIT_STATE_MOVING;
 
-    result->origin = building;
+    result->origin = (Building*) building;
     result->origin->units_spawned += 1;
 
     result->pathfind.len = 1;
@@ -540,8 +540,8 @@ void clear_unit_list (ListUnit * list) {
 }
 
 /* Visuals *******************************************************************/
-void render_units (GameState *const state) {
-    ListUnit * units = &state->units;
+void render_units (const GameState * state) {
+    const ListUnit * units = &state->units;
     for (usize i = 0; i < units->len; i ++) {
         Unit * unit = units->items[i];
         Color col;

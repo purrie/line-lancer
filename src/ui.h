@@ -38,14 +38,14 @@ typedef enum {
 
 
 /* Input *********************************************************************/
-Result ui_building_action_click (GameState *const state, Vector2 cursor, BuildingAction * action);
-Result ui_building_buy_click    (GameState *const state, Vector2 cursor, BuildingType * result);
+Result ui_building_action_click (const GameState * state, Vector2 cursor, BuildingAction * action);
+Result ui_building_buy_click    (const GameState * state, Vector2 cursor, BuildingType * result);
 
 /* Layout ********************************************************************/
 MainMenuLayout main_menu_layout ();
 
 /* Rendering *****************************************************************/
-void          render_ingame_ui (GameState *const state);
+void          render_ingame_ui (const GameState * state);
 ExecutionMode render_main_menu ();
 
 /* Component Rendering *******************************************************/
