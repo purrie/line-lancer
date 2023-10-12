@@ -419,7 +419,9 @@ void units_fight (GameState * state, float delta_time) {
         if (target) {
             Attack attack = {
                 .damage = get_unit_attack(unit),
-                .attacker_faction = unit->player_owned,
+                .attacker_player_id = unit->player_owned,
+                .attacker_faction = unit->faction,
+                .attacker_type = unit->type,
                 .origin_position = unit->position,
                 .delay = get_unit_attack_delay(unit),
                 .timer = 0.0f,
@@ -440,7 +442,7 @@ void units_damage(GameState * state, float delta_time) {
             if (attack->timer < attack->delay)
                 continue;
 
-            if (attack->attacker_faction != unit->player_owned) {
+            if (attack->attacker_player_id != unit->player_owned) {
                 unit->health -= attack->damage;
                 if (unit->health <= 0.0f) {
                     unit_kill(state, unit);
@@ -463,10 +465,10 @@ void units_damage(GameState * state, float delta_time) {
             if (attack->timer < attack->delay)
                 continue;
 
-            if (attack->attacker_faction != guardian->player_owned) {
+            if (attack->attacker_player_id != guardian->player_owned) {
                 guardian->health -= attack->damage;
                 if (guardian->health <= 0.0f) {
-                    region_change_ownership(state, region, attack->attacker_faction);
+                    region_change_ownership(state, region, attack->attacker_player_id);
                     goto next_guard;
                 }
             }
@@ -489,7 +491,9 @@ void guardian_fight (GameState * state, float delta_time) {
         if (target) {
             Attack attack = {
                 .damage = get_unit_attack(guardian),
-                .attacker_faction = guardian->player_owned,
+                .attacker_player_id = guardian->player_owned,
+                .attacker_faction = guardian->faction,
+                .attacker_type = UNIT_GUARDIAN,
                 .origin_position = guardian->position,
                 .delay = get_unit_attack_delay(guardian),
                 .timer = 0.0f,

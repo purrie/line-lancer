@@ -15,68 +15,10 @@ const int WINDOW_WIDTH = 1400;
 const int WINDOW_HEIGHT = 1200;
 
 const Color black = (Color) {18, 18, 18, 255};
+const Color bg_color = DARKBLUE;
+const Color tx_color = RAYWHITE;
 
-Result load_levels (ListMap * maps) {
-    FilePathList list;
-    list = LoadDirectoryFiles("./assets/maps");
-
-    usize i = 0;
-
-    while (i < list.count) {
-        if (WindowShouldClose()) {
-            TraceLog(LOG_INFO, "User requested aplication exit");
-            goto abort;
-        }
-        BeginDrawing();
-        ClearBackground(black);
-
-        char * label = "Loading Map: ";
-        char * map_name = map_name_from_path(list.paths[i], &temp_alloc);
-        if (map_name == NULL) {
-            goto abort;
-        }
-
-        usize label_len = string_length(label);
-        usize len = string_length(map_name);
-        char * loading_text = temp_alloc(label_len + len + 1);
-        copy_memory(loading_text, label, label_len);
-        copy_memory(&loading_text[label_len], map_name, len);
-        len += label_len;
-        loading_text[len] = '\0';
-        len = MeasureText(loading_text, 30);
-
-        Rectangle rect = cake_rect(GetScreenWidth(), GetScreenHeight());
-        rect = cake_carve_to(rect, len + 30, 50);
-        DrawRectangleRec(rect, DARKBLUE);
-        rect = cake_carve_to(rect, len, 30);
-        DrawText(loading_text, rect.x, rect.y, 30, RAYWHITE);
-
-        if(listMapAppend(maps, (Map){0})) {
-            TraceLog(LOG_ERROR, "Failed to append map: #%zu: %s", i, list.paths[i]);
-            goto abort;
-        }
-        if (load_level(&maps->items[i], list.paths[i])) {
-            TraceLog(LOG_ERROR, "Failed to load map %s", list.paths[i]);
-            maps->len -= 1;
-            i++;
-            continue;
-        }
-        TraceLog(LOG_INFO, "Loaded file: %s", list.paths[i]);
-
-        EndDrawing();
-        temp_reset();
-        i ++;
-    }
-
-    UnloadDirectoryFiles(list);
-    return SUCCESS;
-
-    abort:
-    TraceLog(LOG_FATAL, "Map loading failed at map #%zu %s", list.paths[i]);
-    UnloadDirectoryFiles(list);
-    return FAILURE;
-}
-ExecutionMode level_select (GameAssets * assets, GameState * game) {
+ExecutionMode level_select (Assets * assets, GameState * game) {
     int selected_map = -1;
 
     int action = 0;
@@ -217,7 +159,21 @@ int main(void) {
 
     InitWindow(WINDOW_WIDTH, WINDOW_HEIGHT, "Hello!");
 
-    GameAssets game_assets = {0};
+    {
+        BeginDrawing();
+        ClearBackground(black);
+        Rectangle rect = (Rectangle) { 0, 0, GetScreenWidth(), GetScreenHeight() };
+        rect = cake_diet_by(rect, 0.5f);
+        rect = cake_squish_by(rect, 0.5f);
+        DrawRectangleRec(rect, bg_color);
+        char * loading = "Loading...";
+        float len = MeasureText(loading, 30);
+        rect = cake_carve_to(rect, len, 30);
+        DrawText(loading, rect.x, rect.y, 30, tx_color);
+        EndDrawing();
+    }
+
+    Assets game_assets = {0};
     GameState game_state = {0};
 
     game_assets.maps = listMapInit(6, perm_allocator());
@@ -227,12 +183,10 @@ int main(void) {
         TraceLog(LOG_FATAL, "Failed to load levels");
         goto close;
     }
-    if (game_assets.maps.len == 0) {
-        TraceLog(LOG_FATAL, "Failed to load any map");
+    if (load_graphics(&game_assets)) {
+        TraceLog(LOG_FATAL, "Failed to load graphics");
         goto close;
     }
-
-    // TODO load assets
 
     SetTargetFPS(FPS);
     while (mode != EXE_MODE_EXIT) {
@@ -242,6 +196,7 @@ int main(void) {
 
         switch (mode) {
             case EXE_MODE_IN_GAME: {
+                game_state.resources = &game_assets;
                 mode = play_mode(&game_state);
             } break;
             case EXE_MODE_MAIN_MENU: {

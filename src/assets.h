@@ -4,10 +4,12 @@
 #include <raylib.h>
 #include "level.h"
 
-Result  load_level   (Map * map, char * path);
-Result  finalize_map (Map * map);
-void    assets_deinit (GameAssets * assets);
+/* Loading *******************************************************************/
+Result load_levels (ListMap * maps);
+Result load_graphics (Assets * assets);
 
-char * map_name_from_path (char * path, Alloc alloc);
+/* Asset Management **********************************************************/
+void   assets_deinit (Assets * assets);
+char * file_name_from_path (char * path, Alloc alloc);
 
 #endif // ASSETS_H_

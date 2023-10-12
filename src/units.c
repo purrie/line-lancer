@@ -2,6 +2,7 @@
 #include "std.h"
 #include "game.h"
 #include "constants.h"
+#include "particle.h"
 #include <raymath.h>
 
 
@@ -589,10 +590,14 @@ void render_units (const GameState * state) {
         DrawCircleV(unit->position, 7.0f, player);
         DrawCircleV(unit->position, 5.0f, unit_state);
         DrawCircleV(unit->position, 3.0f, col);
+
+        particles_render_attacks(state, unit);
     }
 
     for (usize i = 0; i < state->map.regions.len; i++) {
         Region * region = &state->map.regions.items[i];
         DrawCircleV(region->castle.position, 6.0f, RED);
+
+        particles_render_attacks(state, &region->castle);
     }
 }

@@ -14,6 +14,7 @@ typedef struct Region Region;
 typedef struct Map Map;
 typedef struct Area Area;
 typedef struct GameState GameState;
+typedef struct Assets Assets;
 typedef struct Unit Unit;
 typedef struct PlayerData PlayerData;
 typedef struct MagicEffect MagicEffect;
@@ -22,6 +23,7 @@ typedef struct WayPoint WayPoint;
 typedef struct FindPoint FindPoint;
 typedef struct NavGraph NavGraph;
 typedef struct GlobalNavGrid GlobalNavGrid;
+typedef struct Particle Particle;
 
 typedef enum BuildingType BuildingType;
 typedef enum PlayerState PlayerState;
@@ -85,8 +87,8 @@ makeList(Unit*, Unit);
 makeList(Region*, RegionP);
 
 typedef enum FactionType {
-    FACTION_KNIGHTS,
-    FACTION_MAGES,
+    FACTION_KNIGHTS = 0,
+    FACTION_MAGES = 1,
 } FactionType;
 
 enum UnitType {
@@ -118,6 +120,41 @@ enum MagicType {
 enum GraphType {
     GRAPH_REGION,
     GRAPH_PATH,
+};
+
+typedef enum {
+    PARTICLE_ARROW = 0,
+    PARTICLE_FIREBALL,
+    PARTICLE_FIST,
+    PARTICLE_PLUS,
+    PARTICLE_SLASH,
+    PARTICLE_SLASH_2,
+    PARTICLE_SYMBOL,
+    PARTICLE_THUNDERBOLT,
+    PARTICLE_TORNADO,
+    PARTICLE_LAST = PARTICLE_TORNADO,
+} ParticleType;
+
+typedef struct {
+    Vector2 start;
+    Vector2 start_handle;
+    Vector2 end_handle;
+    Vector2 end;
+} AnimationCurve;
+
+struct Particle {
+    float lifetime;
+    float time_lived;
+    Color color_start;
+    Color color_end;
+    Vector2 position;
+    Vector2 velocity;
+    AnimationCurve velocity_curve;
+    AnimationCurve rotation_curve;
+    AnimationCurve scale_curve;
+    AnimationCurve alpha_curve;
+    AnimationCurve color_curve;
+    Texture2D * sprite;
 };
 
 struct WayPoint {
@@ -167,7 +204,9 @@ struct Attack {
     usize   damage;
     float   timer;
     float   delay;
-    usize   attacker_faction;
+    usize   attacker_player_id;
+    UnitType attacker_type;
+    FactionType attacker_faction;
     Vector2 origin_position;
 };
 
@@ -275,9 +314,16 @@ typedef enum {
     EXE_MODE_EXIT,
 } ExecutionMode;
 
-typedef struct {
+struct Assets {
     ListMap maps;
-} GameAssets;
+    Texture2D particles[PARTICLE_LAST + 1];
+    // TODO fill assets:
+    // buildings
+    // units
+    // sound effects
+    // music
+    // region graphics
+};
 
 enum PlayerState {
     INPUT_NONE = 0,
@@ -298,6 +344,7 @@ struct GameState {
     ListPlayerData   players;
     usize            turn;
     Camera2D         camera;
+    const Assets   * resources;
 };
 
 /* Utils *********************************************************************/

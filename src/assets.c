@@ -16,6 +16,7 @@ typedef struct {
     usize   len;
 } StringSlice;
 
+/* String Handling ***********************************************************/
 void log_slice(TraceLogLevel log_level, char * text, StringSlice slice) {
     char s[slice.len + 1];
     copy_memory(s, slice.start, sizeof(char) * slice.len);
@@ -100,14 +101,73 @@ Result convert_slice_float(StringSlice slice, float * value) {
     return SUCCESS;
 }
 
-usize skip_tokens(jsmntok_t *tokens, usize from) {
-  usize skip = tokens[from].size;
-  while (skip --> 0) {
-    skip += tokens[++from].size;
+/* Asset Management **********************************************************/
+char * file_name_from_path (char * path, Alloc alloc) {
+  usize end = string_length(path);
+  while (end --> 0) {
+    if (path[end] == '.') {
+      break;
+    }
   }
-  return from + 1;
+  usize start = end;
+  while (start --> 0) {
+    if (path[start] == PATH_SEPARATOR) {
+      start ++;
+      break;
+    }
+  }
+  if (start == 0 || end == 0) {
+    return NULL;
+  }
+  usize len = end - start;
+  char * name = alloc(len + 1);
+  if (name == NULL) {
+    return NULL;
+  }
+  copy_memory(name, &path[start], len);
+  name[len] = '\0';
+
+  return name;
+}
+char * asset_path (const char * target_folder, const char * file, Alloc alloc) {
+    #ifdef RELEASE
+    #else
+    char * assets_path = "assets/";
+    usize assets_len = string_length(assets_path);
+    #endif
+    usize target_len = string_length(target_folder);
+    usize file_len = string_length(file);
+
+    char * result = alloc(sizeof(char) * (assets_len + target_len + file_len + 2));
+    if (NULL == result) {
+        return NULL;
+    }
+
+    copy_memory(result, assets_path, assets_len);
+    copy_memory(&result[assets_len], target_folder, target_len);
+    result[assets_len + target_len] = PATH_SEPARATOR;
+    copy_memory(&result[assets_len + target_len + 1], file, file_len);
+    result[assets_len + target_len + file_len + 1] = 0;
+    return result;
+}
+void assets_deinit (Assets * assets) {
+    for (usize i = 0; i < assets->maps.len; i++) {
+        map_deinit(&assets->maps.items[i]);
+    }
+    listMapDeinit(&assets->maps);
+    assets->maps = (ListMap){0};
 }
 
+/* Json Handling *************************************************************/
+usize skip_tokens(jsmntok_t *tokens, usize from) {
+    usize skip = tokens[from].size;
+    while (skip --> 0) {
+        skip += tokens[++from].size;
+    }
+    return from + 1;
+}
+
+/* Map Loading ***************************************************************/
 bool load_paths(
   Map        * map,
   uchar      * data,
@@ -773,39 +833,78 @@ fail:
   map_deinit(result);
   return FAILURE;
 }
+Result load_levels (ListMap * maps) {
+    FilePathList list;
+    list = LoadDirectoryFiles("./assets/maps");
 
-char * map_name_from_path (char * path, Alloc alloc) {
-  usize end = string_length(path);
-  while (end --> 0) {
-    if (path[end] == '.') {
-      break;
+    if (list.count == 0) {
+        TraceLog(LOG_FATAL, "No maps present in assets folder");
+        goto abort;
     }
-  }
-  usize start = end;
-  while (start --> 0) {
-    if (path[start] == PATH_SEPARATOR) {
-      start ++;
-      break;
-    }
-  }
-  if (start == 0 || end == 0) {
-    return NULL;
-  }
-  usize len = end - start;
-  char * name = alloc(len + 1);
-  if (name == NULL) {
-    return NULL;
-  }
-  copy_memory(name, &path[start], len);
-  name[len] = '\0';
 
-  return name;
+    usize i = 0;
+
+    while (i < list.count) {
+        // Load the map
+        if(listMapAppend(maps, (Map){0})) {
+            TraceLog(LOG_ERROR, "Failed to allocate space for map: #%zu: %s", i, list.paths[i]);
+            goto abort;
+        }
+        if (load_level(&maps->items[i], list.paths[i])) {
+            TraceLog(LOG_ERROR, "Failed to load map %s", list.paths[i]);
+            maps->len -= 1;
+            temp_reset();
+            i++;
+            continue;
+        }
+        TraceLog(LOG_INFO, "Loaded map file: %s", list.paths[i]);
+
+        temp_reset();
+        i ++;
+    }
+
+    if (maps->len == 0) {
+        TraceLog(LOG_FATAL, "Failed to load any map successfully");
+        goto abort;
+    }
+
+    UnloadDirectoryFiles(list);
+    return SUCCESS;
+
+    abort:
+    UnloadDirectoryFiles(list);
+    return FAILURE;
 }
 
-void assets_deinit (GameAssets * assets) {
-    for (usize i = 0; i < assets->maps.len; i++) {
-        map_deinit(&assets->maps.items[i]);
+/* Graphics ******************************************************************/
+Result load_particles (Texture2D * array) {
+    const char * paths[PARTICLE_LAST + 1] = {
+        "arrow.png",
+        "fireball.png",
+        "fist.png",
+        "plus.png",
+        "slash-1.png",
+        "slash-2.png",
+        "symbol.png",
+        "thunderbolt.png",
+        "tornado.png",
+    };
+
+    for (int i = 0; i <= PARTICLE_LAST; i++) {
+        char * path = asset_path("particles", paths[i], &temp_alloc);
+        if (NULL == path) {
+            TraceLog(LOG_WARNING, "Temp allocator ran out of memory for joining paths");
+            return FAILURE;
+        }
+        array[i] = LoadTexture(path);
+        if (0 == array[i].format) {
+            TraceLog(LOG_ERROR, "Failed to load particle %s", paths[i]);
+            return FAILURE;
+        }
+        temp_free(path);
     }
-    listMapDeinit(&assets->maps);
-    assets->maps = (ListMap){0};
+    return SUCCESS;
+}
+Result load_graphics (Assets * assets) {
+    return load_particles(assets->particles);
 }

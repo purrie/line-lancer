@@ -9,7 +9,7 @@ void * copy_memory_backward(void * dest, void * source, usize bytes) {
     return dest;
 }
 
-void * copy_memory(void * dest, void * source, usize bytes) {
+void * copy_memory(void * dest, const void * source, usize bytes) {
     uchar * d = (uchar *) dest;
     uchar * s = (uchar *) source;
     for (usize i = 0; i < bytes; i++) {
@@ -132,7 +132,7 @@ char * convert_float_to_ascii (float number, unsigned int dot_count, Alloc alloc
     return result;
 }
 
-usize string_length (char * string) {
+usize string_length (const char * string) {
     usize guard = 2048;
     usize len = 0;
     while (--guard && string[len] != '\0') {
