@@ -315,7 +315,7 @@ void move_units (GameState * state, float delta_time) {
             case UNIT_STATE_MOVING: {
                 if (unit_reached_waypoint(unit)) {
                     if (unit_progress_path(unit)) {
-                        TraceLog(LOG_ERROR, "Failed to progress unit path");
+                        TraceLog(LOG_WARNING, "Failed to progress unit path");
                         unit->pathfind.len = 0;
                         continue;
                     }
