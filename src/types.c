@@ -13,6 +13,7 @@ implementList(Map, Map)
 implementList(MagicEffect, MagicEffect)
 implementList(Attack, Attack)
 implementList(Path*, PathP)
+implementList(Particle*, Particle)
 
 implementList(Unit*, Unit)
 implementList(Region*, RegionP)

@@ -12,6 +12,8 @@
 #define UNIT_SPEED 20.0f
 #define UNIT_MAX_RANGE 6
 
+#define PARTICLES_MAX 512
+
 #define NAV_GRID_SIZE 12
 
 #define REGION_INCOME_INTERVAL 10

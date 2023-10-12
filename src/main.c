@@ -9,6 +9,7 @@
 #include "ui.h"
 #include "units.h"
 #include "level.h"
+#include "particle.h"
 #include "cake.h"
 
 const int WINDOW_WIDTH = 1400;
@@ -103,6 +104,7 @@ ExecutionMode play_mode (GameState * game) {
         BeginMode2D(game->camera);
             render_map_mesh(&game->map);
             render_units(game);
+            particles_render(game->particles_in_use.items, game->particles_in_use.len);
         EndMode2D();
 
         render_ingame_ui(game);
@@ -194,9 +196,9 @@ int main(void) {
             break;
         }
 
+        game_state.resources = &game_assets;
         switch (mode) {
             case EXE_MODE_IN_GAME: {
-                game_state.resources = &game_assets;
                 mode = play_mode(&game_state);
             } break;
             case EXE_MODE_MAIN_MENU: {

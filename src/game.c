@@ -6,6 +6,7 @@
 #include "input.h"
 #include "level.h"
 #include "constants.h"
+#include "particle.h"
 #include "alloc.h"
 #include <raymath.h>
 
@@ -444,6 +445,7 @@ void units_damage(GameState * state, float delta_time) {
 
             if (attack->attacker_player_id != unit->player_owned) {
                 unit->health -= attack->damage;
+                particles_blood(state, unit, *attack);
                 if (unit->health <= 0.0f) {
                     unit_kill(state, unit);
                     goto next_unit;
@@ -465,8 +467,10 @@ void units_damage(GameState * state, float delta_time) {
             if (attack->timer < attack->delay)
                 continue;
 
+
             if (attack->attacker_player_id != guardian->player_owned) {
                 guardian->health -= attack->damage;
+                particles_blood(state, guardian, *attack);
                 if (guardian->health <= 0.0f) {
                     region_change_ownership(state, region, attack->attacker_player_id);
                     goto next_guard;
@@ -636,8 +640,14 @@ Result game_state_prepare (GameState * result, const Map * prefab) {
     }
     TraceLog(LOG_INFO, "Map ready to play");
 
-    result->camera      = setup_camera(&result->map);
-    result->units       = listUnitInit(120, perm_allocator());
+    result->camera = setup_camera(&result->map);
+    result->units  = listUnitInit(120, perm_allocator());
+
+    result->particles_available = listParticleInit(PARTICLES_MAX, perm_allocator());
+    result->particles_in_use    = listParticleInit(PARTICLES_MAX, perm_allocator());
+    for (usize i = 0; i < PARTICLES_MAX; i++) {
+        listParticleAppend(&result->particles_available, (Particle*)&result->resources->particle_pool[i]);
+    }
 
     result->players     = listPlayerDataInit(result->map.player_count + 1, perm_allocator());
     result->players.len = result->map.player_count + 1;
@@ -673,6 +683,8 @@ Result game_state_prepare (GameState * result, const Map * prefab) {
 void game_state_deinit (GameState * state) {
     clear_unit_list(&state->units);
     listPlayerDataDeinit(&state->players);
+    listParticleDeinit(&state->particles_available);
+    listParticleDeinit(&state->particles_in_use);
     map_deinit(&state->map);
     clear_memory(state, sizeof(GameState));
 }
@@ -682,4 +694,7 @@ void game_tick (GameState * state) {
     update_resources(state);
     simulate_ai(state);
     simulate_units(state);
+
+    particles_advance(state->particles_in_use.items, state->particles_in_use.len, GetFrameTime());
+    particles_clean(state);
 }

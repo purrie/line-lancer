@@ -1,4 +1,5 @@
 #include "particle.h"
+#include "std.h"
 #include "constants.h"
 #include <raymath.h>
 
@@ -25,6 +26,117 @@ Vector2 animation_curve_position (AnimationCurve curve, float point) {
 }
 
 /* Particles *****************************************************************/
+void particles_blood (GameState * state, Unit * attacked, Attack attack) {
+    usize amount;
+    switch (attacked->type) {
+        case UNIT_GUARDIAN: {
+            amount = attacked->health > 0.0f ? GetRandomValue(2, 8) : GetRandomValue(4, 20);
+        } break;
+        default: {
+            amount = attacked->health > 0.0f ? GetRandomValue(3, 10) : GetRandomValue(10, 20);
+        } break;
+    }
+    Vector2 direction;
+    switch (attack.attacker_faction) {
+        case FACTION_KNIGHTS: switch (attack.attacker_type) {
+            case UNIT_ARCHER:
+            case UNIT_GUARDIAN: goto arc_unit;
+            default: goto straight_unit;
+        }
+        case FACTION_MAGES: goto straight_unit;
+    }
+
+    if (0) {
+        straight_unit:
+        direction = Vector2Normalize(Vector2Subtract(attack.origin_position, attacked->position));
+    }
+    if (0) {
+        arc_unit:
+        direction = (Vector2){ attack.origin_position.x > attacked->position.x ? 0.3f : -0.3f, -0.7f };
+    }
+
+    for (usize i = 0; i < amount; i++) {
+        if (state->particles_available.len == 0) {
+            TraceLog(LOG_WARNING, "Ran out of particles");
+            break;
+        }
+        state->particles_available.len --;
+        Particle * particle = state->particles_available.items[state->particles_available.len];
+        clear_memory(particle, sizeof(Particle));
+
+        particle->lifetime = GetRandomValue(20, 60) * 0.01f;
+
+        switch (attacked->type) {
+            case UNIT_GUARDIAN: switch (attacked->faction) {
+                case FACTION_KNIGHTS: {
+                    unsigned char col = GetRandomValue(132, 164);
+                    particle->color_start = (Color){ col, col, col, 255 };
+                    particle->color_end = (Color){ 92, 92, 92, 255 };
+                } break;
+                case FACTION_MAGES: {
+                    unsigned char col = GetRandomValue(132, 164);
+                    particle->color_start = (Color){ GetRandomValue(152, 192), col, col, 255 };
+                    particle->color_end = (Color){ 92, 92, 92, 255 };
+                } break;
+            } break;
+            default: {
+                particle->color_start = (Color){ GetRandomValue(192, 255), 32, 16, 255 };
+                particle->color_end = (Color){ 128, 64, 32, 255 };
+            } break;
+        }
+        particle->color_curve = (AnimationCurve){
+            .start = { 0.0f, 0.0f },
+            .start_handle = { 0.25f, 0.0f },
+            .end_handle = { 0.75f, 0.2f },
+            .end = { 1.0f, 1.0f },
+        };
+        particle->alpha_curve = (AnimationCurve){
+            .start = { 0.0f, 1.0f },
+            .start_handle = { 0.25f, 1.0f },
+            .end_handle = { 0.75f, 1.0f },
+            .end = { 1.0f, 1.0f },
+        };
+
+        particle->position = Vector2Add(attacked->position, (Vector2){ GetRandomValue(-2, 2), GetRandomValue(-2, 2)});
+
+        float angle = attacked->health > 0.0f ? GetRandomValue(-20, 20) : GetRandomValue(0, 360);
+        particle->velocity = Vector2Rotate(direction, angle * DEG2RAD);
+        particle->velocity_curve = (AnimationCurve){
+            .start = { 0.0f, 1.0f },
+            .start_handle = { 0.25f, 1.0f },
+            .end_handle = { 0.75f, 0.5f },
+            .end = { 1.0f, 0.0f },
+        };
+
+        float rotation = GetRandomValue(-80, 80);
+        particle->rotation_curve = (AnimationCurve){
+            .start = { 0.0f, 0.0f },
+            .start_handle = { 0.25f, rotation * 0.25f },
+            .end_handle = { 0.75f, rotation * 0.75f },
+            .end = { 1.0f, rotation }
+        };
+
+        particle->scale_curve = (AnimationCurve){
+            .start = { 0.0f, 2.0f },
+            .start_handle = { 0.25f, 1.5f },
+            .end_handle = { 0.75f, 1.5f },
+            .end = { 1.0f, 1.0f },
+        };
+        listParticleAppend(&state->particles_in_use, particle);
+    }
+}
+void particles_clean (GameState * state) {
+    if (state->particles_in_use.len == 0) return;
+
+    usize i = state->particles_in_use.len;
+    while (i --> 0) {
+        Particle * particle = state->particles_in_use.items[i];
+        if (particle->lifetime < particle->time_lived) {
+            listParticleRemove(&state->particles_in_use, i);
+            listParticleAppend(&state->particles_available, particle);
+        }
+    }
+}
 void particles_advance (Particle ** particles, usize len, float delta_time) {
     for (usize i = 0; i < len; i++) {
         Particle * particle = particles[i];
@@ -40,7 +152,7 @@ void particles_advance (Particle ** particles, usize len, float delta_time) {
         }
     }
 }
-void particles_render (const Particle ** particles, usize len) {
+void particles_render (Particle ** particles, usize len) {
     for (usize i = 0; i < len; i++) {
         const Particle * particle = particles[i];
         float t = particle->time_lived / particle->lifetime;
@@ -50,12 +162,15 @@ void particles_render (const Particle ** particles, usize len) {
 
         float t_color = animation_curve_evaluate(particle->color_curve, t);
         Color color = particle->color_end;
-        color.a = (char)( t_color * 255 );
-        color = ColorAlphaBlend(color, particle->color_start, WHITE);
-        color.a = (char)( 255 * animation_curve_evaluate(particle->alpha_curve, t) );
+        color.a = (unsigned char)( t_color * 255 );
+        color = ColorAlphaBlend(particle->color_start, color, WHITE);
+        color.a = (unsigned char)( 255 * animation_curve_evaluate(particle->alpha_curve, t) );
 
         if (particle->sprite) {
-            DrawTextureEx(*particle->sprite, particle->position, rotation, scale, color);
+            Rectangle sprite_rect = (Rectangle){ 0, 0, particle->sprite->width, particle->sprite->height };
+            Vector2 origin = (Vector2){ 0.5f * scale, 0.5f * scale };
+            Rectangle world_rect = (Rectangle) { particle->position.x - origin.x, particle->position.y - origin.y, scale, scale };
+            DrawTexturePro(*particle->sprite, sprite_rect, world_rect, origin, rotation, color);
         }
         else {
             Rectangle rect = {

@@ -3,6 +3,7 @@
 
 #include <raylib.h>
 #include "array.h"
+#include "constants.h"
 
 #define STRINGIFY(x) #x
 #define STRINGIFY_VALUE(x) STRINGIFY(x)
@@ -79,6 +80,7 @@ makeList(Map, Map);
 makeList(MagicEffect, MagicEffect);
 makeList(Attack, Attack);
 makeList(Path*, PathP);
+makeList(Particle*, Particle);
 
 makeList(FindPoint, FindPoint);
 makeList(WayPoint*, WayPoint);
@@ -317,6 +319,7 @@ typedef enum {
 struct Assets {
     ListMap maps;
     Texture2D particles[PARTICLE_LAST + 1];
+    Particle particle_pool[PARTICLES_MAX];
     // TODO fill assets:
     // buildings
     // units
@@ -342,6 +345,8 @@ struct GameState {
     Map              map;
     ListUnit         units;
     ListPlayerData   players;
+    ListParticle     particles_in_use;
+    ListParticle     particles_available;
     usize            turn;
     Camera2D         camera;
     const Assets   * resources;
