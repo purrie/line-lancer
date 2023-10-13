@@ -592,6 +592,7 @@ void render_units (const GameState * state) {
         DrawCircleV(unit->position, 3.0f, col);
 
         particles_render_attacks(state, unit);
+        particles_render_effects(state, unit);
     }
 
     for (usize i = 0; i < state->map.regions.len; i++) {
@@ -599,5 +600,6 @@ void render_units (const GameState * state) {
         DrawCircleV(region->castle.position, 6.0f, RED);
 
         particles_render_attacks(state, &region->castle);
+        particles_render_effects(state, &region->castle);
     }
 }

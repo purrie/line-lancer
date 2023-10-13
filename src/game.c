@@ -379,6 +379,7 @@ void units_support (GameState * state, float delta_time) {
                 }
                 unit->cooldown = get_unit_cooldown(unit);
                 listMagicEffectAppend(&most_hurt->effects, magic);
+                particles_magic(state, unit, most_hurt);
             } break;
             case FACTION_MAGES: {
                 if (get_enemies_in_range(unit, &buffer)) {
@@ -399,6 +400,7 @@ void units_support (GameState * state, float delta_time) {
                     }
                     unit->cooldown = get_unit_cooldown(unit);
                     listMagicEffectAppend(&target->effects, magic);
+                    particles_magic(state, unit, target);
                     break;
                 }
             } break;

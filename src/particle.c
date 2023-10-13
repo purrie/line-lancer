@@ -3,7 +3,7 @@
 #include "constants.h"
 #include <raymath.h>
 
-/* Animations ****************************************************************/
+/* Animation Curves ****************************************************************/
 float animation_curve_evaluate (AnimationCurve curve, float point) {
     float npoint = 1.0f - point;
     float result = powf(npoint, 3) * curve.start.y +
@@ -23,6 +23,47 @@ Vector2 animation_curve_position (AnimationCurve curve, float point) {
         3.0f * npoint * powf(point, 2.0f) * curve.end_handle.y +
         powf(point, 3.0f) * curve.end.y;
     return (Vector2){ result_x, result_y };
+}
+
+AnimationCurve curve_constant (float value) {
+    return (AnimationCurve){
+        .start = { 0.0f, value },
+        .start_handle = { 0.25f, value },
+        .end_handle = { 0.75f, value },
+        .end = { 1.0f, value }
+    };
+}
+AnimationCurve curve_bell () {
+    return (AnimationCurve){
+        .start = { 0.0f, 0.0f },
+        .start_handle = { 0.25f, 1.0f },
+        .end_handle = { 0.75f, 1.0f },
+        .end = { 1.0f, 0.0f }
+    };
+}
+AnimationCurve curve_smooth(float start, float end) {
+    return (AnimationCurve){
+        .start = { 0.0f, start },
+        .start_handle = { 0.25f, start },
+        .end_handle = { 0.75f, end },
+        .end = { 1.0f, end }
+    };
+}
+AnimationCurve curve_linear(float start, float end) {
+    return (AnimationCurve){
+        .start = { 0.0f, start },
+        .start_handle = { 0.25f, start * 0.75f + end * 0.25f },
+        .end_handle = { 0.75f, end * 0.75f + start * 0.25f },
+        .end = { 1.0f, end }
+    };
+}
+AnimationCurve curve_timeline (float start, float start_handle, float end_handle, float end) {
+    return (AnimationCurve){
+        .start = { 0.0f, start },
+        .start_handle = { 0.25f, start_handle },
+        .end_handle = { 0.75f, end_handle },
+        .end = { 1.0f, end }
+    };
 }
 
 /* Particles *****************************************************************/
@@ -84,44 +125,88 @@ void particles_blood (GameState * state, Unit * attacked, Attack attack) {
                 particle->color_end = (Color){ 128, 64, 32, 255 };
             } break;
         }
-        particle->color_curve = (AnimationCurve){
-            .start = { 0.0f, 0.0f },
-            .start_handle = { 0.25f, 0.0f },
-            .end_handle = { 0.75f, 0.2f },
-            .end = { 1.0f, 1.0f },
-        };
-        particle->alpha_curve = (AnimationCurve){
-            .start = { 0.0f, 1.0f },
-            .start_handle = { 0.25f, 1.0f },
-            .end_handle = { 0.75f, 1.0f },
-            .end = { 1.0f, 1.0f },
-        };
+        particle->color_curve = curve_timeline(0.0f, 0.0f, 0.2f, 1.0f);
+        particle->alpha_curve = curve_constant(1.0f);
 
         particle->position = Vector2Add(attacked->position, (Vector2){ GetRandomValue(-2, 2), GetRandomValue(-2, 2)});
 
         float angle = attacked->health > 0.0f ? GetRandomValue(-20, 20) : GetRandomValue(0, 360);
         particle->velocity = Vector2Rotate(direction, angle * DEG2RAD);
-        particle->velocity_curve = (AnimationCurve){
-            .start = { 0.0f, 1.0f },
-            .start_handle = { 0.25f, 1.0f },
-            .end_handle = { 0.75f, 0.5f },
-            .end = { 1.0f, 0.0f },
-        };
+        particle->velocity_curve = curve_timeline(1.0f, 1.0f, 0.5f, 0.0f);
 
         float rotation = GetRandomValue(-80, 80);
-        particle->rotation_curve = (AnimationCurve){
-            .start = { 0.0f, 0.0f },
-            .start_handle = { 0.25f, rotation * 0.25f },
-            .end_handle = { 0.75f, rotation * 0.75f },
-            .end = { 1.0f, rotation }
-        };
+        particle->rotation_curve = curve_linear(0.0f, rotation);
 
-        particle->scale_curve = (AnimationCurve){
-            .start = { 0.0f, 2.0f },
-            .start_handle = { 0.25f, 1.5f },
-            .end_handle = { 0.75f, 1.5f },
-            .end = { 1.0f, 1.0f },
-        };
+        particle->scale_curve = curve_timeline(2.0f, 1.5f, 1.5f, 1.0f);
+        listParticleAppend(&state->particles_in_use, particle);
+    }
+}
+void particles_magic (GameState * state, Unit * caster, Unit * target) {
+    // caster particle
+    {
+        if (state->particles_available.len == 0) return;
+        state->particles_available.len --;
+        Particle * particle = state->particles_available.items[state->particles_available.len];
+        clear_memory(particle, sizeof(Particle));
+
+        particle->lifetime = 1.0f;
+        particle->color_start = particle->color_end = WHITE;
+        particle->color_curve = curve_constant(0.0f);
+        particle->alpha_curve = curve_bell();
+        particle->rotation_curve = curve_constant(0.0f);
+        particle->scale_curve = curve_smooth(2.0f, 8.0f);
+        particle->position = caster->position;
+        particle->velocity = (Vector2){ 0.0f, -0.1f};
+        particle->velocity_curve = curve_constant(1.0f);
+
+        switch(caster->faction) {
+            case FACTION_KNIGHTS: {
+                particle->sprite = (Texture2D*)&state->resources->particles[PARTICLE_PLUS];
+            } break;
+            case FACTION_MAGES: {
+                particle->sprite = (Texture2D*)&state->resources->particles[PARTICLE_TORNADO];
+            } break;
+        }
+        listParticleAppend(&state->particles_in_use, particle);
+    }
+
+    usize amount;
+    switch (caster->faction) {
+        case FACTION_KNIGHTS: amount = GetRandomValue(3, 5); break;
+        case FACTION_MAGES: amount = GetRandomValue(3, 5); break;
+    }
+
+    // magic effect particle on the target
+    while (amount --> 0) {
+        if (state->particles_available.len == 0) break;
+        state->particles_available.len --;
+        Particle * particle = state->particles_available.items[state->particles_available.len];
+        clear_memory(particle, sizeof(Particle));
+
+        particle->lifetime = 1.0f;
+        particle->color_start = particle->color_end = WHITE;
+        particle->color_curve = curve_constant(0.0f);
+        particle->alpha_curve = curve_bell();
+        particle->rotation_curve = curve_constant(0.0f);
+        particle->scale_curve = curve_smooth(2.0f, 4.0f);
+
+        switch(caster->faction) {
+            case FACTION_KNIGHTS: {
+                particle->position = (Vector2){ GetRandomValue(-UNIT_SIZE * 50, UNIT_SIZE * 50) * 0.01f, GetRandomValue(-UNIT_SIZE * 75, -UNIT_SIZE * 100) * 0.01f };
+                particle->position = Vector2Add(particle->position, target->position);
+                particle->velocity = (Vector2){ 0.0f, 0.2f};
+                particle->velocity_curve = curve_smooth(0.0f, 1.0f);
+                particle->sprite = (Texture2D*)&state->resources->particles[PARTICLE_PLUS];
+            } break;
+            case FACTION_MAGES: {
+                particle->position = (Vector2){ GetRandomValue(-UNIT_SIZE * 10, UNIT_SIZE * 10) * 0.01f, GetRandomValue(UNIT_SIZE * 25, UNIT_SIZE * 50) * 0.01f };
+                particle->position = Vector2Add(particle->position, target->position);
+                particle->velocity = (Vector2){ GetRandomValue(-10, 10) * 0.1f, GetRandomValue(-20, -10) * 0.1f };
+                particle->velocity_curve = curve_constant(1.0f);
+                particle->sprite = (Texture2D*)&state->resources->particles[PARTICLE_TORNADO];
+            } break;
+        }
+
         listParticleAppend(&state->particles_in_use, particle);
     }
 }
@@ -169,7 +254,7 @@ void particles_render (Particle ** particles, usize len) {
         if (particle->sprite) {
             Rectangle sprite_rect = (Rectangle){ 0, 0, particle->sprite->width, particle->sprite->height };
             Vector2 origin = (Vector2){ 0.5f * scale, 0.5f * scale };
-            Rectangle world_rect = (Rectangle) { particle->position.x - origin.x, particle->position.y - origin.y, scale, scale };
+            Rectangle world_rect = (Rectangle) { particle->position.x, particle->position.y, scale, scale };
             DrawTexturePro(*particle->sprite, sprite_rect, world_rect, origin, rotation, color);
         }
         else {
@@ -242,5 +327,40 @@ void particles_render_attacks (const GameState * state, Unit * attacked) {
         Texture2D sprite = state->resources->particles[attack_type];
 
         DrawTexturePro(sprite, (Rectangle){ 0, 0, sprite.width, sprite.height }, rec, (Vector2){2,2}, attack_rotation, WHITE);
+    }
+}
+void particles_render_effects (const GameState * state, Unit * unit) {
+    usize i = unit->effects.len;
+    while (i --> 0) {
+        MagicEffect * effect = &unit->effects.items[i];
+        isize frame = (isize)(state->turn) % 100;
+
+        switch (effect->type) {
+            case MAGIC_HEALING: {
+                isize actual_frame = frame >= 50 ? 100 - frame : frame;
+                float scale = 3.0f + actual_frame * 0.025f;
+                float half_scale = scale * 0.5f;
+                Rectangle target = (Rectangle){unit->position.x, unit->position.y, scale, scale};
+
+                Texture2D sprite = state->resources->particles[PARTICLE_PLUS];
+                Rectangle source = (Rectangle){0, 0, sprite.width, sprite.height};
+                DrawTexturePro(sprite, source, target, (Vector2){half_scale, half_scale}, 0.0f, WHITE);
+            } break;
+            case MAGIC_WEAKNESS: {
+                isize actual_frame = frame >= 50 ? 100 - frame : frame;
+                float horizontal = ( actual_frame - 25 ) * 0.1f;
+                float vertical = (actual_frame >= 25 ? 50 - actual_frame : actual_frame) * (frame >= 50 ? 0.1f : -0.1f);
+
+                Texture2D sprite = state->resources->particles[PARTICLE_TORNADO];
+                float size = UNIT_SIZE * 0.5f;
+                float half_size = size * 0.5f;
+                Rectangle target = (Rectangle){horizontal + unit->position.x, vertical + unit->position.y, size, size};
+                Rectangle source = (Rectangle){0, 0, sprite.width, sprite.height};
+                DrawTexturePro(sprite, source, target, (Vector2){half_size, half_size}, 0.0f, WHITE);
+            } break;
+            default: break;
+            // TODO others not implemented yet until they're in the game
+        }
+
     }
 }
