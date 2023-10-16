@@ -6,7 +6,8 @@
 
 #define FPS 60
 
-#define SIMULATE_PLAYER
+// TODO ensure map loading takes this into account
+#define PLAYERS_MAX 16
 
 #define UNIT_SIZE 6.0f
 #define UNIT_SPEED 20.0f

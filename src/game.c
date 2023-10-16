@@ -628,7 +628,6 @@ Camera2D setup_camera(Map * map) {
     return cam;
 }
 Result game_state_prepare (GameState * result, const Map * prefab) {
-    // TODO use map name
     TraceLog(LOG_INFO, "Cloning map for gameplay");
     if (map_clone(&result->map, prefab)) {
         TraceLog(LOG_ERROR, "Failed to set up map %s, for gameplay", prefab->name);
@@ -651,20 +650,11 @@ Result game_state_prepare (GameState * result, const Map * prefab) {
         listParticleAppend(&result->particles_available, (Particle*)&result->resources->particle_pool[i]);
     }
 
-    result->players     = listPlayerDataInit(result->map.player_count + 1, perm_allocator());
     result->players.len = result->map.player_count + 1;
-    clear_memory(result->players.items, sizeof(PlayerData) * result->players.len);
 
-    // TODO make better way to set which is the local player, especially after implementing multiplayer
-    #ifdef SIMULATE_PLAYER
-    usize player_index = 0;
-    #else
-    usize player_index = 1;
-    result->players.items[player_index].type = PLAYER_LOCAL;
-    #endif
-
-    for (usize i = player_index + 1; i < result->players.len; i++) {
-        result->players.items[i].type = PLAYER_AI;
+    // player 0 is neutral faction
+    for (usize i = 1; i < result->players.len; i++) {
+        if (result->players.items[i].type != PLAYER_AI) continue;
         unsigned int max = -1;
         max /= 2;
         max -= 1;

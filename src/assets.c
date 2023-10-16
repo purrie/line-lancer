@@ -801,6 +801,11 @@ Result load_level(Map * result, char * path) {
             log_slice(LOG_ERROR, "Couldn't parse player count:", num);
             goto fail;
           }
+          // need one space for neutral faction
+          if (value >= PLAYERS_MAX) {
+            TraceLog(LOG_ERROR, "Map %s has too many players", path);
+            goto fail;
+          }
           result->player_count = value;
         }
         else if (compare_literal(property_type, "name")) {

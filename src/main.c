@@ -20,8 +20,14 @@ const Color bg_color = DARKBLUE;
 const Color tx_color = RAYWHITE;
 
 ExecutionMode level_select (Assets * assets, GameState * game) {
+    game->players = listPlayerDataInit(PLAYERS_MAX, perm_allocator());
+    clear_memory(game->players.items, sizeof(PlayerData) * game->players.cap);
+    game->players.items[0].type = PLAYER_NEUTRAL;
+    game->players.items[1].type = PLAYER_LOCAL;
+    for (usize i = 2; i < game->players.cap; i++) {
+        game->players.items[i].type = PLAYER_AI;
+    }
     int selected_map = -1;
-
     int action = 0;
 
     while (action == 0) {
@@ -55,14 +61,16 @@ ExecutionMode level_select (Assets * assets, GameState * game) {
             // TODO make a scroll bar
         }
 
-        screen = cake_squish_to(screen, UI_FONT_SIZE_BUTTON * 1.5f);
 
-        Rectangle cancel = cake_cut_vertical(&screen, 0.5f, 0);
+        Rectangle buttons = cake_cut_horizontal(&screen, UI_FONT_SIZE_BUTTON * -1.5f, 20);
+        render_player_select(screen, game, selected_map);
+
+        Rectangle cancel = cake_cut_vertical(&buttons, 0.5f, 0);
         float width = MeasureText("Cancel", UI_FONT_SIZE_BUTTON) + 10.0f;
         float height = UI_FONT_SIZE_BUTTON * 1.5f;
         cancel = cake_carve_to(cancel, width, height);
         width = MeasureText("Start", UI_FONT_SIZE_BUTTON) + 10.0f;
-        Rectangle accept = cake_carve_to(screen, width, height);
+        Rectangle accept = cake_carve_to(buttons, width, height);
 
         Vector2 cursor = GetMousePosition();
         draw_button(cancel, "Cancel", cursor, UI_LAYOUT_CENTER, DARKBLUE, BLUE, RAYWHITE);
@@ -82,17 +90,24 @@ ExecutionMode level_select (Assets * assets, GameState * game) {
     }
 
 
+    ExecutionMode next;
     switch (action) {
-        case 1: return EXE_MODE_MAIN_MENU;
+        case 1: next = EXE_MODE_MAIN_MENU; break;
         case 2: {
             if (game_state_prepare (game, &assets->maps.items[selected_map])) {
-                return EXE_MODE_SINGLE_PLAYER_MAP_SELECT;
+                next = EXE_MODE_SINGLE_PLAYER_MAP_SELECT;
+                break;
             }
-            return EXE_MODE_IN_GAME;
-        }
-        case 3: return EXE_MODE_EXIT;
-        default: return EXE_MODE_SINGLE_PLAYER_MAP_SELECT;
+            next = EXE_MODE_IN_GAME;
+        } break;
+        case 3: next = EXE_MODE_EXIT; break;
+        default: next = EXE_MODE_SINGLE_PLAYER_MAP_SELECT; break;
     }
+
+    if (next != EXE_MODE_IN_GAME) {
+        listPlayerDataDeinit(&game->players);
+    }
+    return next;
 }
 ExecutionMode play_mode (GameState * game) {
     // TODO make way of exiting to main menu through UI

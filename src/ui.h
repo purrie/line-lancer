@@ -50,6 +50,7 @@ ExecutionMode render_main_menu ();
 
 /* Component Rendering *******************************************************/
 void render_simple_map_preview (Rectangle area, Map * map, float region_size, float path_thickness);
+void render_player_select      (Rectangle area, GameState * state, int selected_map);
 int  render_map_list           (Rectangle area, ListMap * maps, usize from, usize len);
 void draw_button               (Rectangle area, char * text, Vector2 cursor, UiLayout label_layout, Color bg, Color hover, Color frame);
 

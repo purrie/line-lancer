@@ -5,6 +5,7 @@
 #include "level.h"
 #define CAKE_LAYOUT_IMPLEMENTATION
 #include "cake.h"
+#include <stdio.h>
 #include <raymath.h>
 
 void draw_button (
@@ -373,6 +374,180 @@ void render_simple_map_preview (Rectangle area, Map * map, float region_size, fl
         point = Vector2Add(point, (Vector2){ area.x, area.y });
         Color col = get_player_color(region->player_id);
         DrawCircleV(point, region_size, col);
+    }
+}
+void render_player_select (Rectangle area, GameState * state, int selected_map) {
+    if (selected_map < 0) return;
+    const Map * map = &state->resources->maps.items[selected_map];
+
+    DrawRectangleRec(area, BLACK);
+    DrawRectangleLinesEx(area, UI_BORDER_SIZE, DARKGRAY);
+    area = cake_margin_all(area, UI_BORDER_SIZE * 3);
+
+    Rectangle title = cake_cut_horizontal(&area, UI_FONT_SIZE_BUTTON, UI_FONT_SIZE_BUTTON * 0.5f);
+    title = cake_diet_to(title, MeasureText(map->name, UI_FONT_SIZE_BUTTON));
+    DrawText(map->name, title.x, title.y, UI_FONT_SIZE_BUTTON, WHITE);
+
+    Color background = (Color){ 32, 32, 32, 255 };
+
+    Rectangle * lines = temp_alloc(sizeof(Rectangle) * map->player_count);
+    Rectangle * player_dropdowns = temp_alloc(sizeof(Rectangle) * map->player_count);
+    Rectangle * faction_dropdowns = temp_alloc(sizeof(Rectangle) * map->player_count);
+
+    for (usize i = 0; i < map->player_count; i++) {
+        lines[i] = cake_cut_horizontal(&area, UI_FONT_SIZE_BUTTON * 1.5f, UI_FONT_SIZE_BUTTON * 0.5f);
+    }
+
+    Vector2 mouse = GetMousePosition();
+
+    char name[64];
+    char * player_control = "Controlling: ";
+    char * player_faction = "Faction: ";
+    char * button_label = "v";
+    int player_control_size = MeasureText(player_control, UI_FONT_SIZE_BUTTON);
+    int player_faction_size = MeasureText(player_faction, UI_FONT_SIZE_BUTTON);
+    int button_label_size = MeasureText(button_label, UI_FONT_SIZE_BUTTON);
+
+    static int selected_player = -1;
+    static int choosing = -1; // 0 - PC/CPU, 1 - Faction
+
+    for (usize i = 0; i < map->player_count; i++) {
+        PlayerData * player = &state->players.items[i + 1];
+        DrawRectangleRec(lines[i], background);
+
+        snprintf(name, 64, "Player %zu", i);
+        Rectangle label = cake_cut_vertical(&lines[i], 0.3f, 5);
+        cake_cut_vertical(&label, UI_BORDER_SIZE * 2, 0);
+        Rectangle color_box = cake_cut_vertical(&label, UI_FONT_SIZE_BUTTON, UI_BORDER_SIZE * 2);
+        color_box = cake_shrink_to(color_box, color_box.width);
+        DrawRectangleRec(color_box, get_player_color(i + 1));
+        label = cake_shrink_to(label, UI_FONT_SIZE_BUTTON);
+        DrawText(name, label.x, label.y, UI_FONT_SIZE_BUTTON, WHITE);
+
+        player_dropdowns[i] = cake_cut_vertical(&lines[i], 0.5f, 5);
+        faction_dropdowns[i] = lines[i];
+
+        // select who controls this player
+        label = cake_cut_vertical(&player_dropdowns[i], player_control_size, 6);
+        label = cake_shrink_to(label, UI_FONT_SIZE_BUTTON);
+        DrawText(player_control, label.x, label.y, UI_FONT_SIZE_BUTTON, WHITE);
+
+        player_dropdowns[i] = cake_margin_all(player_dropdowns[i], UI_BORDER_SIZE);
+
+        int mouse_over = selected_player >= 0 ? 0 : CheckCollisionPointRec(mouse, player_dropdowns[i]);
+        DrawRectangleRec(player_dropdowns[i], BLACK);
+        DrawRectangleLinesEx(player_dropdowns[i], UI_BORDER_SIZE, mouse_over ? GRAY : DARKGRAY);
+
+        label = player_dropdowns[i];
+        Rectangle button = cake_cut_vertical(&label, -label.height, 0);
+        DrawRectangleRec(button, mouse_over ? GRAY : DARKGRAY);
+        button = cake_carve_to(button, button_label_size, UI_FONT_SIZE_BUTTON);
+        DrawText(button_label, button.x, button.y, UI_FONT_SIZE_BUTTON, WHITE);
+
+        char * player_control_label = player->type == PLAYER_LOCAL ? "PC" : "CPU";
+        int player_control_label_size = MeasureText(player_control_label, UI_FONT_SIZE_BUTTON);
+        label = cake_carve_to(label, player_control_label_size, UI_FONT_SIZE_BUTTON);
+        DrawText(player_control_label, label.x, label.y, UI_FONT_SIZE_BUTTON, WHITE);
+
+        // select faction of this player
+        label = cake_cut_vertical(&faction_dropdowns[i], player_faction_size, 6);
+        label = cake_shrink_to(label, UI_FONT_SIZE_BUTTON);
+        DrawText(player_faction, label.x, label.y, UI_FONT_SIZE_BUTTON, WHITE);
+
+        faction_dropdowns[i] = cake_margin_all(faction_dropdowns[i], UI_BORDER_SIZE);
+
+        mouse_over = selected_player >= 0 ? 0 : CheckCollisionPointRec(mouse, faction_dropdowns[i]);
+        DrawRectangleRec(faction_dropdowns[i], BLACK);
+        DrawRectangleLinesEx(faction_dropdowns[i], UI_BORDER_SIZE, mouse_over ? GRAY : DARKGRAY);
+
+        label = faction_dropdowns[i];
+        button = cake_cut_vertical(&label, -label.height, 0);
+        DrawRectangleRec(button, mouse_over ? GRAY : DARKGRAY);
+        button = cake_carve_to(button, button_label_size, UI_FONT_SIZE_BUTTON);
+        DrawText(button_label, button.x, button.y, UI_FONT_SIZE_BUTTON, WHITE);
+
+        char * faction_name = faction_to_string(state->players.items[i + 1].faction);
+        int faction_name_size = MeasureText(faction_name, UI_FONT_SIZE_BUTTON);
+        label = cake_carve_to(label, faction_name_size, UI_FONT_SIZE_BUTTON);
+        DrawText(faction_name, label.x, label.y, UI_FONT_SIZE_BUTTON, WHITE);
+    }
+
+    if (selected_player >= 0) {
+        if (choosing) {
+            Rectangle dropdown = faction_dropdowns[selected_player];
+            dropdown.height = UI_FONT_SIZE_BUTTON * (FACTION_LAST + 1) + UI_FONT_SIZE_BUTTON * (FACTION_LAST * 0.5f) + UI_BORDER_SIZE * 4;
+            DrawRectangleRec(dropdown, BLACK);
+            DrawRectangleLinesEx(dropdown, UI_BORDER_SIZE, CheckCollisionPointRec(mouse, dropdown) ? GRAY : DARKGRAY);
+            dropdown = cake_margin_all(dropdown, UI_BORDER_SIZE * 2);
+
+            int clicked = 0;
+            for (usize i = 0; i <= FACTION_LAST; i++) {
+                Rectangle rect = cake_cut_horizontal(&dropdown, UI_FONT_SIZE_BUTTON, UI_FONT_SIZE_BUTTON * 0.5f);
+                int mouse_over = CheckCollisionPointRec(mouse, rect);
+                if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
+                    if (mouse_over) {
+                        state->players.items[selected_player + 1].faction = i;
+                        selected_player = -1;
+                        return;
+                    }
+                    clicked = 1;
+                }
+
+                rect = cake_carve_to(rect, MeasureText(faction_to_string(i), UI_FONT_SIZE_BUTTON), UI_FONT_SIZE_BUTTON);
+                DrawText(faction_to_string(i), rect.x, rect.y, UI_FONT_SIZE_BUTTON, mouse_over ? WHITE : GRAY);
+            }
+            if (clicked) {
+                selected_player = -1;
+                return;
+            }
+        }
+        else {
+            Rectangle dropdown = player_dropdowns[selected_player];
+            dropdown.height = UI_FONT_SIZE_BUTTON * 2 + UI_FONT_SIZE_BUTTON * 0.5f + UI_BORDER_SIZE * 4;
+            DrawRectangleRec(dropdown, BLACK);
+            DrawRectangleLinesEx(dropdown, UI_BORDER_SIZE, CheckCollisionPointRec(mouse, dropdown) ? GRAY : DARKGRAY);
+            dropdown = cake_margin_all(dropdown, UI_BORDER_SIZE * 2);
+            Rectangle pc_rect = cake_cut_horizontal(&dropdown, UI_FONT_SIZE_BUTTON, UI_FONT_SIZE_BUTTON * 0.5f);
+
+            if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
+                if (CheckCollisionPointRec(mouse, pc_rect)) {
+                    state->players.items[selected_player + 1].type = PLAYER_LOCAL;
+                    for (usize i = 0; i < map->player_count; i++) {
+                        if (i == (usize)selected_player) continue;
+                        if (PLAYER_LOCAL == state->players.items[i + 1].type) {
+                            state->players.items[i + 1].type = PLAYER_AI;
+                        }
+                    }
+                }
+                else if (CheckCollisionPointRec(mouse, dropdown)) {
+                    state->players.items[selected_player + 1].type = PLAYER_AI;
+                }
+                selected_player = -1;
+                return;
+            }
+            int mouse_over = CheckCollisionPointRec(mouse, pc_rect);
+            pc_rect = cake_carve_to(pc_rect, MeasureText("PC", UI_FONT_SIZE_BUTTON), UI_FONT_SIZE_BUTTON);
+            DrawText("PC", pc_rect.x, pc_rect.y, UI_FONT_SIZE_BUTTON, mouse_over ? WHITE : GRAY);
+
+            mouse_over = CheckCollisionPointRec(mouse, dropdown);
+            dropdown = cake_carve_to(dropdown, MeasureText("CPU", UI_FONT_SIZE_BUTTON), UI_FONT_SIZE_BUTTON);
+            DrawText("CPU", dropdown.x, dropdown.y, UI_FONT_SIZE_BUTTON, mouse_over ? WHITE : GRAY);
+        }
+    }
+    else if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
+        for (usize i = 0; i < map->player_count; i++) {
+            if (CheckCollisionPointRec(mouse, player_dropdowns[i])) {
+                selected_player = i;
+                choosing = 0;
+                return;
+            }
+            if (CheckCollisionPointRec(mouse, faction_dropdowns[i])) {
+                selected_player = i;
+                choosing = 1;
+                return;
+            }
+        }
+        selected_player = -1;
     }
 }
 int render_map_list (Rectangle area, ListMap * maps, usize from, usize len) {
