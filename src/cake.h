@@ -44,6 +44,10 @@ CAKE_RECT cake_cut_vertical     (CAKE_RECT * rect, float ratio, float spacing);
 CAKE_RECT cake_squish_to        (CAKE_RECT rect, float height);
 CAKE_RECT cake_squish_by        (CAKE_RECT rect, float height);
 
+// shrink functions decrease height of the rectangle by or to specified height, resulting rect is aligned to the center of the original
+CAKE_RECT cake_shrink_to        (CAKE_RECT rect, float height);
+CAKE_RECT cake_shrink_by        (CAKE_RECT rect, float height);
+
 // Diet functions shrink the rect by or to specified amount, keeping the rect in center
 CAKE_RECT cake_diet_to          (CAKE_RECT rect, float width);
 CAKE_RECT cake_diet_by          (CAKE_RECT rect, float width);
@@ -191,6 +195,27 @@ CAKE_RECT cake_squish_by (CAKE_RECT rect, float height) {
     }
     rect.height -= height;
     rect.y += height;
+    return rect;
+}
+CAKE_RECT cake_shrink_to (CAKE_RECT rect, float height) {
+    if (height >= rect.height) {
+        return rect;
+    }
+    if (height < 1.0f && height > -1.0f) {
+        height = rect.height * height;
+    }
+    float diff = rect.height - height;
+    return cake_shrink_by(rect, diff);
+}
+CAKE_RECT cake_shrink_by (CAKE_RECT rect, float height) {
+    if (height > rect.height) {
+        height = rect.height;
+    }
+    if (height < 1.0f && height > -1.0f) {
+        height = rect.height * height;
+    }
+    rect.height -= height;
+    rect.y += height * 0.5f;
     return rect;
 }
 
