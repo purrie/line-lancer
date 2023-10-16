@@ -70,13 +70,27 @@ void state_none (GameState * state) {
         return;
     }
 
-    if (path_by_position(&state->map, cursor, &state->selected_path)) {
+    Region * region = state->selected_region;
+    if (region_by_position(&state->map, cursor, &region)) {
         return;
     }
-    if (region_by_position(&state->map, cursor, &state->selected_region)) {
-        return;
+    if (region->player_id != player) return;
+    for (usize i = 0; i < region->paths.len; i++) {
+        Path * path = region->paths.items[i];
+        Vector2 point;
+        if (path->region_a == region) {
+            point = path->lines.items[0].a;
+        }
+        else {
+            point = path->lines.items[path->lines.len - 1].b;
+        }
+        if (CheckCollisionPointCircle(cursor, point, PATH_THICKNESS)) {
+            state->selected_region = region;
+            state->selected_path = path;
+            state->current_input = INPUT_CLICKED_PATH;
+            return;
+        }
     }
-    state->current_input = INPUT_CLICKED_PATH;
 }
 void state_clicked_building (GameState * state) {
     if (IsMouseButtonReleased(MOUSE_BUTTON_LEFT) == false) {
