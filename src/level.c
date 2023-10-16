@@ -619,15 +619,9 @@ void render_map_mesh (const GameState * state) {
 
         if (region->active_path < region->paths.len && region->player_id) {
             Path * active_path = region->paths.items[region->active_path];
-            Line end = active_path->region_a == region ? active_path->lines.items[0] :
-                (Line) { active_path->lines.items[active_path->lines.len - 1].b,
-                        active_path->lines.items[active_path->lines.len - 1].a };
-            Vector2 dir = Vector2Subtract(end.b, end.a);
-            dir = Vector2Perp(dir);
-            dir = Vector2Normalize(dir);
-            dir = Vector2Scale(dir, PATH_THICKNESS);
-            Vector2 flag_position = Vector2Add(end.a, dir);
-            DrawRing(flag_position, 2.0f, 6.0f, 0.0f, 360.0f, 8, get_player_color(region->player_id));
+            Vector2 end = active_path->region_a == region ? active_path->lines.items[0].a :
+                active_path->lines.items[active_path->lines.len - 1].b;
+            DrawRing(end, 2.0f, 6.0f, 0.0f, 360.0f, 8, get_player_color(region->player_id));
         }
 
     }
