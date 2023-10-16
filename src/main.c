@@ -51,7 +51,6 @@ ExecutionMode level_select (Assets * assets, GameState * game) {
 
         usize max_len = map_list.height / UI_FONT_SIZE_BUTTON;
         if (max_len > assets->maps.len) {
-            // TODO turn this into a generic selector widget
             int sel = render_map_list(map_list, &assets->maps, 0, assets->maps.len);
             if (sel >= 0) {
                 selected_map = sel;
