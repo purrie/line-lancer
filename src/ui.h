@@ -45,8 +45,9 @@ Result ui_building_buy_click    (const GameState * state, Vector2 cursor, Buildi
 MainMenuLayout main_menu_layout ();
 
 /* Rendering *****************************************************************/
-void          render_ingame_ui (const GameState * state);
-ExecutionMode render_main_menu ();
+void          render_interaction_hints (const GameState * state);
+void          render_ingame_ui         (const GameState * state);
+ExecutionMode render_main_menu         ();
 
 /* Component Rendering *******************************************************/
 void render_simple_map_preview (Rectangle area, Map * map, float region_size, float path_thickness);

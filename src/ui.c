@@ -55,6 +55,52 @@ float ui_spacing () {
     return 2.0f;
 }
 
+/* Helper UI *****************************************************************/
+void render_interaction (const GameState * state, Vector2 position, usize player) {
+    usize phase = FPS * 2;
+    unsigned char leftover = 255 - phase;
+    usize turning_point = phase / 2;
+    usize frame = state->turn % phase;
+    if (frame >= turning_point) frame = phase - frame;
+
+    Color col = get_player_color(player);
+    col.a = leftover + frame;
+    Color col2 = (Color){ 255, 255, 255, 0 };
+
+    DrawCircleGradient(position.x, position.y, NAV_GRID_SIZE * 3, col, col2);
+}
+void render_interaction_hints (const GameState * state) {
+    usize player;
+    if (get_local_player_index(state, &player)) return;
+
+    Vector2 mouse = GetMousePosition();
+    mouse = GetScreenToWorld2D(mouse, state->camera);
+    Building * b = get_building_by_position(&state->map, mouse);
+    if (b && b->region->player_id == player) {
+        render_interaction(state, b->position, player);
+    }
+
+    Region * region;
+    if (region_by_position(&state->map, mouse, &region)) {
+        return;
+    }
+    if (region->player_id != player) return;
+    for (usize i = 0; i < region->paths.len; i++) {
+        Path * path = region->paths.items[i];
+        Vector2 point;
+        if (path->region_a == region) {
+            point = path->lines.items[0].a;
+        }
+        else {
+            point = path->lines.items[path->lines.len - 1].b;
+        }
+        if (CheckCollisionPointCircle(mouse, point, PATH_THICKNESS)) {
+            render_interaction(state, point, player);
+            return;
+        }
+    }
+}
+
 /* In Game Menu **************************************************************/
 EmptyDialog empty_dialog (Vector2 position) {
     EmptyDialog result;
