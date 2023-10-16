@@ -347,6 +347,7 @@ void render_resource_bar (const GameState * state) {
     Rectangle rect_upkeep_per_second = mbar;
 
     DrawRectangleRec(bar, DARKGRAY);
+    DrawRectangleLinesEx(bar, UI_BORDER_SIZE, get_player_color(player_index));
     DrawText(gold_label , rect_gold_label.x, rect_gold_label.y, UI_FONT_SIZE_BAR, WHITE);
     DrawText(gold_value_label , rect_gold.x , rect_gold.y , UI_FONT_SIZE_BAR, WHITE);
 
