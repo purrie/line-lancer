@@ -48,7 +48,7 @@ Result   map_clone           (Map * dst, const Map * src);
 Result   map_prepare_to_play (Map * map);
 void     map_deinit          (Map * map);
 void     render_map          (Map * map);
-void     render_map_mesh     (Map * map);
+void     render_map_mesh     (const GameState * state);
 Region * map_get_region_at   (const Map * map, Vector2 point);
 
 float get_expected_income           (const Map * map, usize player);

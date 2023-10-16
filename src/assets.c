@@ -1,5 +1,6 @@
 #include <raylib.h>
 #include <raymath.h>
+#include <stdio.h>
 
 #include "mesh.h"
 #include "math.h"
@@ -905,6 +906,71 @@ Result load_particles (Texture2D * array) {
     }
     return SUCCESS;
 }
+Result load_buildings (Assets * assets) {
+    const char * factions[FACTION_LAST + 1] = {
+        "knight",
+        "mage"
+    };
+    const char * types[5] = {
+        "melee",
+        "range",
+        "support",
+        "special",
+        "money",
+    };
+    {
+        char * path = asset_path("buildings", "neutral-castle.png", &temp_alloc);
+        if (NULL == path) {
+            TraceLog(LOG_ERROR, "Temp allocator ran out of memory for joining paths");
+            return FAILURE;
+        }
+        assets->neutral_castle = LoadTexture(path);
+        if (0 == assets->neutral_castle.format) {
+            TraceLog(LOG_ERROR, "Failed to load neutral castle texture");
+            return FAILURE;
+        }
+        temp_free(path);
+    }
+    usize fac = FACTION_LAST + 1;
+    char name[64];
+    while (fac --> 0) {
+        snprintf(name, 64, "%s-castle.png", factions[fac]);
+        char * path = asset_path("buildings", name, &temp_alloc);
+        if (NULL == path) {
+            TraceLog(LOG_ERROR, "Failed to allocate path for %s", name);
+            return FAILURE;
+        }
+        assets->buildings[fac].castle = LoadTexture(path);
+        if (0 == assets->buildings[fac].castle.format) {
+            TraceLog(LOG_ERROR, "Failed to load %s", path);
+            return FAILURE;
+        }
+        usize build_count = 5;
+        Texture2D * buildable = &assets->buildings[fac].fighter[0];
+        while (build_count --> 0) {
+            usize level_count = BUILDING_MAX_LEVEL;
+            while (level_count --> 0) {
+                usize index = build_count * BUILDING_MAX_LEVEL + level_count;
+                snprintf(name, 64, "%s-%s-%zu.png", factions[fac], types[build_count], level_count + 1);
+                path = asset_path("buildings", name, &temp_alloc);
+                if (NULL == path) {
+                    TraceLog(LOG_ERROR, "Failed to allocate path for %s", name);
+                    return FAILURE;
+                }
+                buildable[index] = LoadTexture(path);
+                if (0 == buildable[index].format) {
+                    TraceLog(LOG_ERROR, "Failed to load texture: %s", path);
+                    return FAILURE;
+                }
+                temp_free(path);
+            }
+        }
+    }
+    return SUCCESS;
+}
 Result load_graphics (Assets * assets) {
-    return load_particles(assets->particles);
+    Result result = load_particles(assets->particles);
+    if (result != SUCCESS) return result;
+    result = load_buildings(assets);
+    return result;
 }

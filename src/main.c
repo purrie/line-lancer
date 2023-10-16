@@ -102,7 +102,7 @@ ExecutionMode play_mode (GameState * game) {
         game_tick(game);
 
         BeginMode2D(game->camera);
-            render_map_mesh(&game->map);
+            render_map_mesh(game);
             render_units(game);
             particles_render(game->particles_in_use.items, game->particles_in_use.len);
         EndMode2D();

@@ -368,16 +368,11 @@ void generate_map_mesh(Map * map) {
     TraceLog(LOG_INFO, "  Generating path mesh #%d", i);
     map->paths.items[i].model = generate_line_mesh(map->paths.items[i].lines, (float)PATH_THICKNESS, 3, LAYER_PATH);
   }
-  float b_size = building_size();
   for (usize i = 0; i < map->regions.len; i++) {
     TraceLog(LOG_INFO, "Generating region #%d", i);
     TraceLog(LOG_INFO, "  Generating region mesh");
     Region * region = &map->regions.items[i];
     region->area.model = generate_area_mesh(&region->area, LAYER_MAP);
 
-    for (usize b = 0; b < region->buildings.len; b++) {
-      TraceLog(LOG_INFO, "  Generating building mesh #%d", b);
-      region->buildings.items[b].model = generate_building_mesh(region->buildings.items[b].position, b_size, LAYER_BUILDING);
-    }
   }
 }

@@ -91,6 +91,7 @@ makeList(Region*, RegionP);
 typedef enum FactionType {
     FACTION_KNIGHTS = 0,
     FACTION_MAGES = 1,
+    FACTION_LAST = FACTION_MAGES,
 } FactionType;
 
 enum UnitType {
@@ -252,7 +253,6 @@ enum BuildingType {
 struct Building {
     Vector2        position;
     BuildingType   type;
-    Model          model;
     ushort         upgrades;
     float          spawn_timer;
     usize          units_spawned;
@@ -316,12 +316,22 @@ typedef enum {
     EXE_MODE_EXIT,
 } ExecutionMode;
 
+typedef struct {
+    Texture2D castle;
+    Texture2D fighter[3];
+    Texture2D archer[3];
+    Texture2D support[3];
+    Texture2D special[3];
+    Texture2D money[3];
+} BuildingSpriteSet;
+
 struct Assets {
     ListMap maps;
     Texture2D particles[PARTICLE_LAST + 1];
     Particle particle_pool[PARTICLES_MAX];
+    BuildingSpriteSet buildings[FACTION_LAST + 1];
+    Texture2D neutral_castle;
     // TODO fill assets:
-    // buildings
     // units
     // sound effects
     // music

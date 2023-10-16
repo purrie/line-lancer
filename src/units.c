@@ -597,7 +597,22 @@ void render_units (const GameState * state) {
 
     for (usize i = 0; i < state->map.regions.len; i++) {
         Region * region = &state->map.regions.items[i];
-        DrawCircleV(region->castle.position, 6.0f, RED);
+        Texture2D sprite;
+        if (region->player_id) {
+            sprite = state->resources->buildings[region->faction].castle;
+        }
+        else {
+            sprite = state->resources->neutral_castle;
+        }
+        Rectangle source = (Rectangle) { 0, 0, sprite.width, sprite.height };
+        Rectangle destination = (Rectangle){
+            region->castle.position.x,
+            region->castle.position.y,
+            NAV_GRID_SIZE * 2,
+            NAV_GRID_SIZE * 2,
+        };
+        Vector2 origin = (Vector2){ destination.width * 0.5f, destination.height * 0.5f };
+        DrawTexturePro(sprite, source, destination, origin, 0.0f, WHITE);
 
         particles_render_attacks(state, &region->castle);
         particles_render_effects(state, &region->castle);

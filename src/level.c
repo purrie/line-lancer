@@ -470,7 +470,6 @@ void region_deinit (Region * region) {
     for (usize b = 0; b < region->buildings.len; b++) {
         TraceLog(LOG_DEBUG, "  Deiniting building nr %zu", b);
         Building * building = &region->buildings.items[b];
-        UnloadModel(building->model);
         listWayPointDeinit(&building->spawn_points);
     }
     TraceLog(LOG_DEBUG, "  Releasing Buildings");
@@ -561,9 +560,9 @@ void render_map (Map * map) {
         }
     }
 }
-void render_map_mesh (Map * map) {
-    for (usize i = 0; i < map->regions.len; i++) {
-        Region * region = &map->regions.items[i];
+void render_map_mesh (const GameState * state) {
+    for (usize i = 0; i < state->map.regions.len; i++) {
+        const Region * region = &state->map.regions.items[i];
         DrawModel(region->area.model, Vector3Zero(), 1.0f, WHITE);
 
         for (usize l = 0; l < region->area.lines.len; l++) {
@@ -579,28 +578,42 @@ void render_map_mesh (Map * map) {
             DrawLineEx(line.a, line.b, 4.0f, get_player_color(region->player_id));
         }
 
-        ListBuilding * buildings = &region->buildings;
+        const ListBuilding * buildings = &region->buildings;
         for (usize b = 0; b < buildings->len; b++) {
             Building * building = &buildings->items[b];
+            const Texture2D * sprite = NULL;
             switch (building->type) {
                 case BUILDING_EMPTY: {
-                    DrawModel(building->model, Vector3Zero(), 1.0f, BLUE);
                 } break;
                 case BUILDING_FIGHTER: {
-                    DrawModel(building->model, Vector3Zero(), 1.0f, DARKBLUE);
+                    sprite = &state->resources->buildings[region->faction].fighter[building->upgrades];
                 } break;
                 case BUILDING_ARCHER: {
-                    DrawModel(building->model, Vector3Zero(), 1.0f, BROWN);
+                    sprite = &state->resources->buildings[region->faction].archer[building->upgrades];
                 } break;
                 case BUILDING_SUPPORT: {
-                    DrawModel(building->model, Vector3Zero(), 1.0f, DARKGREEN);
+                    sprite = &state->resources->buildings[region->faction].support[building->upgrades];
                 } break;
                 case BUILDING_SPECIAL: {
-                    DrawModel(building->model, Vector3Zero(), 1.0f, DARKPURPLE);
+                    sprite = &state->resources->buildings[region->faction].special[building->upgrades];
                 } break;
                 case BUILDING_RESOURCE: {
-                    DrawModel(building->model, Vector3Zero(), 1.0f, YELLOW);
+                    sprite = &state->resources->buildings[region->faction].money[building->upgrades];
                 } break;
+            }
+            if (sprite != NULL) {
+                Rectangle source = (Rectangle){ 0, 0, sprite->width, sprite->height };
+                Rectangle destination = (Rectangle){
+                    building->position.x,
+                    building->position.y,
+                    NAV_GRID_SIZE * 2,
+                    NAV_GRID_SIZE * 2
+                };
+                Vector2 origin = (Vector2){ destination.width * 0.5f, destination.height * 0.5f };
+                DrawTexturePro(*sprite, source, destination, origin, 0.0f, WHITE);
+            }
+            else {
+                DrawCircleGradient(building->position.x, building->position.y, UNIT_SIZE, GRAY, (Color){ 255, 255, 255, 0 });
             }
         }
 
@@ -620,8 +633,8 @@ void render_map_mesh (Map * map) {
     }
 
     #ifdef RENDER_PATHS
-    for (usize i = 0; i < map->paths.len; i++) {
-        Path * path = &map->paths.items[i];
+    for (usize i = 0; i < state->map.paths.len; i++) {
+        const Path * path = &state->map.paths.items[i];
         DrawModel(path->model, Vector3Zero(), 1.0f, ORANGE);
         #ifdef RENDER_PATHS_DEBUG
         for (usize l = 0; l < path->lines.len; l++) {
