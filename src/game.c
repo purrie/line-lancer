@@ -262,7 +262,10 @@ void move_units (GameState * state, float delta_time) {
                         .type = NAV_TARGET_REGION
                     };
                     if (nav_find_path(unit->waypoint, navtarget, &unit->pathfind)) {
-                        TraceLog(LOG_DEBUG, "Failed to find path to neighboring region");
+                        navtarget.region = path->region_a == region ? path->region_b : path->region_a;
+                        if (nav_find_path(unit->waypoint, navtarget, &unit->pathfind)) {
+                            TraceLog(LOG_DEBUG, "Failed to find path to neighboring region");
+                        }
                     }
                     continue;
                 }
@@ -279,7 +282,7 @@ void move_units (GameState * state, float delta_time) {
                             .type = NAV_TARGET_REGION
                         };
                         if (nav_find_path(unit->waypoint, navtarget, &unit->pathfind)) {
-                            TraceLog(LOG_DEBUG, "Failed to find path to neighboring region");
+                            goto go_idle;
                         }
                         continue;
                     }
