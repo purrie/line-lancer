@@ -260,7 +260,7 @@ void move_units (GameState * state, float delta_time) {
                         .type = NAV_TARGET_REGION
                     };
                     if (nav_find_path(unit->waypoint, navtarget, &unit->pathfind)) {
-                        TraceLog(LOG_ERROR, "Failed to find path to neighboring region");
+                        TraceLog(LOG_DEBUG, "Failed to find path to neighboring region");
                     }
                     continue;
                 }
@@ -277,7 +277,7 @@ void move_units (GameState * state, float delta_time) {
                             .type = NAV_TARGET_REGION
                         };
                         if (nav_find_path(unit->waypoint, navtarget, &unit->pathfind)) {
-                            TraceLog(LOG_ERROR, "Failed to find path to neighboring region");
+                            TraceLog(LOG_DEBUG, "Failed to find path to neighboring region");
                         }
                         continue;
                     }
@@ -294,7 +294,7 @@ void move_units (GameState * state, float delta_time) {
                             .type = NAV_TARGET_WAYPOINT
                         };
                         if (nav_find_path(unit->waypoint, navtarget, &unit->pathfind)) {
-                            TraceLog(LOG_ERROR, "Failed to find idling path inside region");
+                            TraceLog(LOG_DEBUG, "Failed to find idling path inside region");
                             unit->cooldown = FPS;
                         }
                         break;
@@ -316,7 +316,6 @@ void move_units (GameState * state, float delta_time) {
             case UNIT_STATE_MOVING: {
                 if (unit_reached_waypoint(unit)) {
                     if (unit_progress_path(unit)) {
-                        TraceLog(LOG_WARNING, "Failed to progress unit path");
                         unit->pathfind.len = 0;
                         continue;
                     }

@@ -170,7 +170,7 @@ ExecutionMode main_menu () {
 
 int main(void) {
     int result = 0;
-    SetTraceLogLevel(LOG_DEBUG);
+    SetTraceLogLevel(LOG_INFO);
 
     SetRandomSeed(time(0));
 
