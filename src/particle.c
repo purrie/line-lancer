@@ -202,7 +202,7 @@ void particles_magic (GameState * state, Unit * caster, Unit * target) {
             case FACTION_MAGES: {
                 particle->position = (Vector2){ GetRandomValue(-UNIT_SIZE * 10, UNIT_SIZE * 10) * 0.01f, GetRandomValue(UNIT_SIZE * 25, UNIT_SIZE * 50) * 0.01f };
                 particle->position = Vector2Add(particle->position, target->position);
-                particle->velocity = (Vector2){ GetRandomValue(-10, 10) * 0.1f, GetRandomValue(-20, -10) * 0.1f };
+                particle->velocity = (Vector2){ GetRandomValue(-10, 10) * 0.01f, GetRandomValue(-20, -10) * 0.01f };
                 particle->velocity_curve = curve_constant(1.0f);
                 particle->sprite = (Texture2D*)&state->resources->particles[PARTICLE_TORNADO];
             } break;
