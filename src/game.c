@@ -60,6 +60,7 @@ Test support_can_support (const Unit * unit, ListUnit * buffer) {
             }
             while (buffer->len --> 0) {
                 Unit * ally = buffer->items[buffer->len];
+                if (ally->type == UNIT_GUARDIAN) continue;
                 float damage = get_unit_wounds(ally);
                 if (damage > 1.0f && unit_has_effect(ally, MAGIC_HEALING, NULL) == NO) {
                     return YES;
@@ -72,6 +73,7 @@ Test support_can_support (const Unit * unit, ListUnit * buffer) {
             }
             while (buffer->len --> 0) {
                 Unit * enemy = buffer->items[buffer->len];
+                if (enemy->type == UNIT_GUARDIAN) continue;
                 if (unit_has_effect(enemy, MAGIC_WEAKNESS, NULL) == NO) {
                     return YES;
                 }
@@ -360,6 +362,7 @@ void units_support (GameState * state, float delta_time) {
                 float damage = -1.0f;
                 for (usize u = 0; u < buffer.len; u++) {
                     Unit * check = buffer.items[u];
+                    if (check->type == UNIT_GUARDIAN) continue;
                     if (unit_has_effect(check, MAGIC_HEALING, NULL))
                         continue;
                     float check_damage = get_unit_wounds(check);
@@ -390,6 +393,7 @@ void units_support (GameState * state, float delta_time) {
 
                 for (usize u = 0; u < buffer.len; u++) {
                     Unit * target = buffer.items[u];
+                    if (target->type == UNIT_GUARDIAN) continue;
                     if (unit_has_effect(unit, MAGIC_WEAKNESS, NULL))
                         continue;
                     MagicEffect magic;
