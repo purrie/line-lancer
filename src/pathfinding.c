@@ -519,7 +519,9 @@ Result nav_find_path (WayPoint * start, NavTarget target, ListWayPoint * result)
             if (neighbor->blocked || neighbor->unit) {
                 continue;
             }
+            // we are on border between graphs, either bordering two regions if they're too close, or on border of path and region
             if (neighbor->graph != point->graph) {
+                // borders between graphs of the same type are never valid
                 if (neighbor->graph->type == point->graph->type) {
                     continue;
                 }
@@ -534,7 +536,18 @@ Result nav_find_path (WayPoint * start, NavTarget target, ListWayPoint * result)
                         region = point->graph->region;
                         path = neighbor->graph->path;
                     }
+                    // avoid using path that are too close to region they aren't intended to be used for traversal onto
                     if (path->region_a != region && path->region_b != region) {
+                        continue;
+                    }
+
+                    Region * other;
+                    switch (target.type) {
+                        case NAV_TARGET_REGION: other = target.region; break;
+                        case NAV_TARGET_WAYPOINT: other = target.waypoint->graph->region; break;
+                    }
+                    // test if the region is either one where we started from or intend to end up at
+                    if (start->graph->region != region && other != region) {
                         continue;
                     }
                 }
