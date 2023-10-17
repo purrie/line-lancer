@@ -603,6 +603,10 @@ Result game_state_prepare (GameState * result, const Map * prefab) {
         return FAILURE;
     }
     TraceLog(LOG_INFO, "Preparing new map for gameplay");
+    for (usize r = 0; r < result->map.regions.len; r++) {
+        Region * region = &result->map.regions.items[r];
+        region->faction = result->players.items[region->player_id].faction;
+    }
     if (map_prepare_to_play(&result->map)) {
         TraceLog(LOG_ERROR, "Failed to finalize setup for map %s", prefab->name);
         map_deinit(&result->map);
@@ -633,12 +637,6 @@ Result game_state_prepare (GameState * result, const Map * prefab) {
     for (usize i = 1; i < result->players.len; i++) {
         result->players.items[i].resource_gold = 20;
     }
-
-    for (usize r = 0; r < result->map.regions.len; r++) {
-        Region * region = &result->map.regions.items[r];
-        region->faction = result->players.items[region->player_id].faction;
-    }
-
     return SUCCESS;
 }
 void game_state_deinit (GameState * state) {
