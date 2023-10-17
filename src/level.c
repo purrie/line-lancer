@@ -413,6 +413,14 @@ void path_deinit (Path * path) {
 }
 
 /* Region Functions **********************************************************/
+void region_reset_unit_pathfinding (Region * region) {
+    for (usize w = 0; w < region->nav_graph.waypoints.len; w++) {
+        WayPoint * point = region->nav_graph.waypoints.items[w];
+        if (point && point->unit && point->unit->player_owned == region->player_id) {
+            point->unit->pathfind.len = 0;
+        }
+    }
+}
 void region_change_ownership (GameState * state, Region * region, usize player_id) {
     region->player_id = player_id;
     region->faction = state->players.items[player_id].faction;

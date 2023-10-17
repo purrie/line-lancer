@@ -38,9 +38,10 @@ Building  * get_building_by_position (const Map * map, Vector2 position);
 Result path_by_position (const Map * map, Vector2 position, Path ** result);
 
 /* Region Functions ********************************************************/
-void     region_change_ownership (GameState * state, Region * region, usize player_id);
-Region * region_by_unit          (const Unit * guardian);
-Result   region_by_position      (const Map * map, Vector2 position, Region ** result);
+void     region_reset_unit_pathfinding (Region * region);
+void     region_change_ownership       (GameState * state, Region * region, usize player_id);
+Region * region_by_unit                (const Unit * guardian);
+Result   region_by_position            (const Map * map, Vector2 position, Region ** result);
 
 /* Map Functions *********************************************************/
 void     map_clamp           (Map * map);

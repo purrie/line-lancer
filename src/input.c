@@ -121,12 +121,7 @@ void state_clicked_path (GameState * state) {
             else {
                 state->selected_region->active_path = p;
             }
-            for (usize w = 0; w < state->selected_region->nav_graph.waypoints.len; w++) {
-                WayPoint * point = state->selected_region->nav_graph.waypoints.items[w];
-                if (point && point->unit && point->unit->player_owned == state->selected_region->player_id) {
-                    point->unit->pathfind.len = 0;
-                }
-            }
+            region_reset_unit_pathfinding(state->selected_region);
             break;
         }
     }

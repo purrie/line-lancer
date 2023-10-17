@@ -62,7 +62,10 @@ void redirect_region_paths (GameState * state, usize player_index, ListRegionP *
     // All regions in danger have disabled out routing so units can focus on defense
     for (usize d = 0; d < in_danger.len; d++) {
         Region * region = in_danger.items[d];
-        region->active_path = region->paths.len;
+        if (region->active_path != region->paths.len) {
+            region->active_path = region->paths.len;
+            region_reset_unit_pathfinding(region);
+        }
     }
 
     // Frontline regions send units to enemy regions
@@ -76,7 +79,10 @@ void redirect_region_paths (GameState * state, usize player_index, ListRegionP *
             }
             index = ( index + 1 ) % region->paths.len;
         }
-        region->active_path = index;
+        if (region->active_path != index) {
+            region->active_path = index;
+            region_reset_unit_pathfinding(region);
+        }
     }
 
     // safe regions prioritize sending units to regions in danger, when neighboring none of those, they send units out at random
@@ -102,13 +108,19 @@ void redirect_region_paths (GameState * state, usize player_index, ListRegionP *
             }
         }
         if (danger_zone) {
-            region->active_path = danger_index;
+            if (region->active_path != danger_index) {
+                region->active_path = danger_index;
+                region_reset_unit_pathfinding(region);
+            }
             goto next_safe;
         }
         usize time_offset = state->turn / (FPS * 60);
         usize index = (time_offset + player_seed) % ( region->paths.len + 1 );
-        region->active_path = index;
-        next_safe: {}
+        if (region->active_path != index) {
+            region->active_path = index;
+            region_reset_unit_pathfinding(region);
+        }
+    next_safe: {}
     }
 }
 void make_purchasing_decision (GameState * state, usize player_index, ListRegionP * ai_regions) {
