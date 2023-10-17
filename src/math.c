@@ -1,6 +1,6 @@
 #include "math.h"
 #include <raymath.h>
-
+#include <math.h>
 
 Vector2 Vector2Perp(Vector2 vec) {
    return (Vector2){
@@ -28,6 +28,10 @@ Vector2 Vector2Slerp(Vector2 v1, Vector2 v2, Vector2 pivot, float t) {
     p0 = Vector2Add(p0, p1);
     p0 = Vector2Add(p0, pivot);
     return p0;
+}
+
+float Vector2AngleHorizon(Vector2 direction) {
+    return atan2f(direction.y, direction.x);
 }
 
 Rectangle RectangleUnion(Rectangle a, Rectangle b) {

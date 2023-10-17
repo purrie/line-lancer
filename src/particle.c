@@ -1,5 +1,6 @@
 #include "particle.h"
 #include "std.h"
+#include "math.h"
 #include "constants.h"
 #include <raymath.h>
 
@@ -272,11 +273,15 @@ void particles_render_attacks (const GameState * state, Unit * attacked) {
     if (attacked->incoming_attacks.len == 0)
         return;
 
+    const float size = 4;
+    const float half_size = size * 0.5f;
+
     for (usize i = 0; i < attacked->incoming_attacks.len; i++) {
         Attack * attack = &attacked->incoming_attacks.items[i];
         float t = attack->timer / attack->delay;
 
         Vector2 attack_position;
+        Vector2 origin;
         float attack_rotation;
         ParticleType attack_type;
 
@@ -286,7 +291,7 @@ void particles_render_attacks (const GameState * state, Unit * attacked) {
                     case UNIT_FIGHTER: attack_type = PARTICLE_SLASH; goto straight;
                     case UNIT_ARCHER:
                     case UNIT_GUARDIAN: attack_type = PARTICLE_ARROW; goto arc;
-                    case UNIT_SUPPORT: attack_type = PARTICLE_SYMBOL; goto straight;
+                    case UNIT_SUPPORT: attack_type = PARTICLE_SYMBOL; goto no_rotation;
                     case UNIT_SPECIAL: attack_type = PARTICLE_SLASH_2; goto straight;
                 }
             } break;
@@ -295,7 +300,7 @@ void particles_render_attacks (const GameState * state, Unit * attacked) {
                     case UNIT_FIGHTER: attack_type = PARTICLE_FIST; goto straight;
                     case UNIT_ARCHER:
                     case UNIT_GUARDIAN: attack_type = PARTICLE_FIREBALL; goto straight;
-                    case UNIT_SUPPORT: attack_type = PARTICLE_TORNADO; goto straight;
+                    case UNIT_SUPPORT: attack_type = PARTICLE_TORNADO; goto no_rotation;
                     case UNIT_SPECIAL: attack_type = PARTICLE_THUNDERBOLT; goto straight;
                 }
             } break;
@@ -303,30 +308,42 @@ void particles_render_attacks (const GameState * state, Unit * attacked) {
 
         if (0) {
             arc:
+            origin = (Vector2) { size - 1.0f , half_size };
             attack_position = Vector2Lerp(attack->origin_position, attacked->position, 0.5);
             AnimationCurve curve = {
                 .start = attack->origin_position,
-                .start_handle = Vector2Add(attack_position, (Vector2){ 0.0f, -UNIT_SIZE * 2.0f }),
-                .end_handle = Vector2Add(attacked->position, (Vector2){0.0f, -UNIT_SIZE * 2.0f }),
+                .start_handle = Vector2Add(attack_position, (Vector2){ 0.0f, -NAV_GRID_SIZE * 2.0f }),
+                .end_handle = Vector2Add(attacked->position, (Vector2){ 0.0f, -NAV_GRID_SIZE * 4.0f }),
                 .end = attacked->position,
             };
             attack_position = animation_curve_position(curve, t);
-            attack_rotation = Vector2Angle(
-                (Vector2){ attacked->position.x < attack->origin_position.x ? 1.0f : -1.0f , 0.0f },
-                Vector2Normalize(Vector2Subtract(animation_curve_position(curve, t + GetFrameTime()), attack_position))
-            );
+            attack_rotation = Vector2AngleHorizon(
+                Vector2Normalize(
+                    Vector2Subtract(
+                        animation_curve_position(curve, t + GetFrameTime()),
+                        attack_position)));
+
+            attack_rotation *= RAD2DEG;
         }
         if (0) {
             straight:
+            origin = (Vector2) { half_size, half_size };
             attack_position = Vector2Lerp(attack->origin_position, attacked->position, t);
-            attack_rotation = Vector2Angle((Vector2) { 1, 0 }, Vector2Subtract(attacked->position, attack->origin_position));
+            attack_rotation = Vector2AngleHorizon(Vector2Subtract(attacked->position, attack->origin_position));
+            attack_rotation *= RAD2DEG;
         }
-        attack_rotation *= RAD2DEG;
+        if (0) {
+            no_rotation:
+            origin = (Vector2) { half_size, half_size };
+            attack_position = Vector2Lerp(attack->origin_position, attacked->position, t);
+            attack_rotation = 0.0f;
+        }
 
-        Rectangle rec = (Rectangle){ attack_position.x - 2, attack_position.y - 2, 4, 4};
         Texture2D sprite = state->resources->particles[attack_type];
+        Rectangle source = (Rectangle){ 0, 0, sprite.width, attack->origin_position.x > attacked->position.x ? -sprite.height : sprite.height };
+        Rectangle target = (Rectangle){ attack_position.x - half_size, attack_position.y - half_size, size, size};
 
-        DrawTexturePro(sprite, (Rectangle){ 0, 0, sprite.width, sprite.height }, rec, (Vector2){2,2}, attack_rotation, WHITE);
+        DrawTexturePro(sprite, source, target, origin, attack_rotation, WHITE);
     }
 }
 void particles_render_effects (const GameState * state, Unit * unit) {
