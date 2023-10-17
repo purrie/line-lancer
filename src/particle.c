@@ -340,7 +340,7 @@ void particles_render_attacks (const GameState * state, Unit * attacked) {
         }
 
         Texture2D sprite = state->resources->particles[attack_type];
-        Rectangle source = (Rectangle){ 0, 0, sprite.width, attack->origin_position.x > attacked->position.x ? -sprite.height : sprite.height };
+        Rectangle source = (Rectangle){ 0, 0, sprite.width, ( attack_rotation >= 90.0f ) || (attack_rotation <= -90.0f) ? -sprite.height : sprite.height };
         Rectangle target = (Rectangle){ attack_position.x - half_size, attack_position.y - half_size, size, size};
 
         DrawTexturePro(sprite, source, target, origin, attack_rotation, WHITE);
