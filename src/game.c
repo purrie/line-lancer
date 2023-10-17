@@ -522,13 +522,13 @@ void process_effects (GameState * state, float delta_time) {
             switch (effect->type) {
                 case MAGIC_HEALING: {
                     float max_health = get_unit_health(unit->type, unit->faction, unit->upgrade);
-                    float healing = effect->strength * delta_time;
+                    float healing = effect->strength <= delta_time ? delta_time : effect->strength * delta_time;
                     float healed = unit->health + healing;
                     unit->health = max_health < healed ? max_health : healed;
                     effect->strength -= healing;
                 } break;
                 case MAGIC_HELLFIRE: {
-                    float damage = effect->strength * delta_time;
+                    float damage = effect->strength <= delta_time ? delta_time : effect->strength * delta_time;
                     unit->health -= damage;
                     effect->strength -= damage;
                     if (unit->health <= 0.0f) {
@@ -545,40 +545,6 @@ void process_effects (GameState * state, float delta_time) {
             }
         }
         next: {}
-    }
-
-    for (usize i = 0; i < state->map.regions.len; i++) {
-        Region * region = &state->map.regions.items[i];
-        Unit * guardian = &region->castle;
-        usize e = guardian->effects.len;
-        while (e --> 0) {
-            MagicEffect * effect = &guardian->effects.items[e];
-            switch (effect->type) {
-                case MAGIC_HEALING: {
-                    float max_health = get_unit_health(guardian->type, guardian->faction, guardian->upgrade);
-                    float healed = guardian->health + effect->strength;
-                    guardian->health = max_health < healed ? max_health : healed;
-                    effect->strength = -1.0f;
-                } break;
-                case MAGIC_HELLFIRE: {
-                    float damage = effect->strength * delta_time;
-                    guardian->health -= damage;
-                    effect->strength -= damage;
-                    if (guardian->health <= 0.0f) {
-                        region_change_ownership(state, region, effect->source_player);
-                        goto next_guard;
-                    }
-
-                } break;
-                default: {
-                    effect->strength -= delta_time;
-                } break;
-            }
-            if (effect->strength <= 0.0f) {
-                listMagicEffectRemove(&guardian->effects, e);
-            }
-        }
-        next_guard: {}
     }
 }
 void simulate_units (GameState * state) {
