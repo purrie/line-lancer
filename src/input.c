@@ -213,6 +213,7 @@ void state_map_movement (GameState * state) {
 
     Vector2 cursor = GetMousePosition();
     Vector2 move = Vector2Subtract(cursor, state->selected_point);
+    move = Vector2Scale(move, 1.0f / state->camera.zoom);
     state->camera.target = Vector2Subtract(state->camera.target, move);
     state->selected_point = cursor;
 
