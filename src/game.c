@@ -591,7 +591,7 @@ Camera2D setup_camera(Map * map) {
     Camera2D cam = {0};
     Vector2 map_size;
     map_size.x = (GetScreenWidth()  - 20.0f) / (float)map->width;
-    map_size.y = (GetScreenHeight() - 20.0f) / (float)map->height;
+    map_size.y = (GetScreenHeight() - 20.0f - UI_BAR_SIZE) / (float)map->height;
     cam.zoom   = (map_size.x < map_size.y) ? map_size.x : map_size.y;
 
     cam.offset = (Vector2) { GetScreenWidth() / 2 , GetScreenHeight() / 2 };
