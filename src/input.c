@@ -32,6 +32,16 @@ void clamp_camera (GameState * state) {
 void camera_zoom (GameState * state) {
     float wheel = GetMouseWheelMove();
     state->camera.zoom += wheel * 0.1f;
+
+    Vector2 map_size;
+    map_size.x = (GetScreenWidth()  - 20.0f) / (float)state->map.width;
+    map_size.y = (GetScreenHeight() - 20.0f - UI_BAR_SIZE) / (float)state->map.height;
+    float minz = (map_size.x < map_size.y) ? map_size.x : map_size.y;
+    if (state->camera.zoom < minz) state->camera.zoom = minz;
+
+    float maxz = 10.0f;
+    if (state->camera.zoom > maxz) state->camera.zoom = maxz;
+
     clamp_camera(state);
 }
 
