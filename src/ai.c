@@ -141,54 +141,60 @@ void make_purchasing_decision (GameState * state, usize player_index, ListRegion
     float upkeep = get_expected_maintenance_cost(&state->map, player_index);
 
     BuildingType wanted_building = BUILDING_EMPTY;
+    usize wanted_building_upgrade_level = 0;
     bool wanted_upgrade = false;
+
+    usize buildings_empty_count = 0;
+    usize buildings_unupgraded_count = 0;
+    usize buildings_first_level_count = 0;
+    usize buildings_second_level_count = 0;
+    usize buildings_total = 0;
+    usize buildings_unupgraded_spread[BUILDING_TYPE_LAST + 1] = {0};
+    usize buildings_first_level_spread[BUILDING_TYPE_LAST + 1] = {0};
+    usize buildings_second_level_spread[BUILDING_TYPE_LAST + 1] = {0};
+
+
+    for (usize r = 0; r < ai_regions->len; r++) {
+        for (usize b = 0; b < ai_regions->items[r]->buildings.len; b++) {
+            Building * building = &ai_regions->items[r]->buildings.items[b];
+
+            switch (building->type) {
+                case BUILDING_FIGHTER:
+                case BUILDING_ARCHER:
+                case BUILDING_SUPPORT:
+                case BUILDING_SPECIAL:
+                    buildings_total += 1;
+                    goto count_individual;
+                case BUILDING_RESOURCE:
+                    count_individual:
+                    switch(building->upgrades) {
+                        case 0:
+                            buildings_unupgraded_count += 1;
+                            buildings_unupgraded_spread[building->type] += 1;
+                            break;
+                        case 1:
+                            buildings_first_level_count += 1;
+                            buildings_first_level_spread[building->type] += 1;
+                            break;
+                        case 2:
+                            buildings_second_level_count += 1;
+                            buildings_second_level_spread[building->type] += 1;
+                            break;
+                    }
+                    break;
+                case BUILDING_EMPTY:
+                    buildings_empty_count += 1;
+            }
+        }
+    }
 
     // choose what to buy
     if (upkeep + 0.3f >= income) {
         wanted_building = BUILDING_RESOURCE;
+        wanted_upgrade = buildings_empty_count == 0;
+        wanted_building_upgrade_level = buildings_unupgraded_spread[BUILDING_RESOURCE] == 0;
     }
     else {
-        usize buildings_empty_count = 0;
-        usize buildings_unupgraded_count = 0;
-        usize buildings_first_level_count = 0;
-        usize buildings_second_level_count = 0;
-        usize buildings_total = 0;
-        usize buildings_unupgraded_spread[BUILDING_TYPE_LAST] = {0};
-        usize buildings_first_level_spread[BUILDING_TYPE_LAST] = {0};
-        usize buildings_second_level_spread[BUILDING_TYPE_LAST] = {0};
-
-
-        for (usize r = 0; r < ai_regions->len; r++) {
-            for (usize b = 0; b < ai_regions->items[r]->buildings.len; b++) {
-                Building * building = &ai_regions->items[r]->buildings.items[b];
-
-                switch (building->type) {
-                    case BUILDING_FIGHTER:
-                    case BUILDING_ARCHER:
-                    case BUILDING_SUPPORT:
-                    case BUILDING_SPECIAL:
-                        buildings_total += 1;
-                        switch(building->upgrades) {
-                            case 0:
-                                buildings_unupgraded_count += 1;
-                                buildings_unupgraded_spread[building->type] += 1;
-                                break;
-                            case 1:
-                                buildings_first_level_count += 1;
-                                buildings_first_level_spread[building->type] += 1;
-                                break;
-                            case 2:
-                                buildings_second_level_count += 1;
-                                buildings_second_level_spread[building->type] += 1;
-                                break;
-                        }
-                        break;
-                    case BUILDING_EMPTY:
-                        buildings_empty_count += 1;
-                    case BUILDING_RESOURCE: break;
-                }
-            }
-        }
 
         if (buildings_total == 0) {
             wanted_building = BUILDING_FIGHTER;
@@ -204,6 +210,7 @@ void make_purchasing_decision (GameState * state, usize player_index, ListRegion
                 return;
             }
         }
+        // TODO after unit balance pass, ensure AI properly chooses when to upgrade vs when to buy
 
         if (wanted_upgrade == false) {
             BuildingType try_wanted = BUILDING_FIGHTER;
@@ -221,51 +228,34 @@ void make_purchasing_decision (GameState * state, usize player_index, ListRegion
                 }
                 try_wanted += 1;
             }
-        }
-
-        for (BuildingType try = BUILDING_FIGHTER; try < BUILDING_TYPE_LAST; try ++) {
-            usize count = buildings_first_level_spread[try];
-            for (BuildingType against = try + 1; against < BUILDING_TYPE_LAST; against ++) {
-                usize against_count = buildings_first_level_spread[against];
-                if (count < against_count)
-                    goto next_first_try;
-            }
-            wanted_building = try;
+            wanted_building = BUILDING_SPECIAL;
             goto building_chosen;
-            next_first_try: {}
         }
 
-        for (BuildingType try = BUILDING_FIGHTER; try < BUILDING_TYPE_LAST; try ++) {
-            usize count = buildings_second_level_spread[try];
-            for (BuildingType against = try + 1; against < BUILDING_TYPE_LAST; against ++) {
-                usize against_count = buildings_second_level_spread[against];
-                if (count < against_count)
-                    goto next_second_try;
+        wanted_building = BUILDING_FIGHTER;
+
+        for (BuildingType try = BUILDING_ARCHER; try < BUILDING_TYPE_LAST; try ++) {
+            if (buildings_unupgraded_spread[wanted_building] < buildings_unupgraded_spread[try]) {
+                wanted_building = try;
             }
-            wanted_building = try;
-            goto building_chosen;
-            next_second_try: {}
         }
 
-        // fallback
-        if (wanted_upgrade == false) {
+        if (buildings_unupgraded_spread[wanted_building] == 0) {
             wanted_building = BUILDING_FIGHTER;
+            for (BuildingType try = BUILDING_ARCHER; try < BUILDING_TYPE_LAST; try ++) {
+                if (buildings_first_level_spread[wanted_building] < buildings_first_level_spread[try]) {
+                    wanted_building = try;
+                }
+            }
+
+            if (buildings_first_level_spread[wanted_building] == 0) {
+                TraceLog(LOG_INFO, "Nothing to upgrade for AI #%zu", player_index);
+                return;
+            }
+            wanted_building_upgrade_level = 1;
         }
         else {
-            for (BuildingType try = BUILDING_FIGHTER; try < BUILDING_TYPE_LAST; try ++) {
-                usize count = buildings_first_level_spread[try];
-                if (count > 0) {
-                    wanted_building = try;
-                    goto building_chosen;
-                }
-            }
-            for (BuildingType try = BUILDING_FIGHTER; try < BUILDING_TYPE_LAST; try ++) {
-                usize count = buildings_second_level_spread[try];
-                if (count > 0) {
-                    wanted_building = try;
-                    goto building_chosen;
-                }
-            }
+            wanted_building_upgrade_level = 0;
         }
     }
 
@@ -285,7 +275,7 @@ void make_purchasing_decision (GameState * state, usize player_index, ListRegion
             for (usize b = 0; b < region->buildings.len; b++) {
                 Building * building = &region->buildings.items[b];
 
-                if (building->type != wanted_building || building->upgrades == BUILDING_MAX_UPGRADES) {
+                if (building->type != wanted_building || building->upgrades != wanted_building_upgrade_level) {
                     continue;
                 }
 
@@ -319,6 +309,7 @@ void make_purchasing_decision (GameState * state, usize player_index, ListRegion
                 return;
             }
         }
+        TraceLog(LOG_ERROR, "AI #%zu wanted to buy building %d but couldn't find empty spot for it", player_index, wanted_building);
     }
 
 }
