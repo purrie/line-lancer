@@ -595,7 +595,7 @@ Camera2D setup_camera(Map * map) {
     cam.zoom   = (map_size.x < map_size.y) ? map_size.x : map_size.y;
 
     cam.offset = (Vector2) { GetScreenWidth() / 2 , GetScreenHeight() / 2 };
-    cam.target = (Vector2) { map->width / 2       , map->height / 2 };
+    cam.target = (Vector2) { map->width / 2       , map->height / 2 - UI_BAR_SIZE * 0.5f };
 
     return cam;
 }
