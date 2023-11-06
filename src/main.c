@@ -38,6 +38,8 @@ ExecutionMode level_select (Assets * assets, GameState * game) {
         BeginDrawing();
         ClearBackground(black);
 
+        UpdateMusicStream(assets->main_theme);
+
         Rectangle screen = cake_rect(GetScreenWidth(), GetScreenHeight());
         screen = cake_margin_all(screen, 20);
         Rectangle map_list = cake_cut_vertical(&screen, 0.3f, 10);
@@ -110,9 +112,16 @@ ExecutionMode level_select (Assets * assets, GameState * game) {
 }
 ExecutionMode play_mode (GameState * game) {
     // TODO make way of exiting to main menu through UI
+    usize player;
+    if (get_local_player_index(game, &player)) {
+        player = 1;
+    }
+    Music theme = game->resources->faction_themes[game->players.items[player].faction];
+    PlayMusicStream(theme);
     while (!WindowShouldClose()) {
         BeginDrawing();
         ClearBackground(black);
+        UpdateMusicStream(theme);
         game_tick(game);
 
         BeginMode2D(game->camera);
@@ -127,9 +136,10 @@ ExecutionMode play_mode (GameState * game) {
         temp_reset();
     }
     game_state_deinit(game);
+    StopMusicStream(theme);
     return EXE_MODE_MAIN_MENU;
 }
-ExecutionMode main_menu () {
+ExecutionMode main_menu (Assets * assets) {
     Color bg = DARKBLUE;
     Color hover = BLUE;
     Color frame = BLACK;
@@ -141,6 +151,8 @@ ExecutionMode main_menu () {
             mode = EXE_MODE_EXIT;
             break;
         }
+        UpdateMusicStream(assets->main_theme);
+
         MainMenuLayout layout = main_menu_layout();
         Vector2 cursor = GetMousePosition();
 
@@ -164,7 +176,6 @@ ExecutionMode main_menu () {
         temp_reset();
     }
 
-
     return mode;
 }
 
@@ -175,6 +186,8 @@ int main(void) {
     SetRandomSeed(time(0));
 
     InitWindow(WINDOW_WIDTH, WINDOW_HEIGHT, "Hello!");
+
+    InitAudioDevice();
 
     {
         BeginDrawing();
@@ -204,8 +217,13 @@ int main(void) {
         TraceLog(LOG_FATAL, "Failed to load graphics");
         goto close;
     }
+    if (load_music(&game_assets)) {
+        TraceLog(LOG_FATAL, "Failed to load music");
+        goto close;
+    }
 
     SetTargetFPS(FPS);
+    PlayMusicStream(game_assets.main_theme);
     while (mode != EXE_MODE_EXIT) {
         if (WindowShouldClose()) {
             break;
@@ -214,10 +232,14 @@ int main(void) {
         game_state.resources = &game_assets;
         switch (mode) {
             case EXE_MODE_IN_GAME: {
+                StopMusicStream(game_assets.main_theme);
                 mode = play_mode(&game_state);
+                if (EXE_MODE_MAIN_MENU == mode || EXE_MODE_SINGLE_PLAYER_MAP_SELECT == mode) {
+                    PlayMusicStream(game_assets.main_theme);
+                }
             } break;
             case EXE_MODE_MAIN_MENU: {
-                mode = main_menu();
+                mode = main_menu(&game_assets);
             } break;
             case EXE_MODE_SINGLE_PLAYER_MAP_SELECT: {
                 mode = level_select(&game_assets, &game_state);
@@ -232,6 +254,7 @@ int main(void) {
 
     assets_deinit(&game_assets);
 
+    CloseAudioDevice();
     CloseWindow();
     return result;
 }

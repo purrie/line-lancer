@@ -157,6 +157,10 @@ void assets_deinit (Assets * assets) {
     }
     listMapDeinit(&assets->maps);
     assets->maps = (ListMap){0};
+    for (usize i = 0; i <= FACTION_LAST; i++) {
+        UnloadMusicStream(assets->faction_themes[i]);
+    }
+    UnloadMusicStream(assets->main_theme);
 }
 
 /* Json Handling *************************************************************/
@@ -899,7 +903,7 @@ Result load_particles (Texture2D * array) {
     for (int i = 0; i <= PARTICLE_LAST; i++) {
         char * path = asset_path("particles", paths[i], &temp_alloc);
         if (NULL == path) {
-            TraceLog(LOG_WARNING, "Temp allocator ran out of memory for joining paths");
+            TraceLog(LOG_ERROR, "Temp allocator ran out of memory for joining paths");
             return FAILURE;
         }
         array[i] = LoadTexture(path);
@@ -978,4 +982,44 @@ Result load_graphics (Assets * assets) {
     if (result != SUCCESS) return result;
     result = load_buildings(assets);
     return result;
+}
+
+/* Sounds ********************************************************************/
+Result load_music (Assets * assets) {
+    TraceLog(LOG_INFO, "Loading Music");
+    const char * paths[FACTION_LAST + 1] = {
+        "knights.xm",
+        "mages.xm",
+    };
+
+    for (int i = 0; i <= FACTION_LAST; i++) {
+        char * path = asset_path("music", paths[i], &temp_alloc);
+        TraceLog(LOG_INFO, "  Loading %s", path);
+        if (NULL == path) {
+            TraceLog(LOG_ERROR, "Temp allocator ran out of memory for joining music paths");
+            return FAILURE;
+        }
+        assets->faction_themes[i] = LoadMusicStream(path);
+        if (assets->faction_themes[i].frameCount == 0) {
+            TraceLog(LOG_ERROR, "Failed to load music from %s", path);
+            return FAILURE;
+        }
+        temp_free(path);
+    }
+
+    char * path = asset_path("music", "title.xm", &temp_alloc);
+    TraceLog(LOG_INFO, "  Loading %s", path);
+    if (NULL == path) {
+        TraceLog(LOG_ERROR, "Temp allocator ran out of memory for joining title music path");
+        return FAILURE;
+    }
+    assets->main_theme = LoadMusicStream(path);
+    if (assets->main_theme.frameCount == 0) {
+        TraceLog(LOG_ERROR, "Failed to load main theme");
+        return FAILURE;
+    }
+    temp_free(path);
+
+    TraceLog(LOG_INFO, "Music loaded");
+    return SUCCESS;
 }

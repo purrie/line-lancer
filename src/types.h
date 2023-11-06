@@ -331,10 +331,11 @@ struct Assets {
     Particle particle_pool[PARTICLES_MAX];
     BuildingSpriteSet buildings[FACTION_LAST + 1];
     Texture2D neutral_castle;
+    Music faction_themes[FACTION_LAST + 1];
+    Music main_theme;
     // TODO fill assets:
     // units
     // sound effects
-    // music
     // region graphics
 };
 

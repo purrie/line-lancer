@@ -12,4 +12,7 @@ Result load_graphics (Assets * assets);
 void   assets_deinit (Assets * assets);
 char * file_name_from_path (char * path, Alloc alloc);
 
+/* Audio *********************************************************************/
+Result load_music (Assets * assets);
+
 #endif // ASSETS_H_
