@@ -333,6 +333,7 @@ struct Assets {
     Texture2D neutral_castle;
     Music faction_themes[FACTION_LAST + 1];
     Music main_theme;
+    Texture2D ground_texture;
     // TODO fill assets:
     // units
     // sound effects

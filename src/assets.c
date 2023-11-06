@@ -132,6 +132,7 @@ char * file_name_from_path (char * path, Alloc alloc) {
 }
 char * asset_path (const char * target_folder, const char * file, Alloc alloc) {
     #ifdef RELEASE
+    TODO apply path from OS appropriate place
     #else
     char * assets_path = "assets/";
     usize assets_len = string_length(assets_path);
@@ -977,10 +978,25 @@ Result load_buildings (Assets * assets) {
     }
     return SUCCESS;
 }
+Result load_backgrounds (Assets * assets) {
+    char * path = asset_path("backgrounds", "grass.png", &temp_alloc);
+    if (NULL == path) {
+        TraceLog(LOG_ERROR, "Temp allocator failed to allocate path for backgrounds");
+        return FAILURE;
+    }
+    assets->ground_texture = LoadTexture(path);
+    if (0 == assets->ground_texture.format) {
+        TraceLog(LOG_ERROR, "Failed to load background");
+        return FAILURE;
+    }
+    return SUCCESS;
+}
 Result load_graphics (Assets * assets) {
     Result result = load_particles(assets->particles);
     if (result != SUCCESS) return result;
     result = load_buildings(assets);
+    if (result != SUCCESS) return result;
+    result = load_backgrounds(assets);
     return result;
 }
 

@@ -610,7 +610,7 @@ Result game_state_prepare (GameState * result, const Map * prefab) {
         Region * region = &result->map.regions.items[r];
         region->faction = result->players.items[region->player_id].faction;
     }
-    if (map_prepare_to_play(&result->map)) {
+    if (map_prepare_to_play(result->resources, &result->map)) {
         TraceLog(LOG_ERROR, "Failed to finalize setup for map %s", prefab->name);
         map_deinit(&result->map);
         return FAILURE;

@@ -861,12 +861,19 @@ void map_subdivide_paths (Map * map) {
     bevel_lines(&map->regions.items[i].area.lines, MAP_BEVEL, depth, true);
   }
 }
-Result map_prepare_to_play (Map * map) {
+void map_apply_textures (const Assets * assets, Map * map) {
+    for (usize i = 0; i < map->regions.len; i++) {
+        Material * mat = map->regions.items[i].area.model.materials;
+        SetMaterialTexture(mat, MATERIAL_MAP_DIFFUSE, assets->ground_texture);
+    }
+}
+Result map_prepare_to_play (const Assets * assets, Map * map) {
   map_clamp(map);
   map_subdivide_paths(map);
   if(map_make_connections(map)) {
     return FAILURE;
   }
   generate_map_mesh(map);
+  map_apply_textures(assets, map);
   return SUCCESS;
 }

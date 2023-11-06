@@ -6,65 +6,28 @@
 #include "level.h"
 #include "constants.h"
 
-Model generate_building_mesh(const Vector2 pos, const float b_size, const float layer) {
-  Mesh mesh = {0};
-
-  {
-    usize vcount = 4;
-    mesh.vertexCount = vcount;
-    mesh.vertices = MemAlloc(sizeof(float) * 3 * mesh.vertexCount);
-
-    for (usize i = 0; i < vcount; i++) {
-      mesh.vertices[i * 3 + 2] = layer;
-    }
-    float half_size = b_size * 0.5f;
-
-    mesh.vertices[0] = pos.x - half_size;
-    mesh.vertices[1] = pos.y - half_size;
-
-    mesh.vertices[3] = pos.x + half_size;
-    mesh.vertices[4] = pos.y - half_size;
-
-    mesh.vertices[6] = pos.x - half_size;
-    mesh.vertices[7] = pos.y + half_size;
-
-    mesh.vertices[9]  = pos.x + half_size;
-    mesh.vertices[10] = pos.y + half_size;
+/* Utilities *****************************************************************/
+Test is_clockwise (Vector2 a, Vector2 b, Vector2 c) {
+  double val = 0.0;
+  val = (b.x * c.y + a.x * b.y + a.y * c.x) - (a.y * b.x + b.y * c.x + a.x * c.y);
+  return val > 0.0f ? YES : NO;
+}
+Test is_area_clockwise(const Area * area) {
+  unsigned int cl = 0;
+  unsigned int cc = 0;
+  for (usize i = 0; i < area->lines.len; i++) {
+    Vector2 a = area->lines.items[i].a;
+    Vector2 b = area->lines.items[(i + 1) % area->lines.len].a;
+    Vector2 c = area->lines.items[(i + 2) % area->lines.len].a;
+    if (is_clockwise(a, b, c))
+      cl ++;
+    else
+      cc ++;
   }
-
-  {
-    mesh.texcoords = MemAlloc(sizeof(float) * 2 * mesh.vertexCount);
-    mesh.texcoords[0] = 0.0f;
-    mesh.texcoords[1] = 0.0f;
-
-    mesh.texcoords[2] = 1.0f;
-    mesh.texcoords[3] = 0.0f;
-
-    mesh.texcoords[4] = 0.0f;
-    mesh.texcoords[5] = 1.0f;
-
-    mesh.texcoords[6] = 1.0f;
-    mesh.texcoords[7] = 1.0f;
-  }
-
-  {
-    mesh.triangleCount = 2;
-    mesh.indices = MemAlloc(sizeof(ushort) * 3 * mesh.triangleCount);
-
-    mesh.indices[0] = 0;
-    mesh.indices[1] = 2;
-    mesh.indices[2] = 1;
-
-    mesh.indices[3] = 1;
-    mesh.indices[4] = 2;
-    mesh.indices[5] = 3;
-  }
-
-  UploadMesh(&mesh, false);
-
-  return LoadModelFromMesh(mesh);
+  return cl > cc ? YES : NO;
 }
 
+/* Generators ****************************************************************/
 Model generate_line_mesh(const ListLine lines, float thickness, ushort cap_resolution, const float layer) {
   Mesh mesh = {0};
 
@@ -250,46 +213,24 @@ Model generate_line_mesh(const ListLine lines, float thickness, ushort cap_resol
   UploadMesh(&mesh, false);
   return LoadModelFromMesh(mesh);
 }
-
-Test is_clockwise (Vector2 a, Vector2 b, Vector2 c) {
-  double val = 0.0;
-  val = (b.x * c.y + a.x * b.y + a.y * c.x) - (a.y * b.x + b.y * c.x + a.x * c.y);
-  return val > 0.0f ? YES : NO;
-}
-
-Test is_area_clockwise(const Area * area) {
-  unsigned int cl = 0;
-  unsigned int cc = 0;
-  for (usize i = 0; i < area->lines.len; i++) {
-    Vector2 a = area->lines.items[i].a;
-    Vector2 b = area->lines.items[(i + 1) % area->lines.len].a;
-    Vector2 c = area->lines.items[(i + 2) % area->lines.len].a;
-    if (is_clockwise(a, b, c))
-      cl ++;
-    else
-      cc ++;
-  }
-  return cl > cc ? YES : NO;
-}
-
 Model generate_area_mesh(const Area * area, const float layer) {
   temp_reset();
   Mesh mesh = {0};
   const ListLine lines = area->lines;
   const Test clockwise = is_area_clockwise(area);
-  if (clockwise)
-    TraceLog(LOG_INFO, "  Area is clockwise");
-  else
-    TraceLog(LOG_INFO, "  Area is counter-clockwise");
   {
     mesh.vertexCount = lines.len;
     mesh.vertices    = MemAlloc(sizeof(float) * 3 * mesh.vertexCount);
+    mesh.texcoords   = MemAlloc(sizeof(float) * 2 * mesh.vertexCount);
 
     for (usize i = 0; i < lines.len; i++) {
       usize vert = i * 3;
       mesh.vertices[vert]     = lines.items[i].a.x;
       mesh.vertices[vert + 1] = lines.items[i].a.y;
       mesh.vertices[vert + 2] = layer;
+      usize uv = i * 2;
+      mesh.texcoords[uv]     = lines.items[i].a.x * 0.01;
+      mesh.texcoords[uv + 1] = lines.items[i].a.y * 0.01;
     }
   }
 
@@ -358,9 +299,20 @@ Model generate_area_mesh(const Area * area, const float layer) {
   }
 
   UploadMesh(&mesh, false);
-  return LoadModelFromMesh(mesh);
+  Model model = LoadModelFromMesh(mesh);
+  model.materials = MemAlloc(sizeof(Material));
+  if (model.materials == NULL) {
+    TraceLog(LOG_ERROR, "Failed to allocate model material");
+    UnloadModel(model);
+    return (Model){0};
+  }
+  model.materials[0] = LoadMaterialDefault();
+  model.materialCount = 1;
+  SetModelMeshMaterial(&model, 0, 0);
+  return model;
 }
 
+/* Handlers ******************************************************************/
 void generate_map_mesh(Map * map) {
   // TODO sizes and thickness will depend on the map size I imagine
   TraceLog(LOG_INFO, "Generating meshes");

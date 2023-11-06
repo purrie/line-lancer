@@ -46,7 +46,7 @@ Result   region_by_position            (const Map * map, Vector2 position, Regio
 /* Map Functions *********************************************************/
 void     map_clamp           (Map * map);
 Result   map_clone           (Map * dst, const Map * src);
-Result   map_prepare_to_play (Map * map);
+Result   map_prepare_to_play (const Assets * assets, Map * map);
 void     map_deinit          (Map * map);
 void     render_map          (Map * map);
 void     render_map_mesh     (const GameState * state);
