@@ -8,7 +8,7 @@ BIN_FOLDER=bin
 
 FLAGS=-Wall -Wextra -Warray-bounds -Wshadow -Wunused -Wdeprecated
 DEBUG_FLAGS=-g
-LIBS=-lraylib -lm
+LIBS=-lm
 
 SOURCES=$(wildcard $(SOURCE_FOLDER)/*.c)
 TESTS=$(wildcard $(SOURCE_TEST_FOLDER)/*_test.c)
@@ -40,8 +40,18 @@ test: $(BIN_FOLDER) $(OBJ_FOLDER) $(BIN_TESTS)
 clean:
 	rm -rf $(BIN_FOLDER) $(OBJ_FOLDER)
 
-$(BIN_FOLDER)/$(BIN): $(OBJECTS)
-	$(CC) $(FLAGS) $(LIBS) -o $@ $(OBJECTS)
+cleanrl: clean
+	make -C vendor/raylib/src clean
+
+$(BIN_FOLDER)/raylib_linux.a: vendor/raylib/
+	make -C vendor/raylib/src PLATFORM=PLATFORM_DESKTOP GRAPHICS=GRAPHICS_API_OPENGL_21
+	cp vendor/raylib/src/libraylib.a $(BIN_FOLDER)/raylib_linux.a
+
+vendor/raylib/:
+	git submodule update --remote --recursive
+
+$(BIN_FOLDER)/$(BIN): $(OBJECTS) $(BIN_FOLDER)/raylib_linux.a
+	$(CC) $(FLAGS) $(LIBS) -o $@ $(OBJECTS) -L$(BIN_FOLDER)/ -l:raylib_linux.a
 
 $(BIN_FOLDER)/%_test.ut: $(OBJ_FOLDER)/%_src.o $(OBJ_FOLDER)/%_test.o
 	$(CC) $(FLAGS) $(LIBS) -o $@ $^
