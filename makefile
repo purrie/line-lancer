@@ -6,7 +6,7 @@ SOURCE_FOLDER=src
 SOURCE_TEST_FOLDER=tests
 BIN_FOLDER=bin
 
-FLAGS=-Wall -Wextra -Warray-bounds -Wshadow -Wunused -Wdeprecated
+FLAGS=-Wall -Wextra -Warray-bounds -Wshadow -Wunused -Wdeprecated -I "vendor/raylib/src"
 DEBUG_FLAGS=-g
 LIBS=-lm
 
