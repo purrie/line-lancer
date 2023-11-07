@@ -697,10 +697,10 @@ usize load_map_layers(
 Result load_level(Map * result, char * path) {
   TraceLog(LOG_INFO, "Loading map: %s", path);
 
-  uint    len;
+  int     len;
   uchar * data;
   data = LoadFileData(path, &len);
-  if (len == 0) {
+  if (len <= 0) {
     TraceLog(LOG_ERROR, "Failed to open map file %s", path);
     return FAILURE;
   }

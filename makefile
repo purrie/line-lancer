@@ -1,5 +1,5 @@
 
-CC=gcc
+CC=clang
 BIN=line-lancer
 OBJ_FOLDER=cache
 SOURCE_FOLDER=src
@@ -48,6 +48,7 @@ $(BIN_FOLDER)/raylib_linux.a: vendor/raylib/
 	cp vendor/raylib/src/libraylib.a $(BIN_FOLDER)/raylib_linux.a
 
 vendor/raylib/:
+	git submodule init
 	git submodule update --remote --recursive
 
 $(BIN_FOLDER)/$(BIN): $(OBJECTS) $(BIN_FOLDER)/raylib_linux.a

@@ -147,7 +147,7 @@ void make_purchasing_decision (GameState * state, usize player_index, ListRegion
     usize buildings_empty_count = 0;
     usize buildings_unupgraded_count = 0;
     usize buildings_first_level_count = 0;
-    usize buildings_second_level_count = 0;
+    /* usize buildings_second_level_count = 0; */
     usize buildings_total = 0;
     usize buildings_unupgraded_spread[BUILDING_TYPE_LAST + 1] = {0};
     usize buildings_first_level_spread[BUILDING_TYPE_LAST + 1] = {0};
@@ -177,7 +177,7 @@ void make_purchasing_decision (GameState * state, usize player_index, ListRegion
                             buildings_first_level_spread[building->type] += 1;
                             break;
                         case 2:
-                            buildings_second_level_count += 1;
+                            /* buildings_second_level_count += 1; */
                             buildings_second_level_spread[building->type] += 1;
                             break;
                     }

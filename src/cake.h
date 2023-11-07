@@ -32,7 +32,7 @@ CAKE_RECT cake_rect             (float width, float height);
 CAKE_RECT cake_move_rect        (CAKE_RECT rect, float x, float y);
 CAKE_RECT cake_center_rect      (CAKE_RECT rect, float x, float y);
 
-CAKE_RECT cake_margin           (CAKE_RECT rect, float top, float, float bottom, float left, float right);
+CAKE_RECT cake_margin           (CAKE_RECT rect, float top, float bottom, float left, float right);
 CAKE_RECT cake_margin_all       (CAKE_RECT rect, float all);
 CAKE_RECT cake_carve_to         (CAKE_RECT rect, float width, float height);
 
@@ -84,7 +84,7 @@ CAKE_RECT cake_center_rect (CAKE_RECT rect, float x, float y) {
     return rect;
 }
 
-CAKE_RECT cake_margin (CAKE_RECT rect, float top, float, float bottom, float left, float right) {
+CAKE_RECT cake_margin (CAKE_RECT rect, float top, float bottom, float left, float right) {
     rect.x += left;
     rect.y += top;
     rect.width  -= left + right;
