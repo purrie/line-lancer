@@ -989,6 +989,26 @@ Result load_backgrounds (Assets * assets) {
         TraceLog(LOG_ERROR, "Failed to load background");
         return FAILURE;
     }
+    path = asset_path("backgrounds", "water.png", &temp_alloc);
+    if (NULL == path) {
+        TraceLog(LOG_ERROR, "Temp allocator failed to allocate path for water");
+        return FAILURE;
+    }
+    assets->water_texture = LoadTexture(path);
+    if (0 == assets->water_texture.format) {
+        TraceLog(LOG_ERROR, "Failed to load water");
+        return FAILURE;
+    }
+    path = asset_path("shaders", "water.fs", &temp_alloc);
+    if (NULL == path) {
+        TraceLog(LOG_ERROR, "Temp allocator failed to allocate path for water shader");
+        return FAILURE;
+    }
+    assets->water_shader = LoadShader(0, path);
+    if (NULL == assets->water_shader.locs) {
+        TraceLog(LOG_ERROR, "Failed to load water shader");
+        return FAILURE;
+    }
     return SUCCESS;
 }
 Result load_graphics (Assets * assets) {

@@ -569,6 +569,12 @@ void render_map (Map * map) {
     }
 }
 void render_map_mesh (const GameState * state) {
+    Shader shader = state->map.background.materials[0].shader;
+    int time_loc = GetShaderLocation(shader, "time");
+    float time = GetTime();
+    SetShaderValue(shader, time_loc, &time, SHADER_UNIFORM_FLOAT);
+
+    DrawModel(state->map.background, Vector3Zero(), 1.0f, WHITE);
     for (usize i = 0; i < state->map.regions.len; i++) {
         const Region * region = &state->map.regions.items[i];
         DrawModel(region->area.model, Vector3Zero(), 1.0f, WHITE);
@@ -702,6 +708,7 @@ Result map_clone (Map * dest, const Map * src) {
     return FAILURE;
 }
 void map_deinit (Map * map) {
+    UnloadModel(map->background);
     for (usize p = 0; p < map->paths.len; p++) {
         TraceLog(LOG_DEBUG, "Deinitializing path %zu", p);
         path_deinit(&map->paths.items[p]);
@@ -866,6 +873,8 @@ void map_apply_textures (const Assets * assets, Map * map) {
         Material * mat = map->regions.items[i].area.model.materials;
         SetMaterialTexture(mat, MATERIAL_MAP_DIFFUSE, assets->ground_texture);
     }
+    map->background.materials[0].shader = assets->water_shader;
+    SetMaterialTexture(&map->background.materials[0], MATERIAL_MAP_DIFFUSE, assets->water_texture);
 }
 Result map_prepare_to_play (const Assets * assets, Map * map) {
   map_clamp(map);

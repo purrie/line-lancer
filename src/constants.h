@@ -26,6 +26,7 @@
 
 #define PATH_THICKNESS (NAV_GRID_SIZE * 3)
 
+#define LAYER_BACKGROUND -0.4f
 #define LAYER_MAP -0.3f
 #define LAYER_PATH -0.2f
 #define LAYER_BUILDING -0.1f

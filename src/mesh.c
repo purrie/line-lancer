@@ -311,11 +311,78 @@ Model generate_area_mesh(const Area * area, const float layer) {
   SetModelMeshMaterial(&model, 0, 0);
   return model;
 }
+void generate_background_mesh (Map * map) {
+    TraceLog(LOG_INFO, "  Building background [%zu, %zu]", map->width, map->height);
+    Mesh mesh = {0};
+
+    float left   = -(float)map->width;
+    float top    = -(float)map->height;
+    float right  = map->width * 2.0f;
+    float bottom = map->height * 2.0f;
+
+    mesh.vertexCount = 4;
+    mesh.vertices    = MemAlloc(sizeof(float) * 3 * mesh.vertexCount);
+
+    mesh.vertices[0] = left;
+    mesh.vertices[1] = top;
+    mesh.vertices[2] = LAYER_BACKGROUND;
+
+    mesh.vertices[3] = left;
+    mesh.vertices[4] = bottom;
+    mesh.vertices[5] = LAYER_BACKGROUND;
+
+    mesh.vertices[6] = right;
+    mesh.vertices[7] = bottom;
+    mesh.vertices[8] = LAYER_BACKGROUND;
+
+    mesh.vertices[9]  = right;
+    mesh.vertices[10] = top;
+    mesh.vertices[11] = LAYER_BACKGROUND;
+
+    left   = 0;
+    top    = 0;
+    bottom = map->height * 0.01;
+    right  = map->width * 0.01;
+
+    mesh.texcoords    = MemAlloc(sizeof(float) * 2 * mesh.vertexCount);
+
+    mesh.texcoords[0] = left;
+    mesh.texcoords[1] = top;
+
+    mesh.texcoords[2] = left;
+    mesh.texcoords[3] = bottom;
+
+    mesh.texcoords[4] = right;
+    mesh.texcoords[5] = bottom;
+
+    mesh.texcoords[6] = right;
+    mesh.texcoords[7] = top;
+
+    mesh.triangleCount = 2;
+    mesh.indices = MemAlloc(sizeof(ushort) * 3 * mesh.triangleCount);
+    mesh.indices[0] = 0;
+    mesh.indices[1] = 1;
+    mesh.indices[2] = 2;
+    mesh.indices[3] = 0;
+    mesh.indices[4] = 2;
+    mesh.indices[5] = 3;
+
+    UploadMesh(&mesh, false);
+    Model model = LoadModelFromMesh(mesh);
+
+    model.materials = MemAlloc(sizeof(Material));
+    model.materials[0] = LoadMaterialDefault();
+    model.materialCount = 1;
+    SetModelMeshMaterial(&model, 0, 0);
+
+    map->background = model;
+}
 
 /* Handlers ******************************************************************/
 void generate_map_mesh(Map * map) {
   // TODO sizes and thickness will depend on the map size I imagine
   TraceLog(LOG_INFO, "Generating meshes");
+  generate_background_mesh(map);
   for (usize i = 0; i < map->paths.len; i++) {
     TraceLog(LOG_INFO, "  Generating path mesh #%d", i);
     map->paths.items[i].model = generate_line_mesh(map->paths.items[i].lines, (float)PATH_THICKNESS, 3, LAYER_PATH);
@@ -325,6 +392,5 @@ void generate_map_mesh(Map * map) {
     TraceLog(LOG_INFO, "  Generating region mesh");
     Region * region = &map->regions.items[i];
     region->area.model = generate_area_mesh(&region->area, LAYER_MAP);
-
   }
 }

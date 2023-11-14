@@ -294,6 +294,7 @@ struct Map {
     ListRegion    regions;
     ListPath      paths;
     GlobalNavGrid nav_grid;
+    Model         background;
 };
 
 typedef enum PlayerType {
@@ -327,12 +328,14 @@ typedef struct {
 
 struct Assets {
     ListMap maps;
+    Shader water_shader;
     Texture2D particles[PARTICLE_LAST + 1];
     Particle particle_pool[PARTICLES_MAX];
     BuildingSpriteSet buildings[FACTION_LAST + 1];
     Texture2D neutral_castle;
     Music faction_themes[FACTION_LAST + 1];
     Music main_theme;
+    Texture2D water_texture;
     Texture2D ground_texture;
     // TODO fill assets:
     // units
