@@ -7,6 +7,7 @@
 #include "mesh.h"
 #include "pathfinding.h"
 #include "units.h"
+#include "audio.h"
 #include <raymath.h>
 
 /* Line Functions **********************************************************/
@@ -422,6 +423,16 @@ void region_reset_unit_pathfinding (Region * region) {
     }
 }
 void region_change_ownership (GameState * state, Region * region, usize player_id) {
+    usize local_player;
+    if (get_local_player_index(state, &local_player)) {
+        local_player = 1;
+    }
+    if (region->player_id == local_player) {
+        play_sound(state->resources, SOUND_REGION_LOST);
+    }
+    else if (player_id == local_player) {
+        play_sound(state->resources, SOUND_REGION_CONQUERED);
+    }
     region->player_id = player_id;
     region->faction = state->players.items[player_id].faction;
     region->active_path = region->paths.len;

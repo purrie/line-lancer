@@ -2,6 +2,7 @@
 #include "ui.h"
 #include "level.h"
 #include "constants.h"
+#include "audio.h"
 #include <raymath.h>
 
 void clamp_camera (GameState * state) {
@@ -126,9 +127,11 @@ void state_clicked_path (GameState * state) {
     for (usize p = 0; p < state->selected_region->paths.len; p++) {
         if (state->selected_path == state->selected_region->paths.items[p]) {
             if (state->selected_region->active_path == p) {
+                play_sound(state->resources, SOUND_FLAG_DOWN);
                 state->selected_region->active_path = state->selected_region->paths.len;
             }
             else {
+                play_sound(state->resources, SOUND_FLAG_UP);
                 state->selected_region->active_path = p;
             }
             region_reset_unit_pathfinding(state->selected_region);
@@ -157,12 +160,14 @@ void state_building (GameState * state) {
         PlayerData * player = &state->players.items[state->selected_building->region->player_id];
         #ifdef DEBUG
         if (player->resource_gold >= cost || IsKeyDown(KEY_LEFT_SHIFT)) {
+            play_sound(state->resources, SOUND_BUILDING_BUILD);
             place_building(state->selected_building, type);
             if (IsKeyDown(KEY_LEFT_SHIFT) == false)
                 player->resource_gold -= cost;
         }
         #else
         if (player->resource_gold >= cost) {
+            play_sound(state->resources, SOUND_BUILDING_BUILD);
             place_building(state->selected_building, type);
             player->resource_gold -= cost;
         }
@@ -191,6 +196,7 @@ void state_building (GameState * state) {
                 usize cost = building_upgrade_cost(state->selected_building);
                 PlayerData * player = &state->players.items[state->selected_building->region->player_id];
                 if (player->resource_gold >= cost) {
+                    play_sound(state->resources, SOUND_BUILDING_UPGRADE);
                     upgrade_building(state->selected_building);
                     player->resource_gold -= cost;
                 }
@@ -198,6 +204,7 @@ void state_building (GameState * state) {
                 state->selected_building = NULL;
             } break;
             case BUILDING_ACTION_DEMOLISH: {
+                play_sound(state->resources, SOUND_BUILDING_DEMOLISH);
                 demolish_building(state->selected_building);
                 state->current_input = INPUT_NONE;
                 state->selected_building = NULL;

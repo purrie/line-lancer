@@ -14,5 +14,6 @@ char * file_name_from_path (char * path, Alloc alloc);
 
 /* Audio *********************************************************************/
 Result load_music (Assets * assets);
+Result load_sound_effects (Assets * assets);
 
 #endif // ASSETS_H_

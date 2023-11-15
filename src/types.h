@@ -25,6 +25,7 @@ typedef struct FindPoint FindPoint;
 typedef struct NavGraph NavGraph;
 typedef struct GlobalNavGrid GlobalNavGrid;
 typedef struct Particle Particle;
+typedef struct SoundEffect SoundEffect;
 
 typedef enum BuildingType BuildingType;
 typedef enum PlayerState PlayerState;
@@ -81,6 +82,7 @@ makeList(MagicEffect, MagicEffect);
 makeList(Attack, Attack);
 makeList(Path*, PathP);
 makeList(Particle*, Particle);
+makeList(SoundEffect, SFX);
 
 makeList(FindPoint, FindPoint);
 makeList(WayPoint*, WayPoint);
@@ -137,6 +139,45 @@ typedef enum {
     PARTICLE_TORNADO,
     PARTICLE_LAST = PARTICLE_TORNADO,
 } ParticleType;
+
+typedef enum {
+    SOUND_HURT_HUMAN,
+    SOUND_HURT_HUMAN_OLD,
+    SOUND_HURT_KNIGHT,
+    SOUND_HURT_GOLEM,
+    SOUND_HURT_GREMLIN,
+    SOUND_HURT_GENIE,
+    SOUND_HURT_CASTLE,
+
+    SOUND_ATTACK_SWORD,
+    SOUND_ATTACK_BOW,
+    SOUND_ATTACK_HOLY,
+    SOUND_ATTACK_KNIGHT,
+    SOUND_ATTACK_GOLEM,
+    SOUND_ATTACK_FIREBALL,
+    SOUND_ATTACK_TORNADO,
+    SOUND_ATTACK_THUNDER,
+
+    SOUND_MAGIC_HEALING,
+    SOUND_MAGIC_WEAKNESS,
+
+    SOUND_BUILDING_BUILD,
+    SOUND_BUILDING_DEMOLISH,
+    SOUND_BUILDING_UPGRADE,
+
+    SOUND_FLAG_UP,
+    SOUND_FLAG_DOWN,
+
+    SOUND_REGION_CONQUERED,
+    SOUND_REGION_LOST,
+
+    SOUND_UI_CLICK,
+} SoundEffectType;
+
+struct SoundEffect {
+    SoundEffectType kind;
+    Sound sound;
+};
 
 typedef struct {
     Vector2 start;
@@ -337,9 +378,9 @@ struct Assets {
     Music main_theme;
     Texture2D water_texture;
     Texture2D ground_texture;
+    ListSFX sound_effects;
     // TODO fill assets:
     // units
-    // sound effects
     // region graphics
 };
 
@@ -364,6 +405,8 @@ struct GameState {
     ListParticle     particles_available;
     usize            turn;
     Camera2D         camera;
+    ListSFX          active_sounds;
+    ListSFX          disabled_sounds;
     const Assets   * resources;
 };
 

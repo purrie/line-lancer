@@ -11,6 +11,7 @@
 #include "level.h"
 #include "particle.h"
 #include "cake.h"
+#include "audio.h"
 
 const int WINDOW_WIDTH = 1400;
 const int WINDOW_HEIGHT = 1200;
@@ -55,6 +56,7 @@ ExecutionMode level_select (Assets * assets, GameState * game) {
         if (max_len > assets->maps.len) {
             int sel = render_map_list(map_list, &assets->maps, 0, assets->maps.len);
             if (sel >= 0) {
+                play_sound(assets, SOUND_UI_CLICK);
                 selected_map = sel;
             }
         }
@@ -79,9 +81,11 @@ ExecutionMode level_select (Assets * assets, GameState * game) {
 
         if (IsMouseButtonReleased(MOUSE_BUTTON_LEFT)) {
             if (CheckCollisionPointRec(cursor, cancel)) {
+                play_sound(assets, SOUND_UI_CLICK);
                 action = 1;
             }
             if (selected_map >= 0 && CheckCollisionPointRec(cursor, accept)) {
+                play_sound(assets, SOUND_UI_CLICK);
                 action = 2;
             }
         }
@@ -164,10 +168,12 @@ ExecutionMode main_menu (Assets * assets) {
 
         if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
             if (CheckCollisionPointRec(cursor, layout.new_game)) {
+                play_sound(assets, SOUND_UI_CLICK);
                 mode = EXE_MODE_SINGLE_PLAYER_MAP_SELECT;
             }
 
             if (CheckCollisionPointRec(cursor, layout.quit)) {
+                play_sound(assets, SOUND_UI_CLICK);
                 mode = EXE_MODE_EXIT;
             }
         }
@@ -219,6 +225,10 @@ int main(void) {
     }
     if (load_music(&game_assets)) {
         TraceLog(LOG_FATAL, "Failed to load music");
+        goto close;
+    }
+    if (load_sound_effects(&game_assets)) {
+        TraceLog(LOG_FATAL, "Failed to load sound effects");
         goto close;
     }
 

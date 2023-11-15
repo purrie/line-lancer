@@ -7,6 +7,7 @@
 #include "cake.h"
 #include <stdio.h>
 #include <raymath.h>
+#include "audio.h"
 
 void draw_button (
     Rectangle   area,
@@ -533,6 +534,7 @@ void render_player_select (Rectangle area, GameState * state, int selected_map) 
                 int mouse_over = CheckCollisionPointRec(mouse, rect);
                 if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
                     if (mouse_over) {
+                        play_sound(state->resources, SOUND_UI_CLICK);
                         state->players.items[selected_player + 1].faction = i;
                         selected_player = -1;
                         return;
@@ -558,6 +560,7 @@ void render_player_select (Rectangle area, GameState * state, int selected_map) 
 
             if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
                 if (CheckCollisionPointRec(mouse, pc_rect)) {
+                    play_sound(state->resources, SOUND_UI_CLICK);
                     state->players.items[selected_player + 1].type = PLAYER_LOCAL;
                     for (usize i = 0; i < map->player_count; i++) {
                         if (i == (usize)selected_player) continue;
@@ -567,6 +570,7 @@ void render_player_select (Rectangle area, GameState * state, int selected_map) 
                     }
                 }
                 else if (CheckCollisionPointRec(mouse, dropdown)) {
+                    play_sound(state->resources, SOUND_UI_CLICK);
                     state->players.items[selected_player + 1].type = PLAYER_AI;
                 }
                 selected_player = -1;
@@ -584,11 +588,13 @@ void render_player_select (Rectangle area, GameState * state, int selected_map) 
     else if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
         for (usize i = 0; i < map->player_count; i++) {
             if (CheckCollisionPointRec(mouse, player_dropdowns[i])) {
+                play_sound(state->resources, SOUND_UI_CLICK);
                 selected_player = i;
                 choosing = 0;
                 return;
             }
             if (CheckCollisionPointRec(mouse, faction_dropdowns[i])) {
+                play_sound(state->resources, SOUND_UI_CLICK);
                 selected_player = i;
                 choosing = 1;
                 return;

@@ -8,6 +8,7 @@
 #include "constants.h"
 #include "particle.h"
 #include "alloc.h"
+#include "audio.h"
 #include <raymath.h>
 
 /* Information ***************************************************************/
@@ -385,6 +386,7 @@ void units_support (GameState * state, float delta_time) {
                 unit->cooldown = get_unit_cooldown(unit);
                 listMagicEffectAppend(&most_hurt->effects, magic);
                 particles_magic(state, unit, most_hurt);
+                play_sound_concurent(state, SOUND_MAGIC_HEALING, unit->position);
             } break;
             case FACTION_MAGES: {
                 if (get_enemies_in_range(unit, &buffer)) {
@@ -407,6 +409,7 @@ void units_support (GameState * state, float delta_time) {
                     unit->cooldown = get_unit_cooldown(unit);
                     listMagicEffectAppend(&target->effects, magic);
                     particles_magic(state, unit, target);
+                    play_sound_concurent(state, SOUND_MAGIC_WEAKNESS, unit->position);
                     break;
                 }
             } break;
@@ -437,6 +440,7 @@ void units_fight (GameState * state, float delta_time) {
             };
             listAttackAppend(&target->incoming_attacks, attack);
             unit->cooldown = get_unit_cooldown(unit);
+            play_unit_attack_sound(state, unit);
         }
     }
 }
@@ -453,6 +457,7 @@ void units_damage(GameState * state, float delta_time) {
 
             if (attack->attacker_player_id != unit->player_owned) {
                 unit->health -= attack->damage;
+                play_unit_hurt_sound(state, unit);
                 particles_blood(state, unit, *attack);
                 if (unit->health <= 0.0f) {
                     unit_kill(state, unit);
@@ -475,9 +480,9 @@ void units_damage(GameState * state, float delta_time) {
             if (attack->timer < attack->delay)
                 continue;
 
-
             if (attack->attacker_player_id != guardian->player_owned) {
                 guardian->health -= attack->damage;
+                play_unit_hurt_sound(state, guardian);
                 particles_blood(state, guardian, *attack);
                 if (guardian->health <= 0.0f) {
                     region_change_ownership(state, region, attack->attacker_player_id);
@@ -512,6 +517,7 @@ void guardian_fight (GameState * state, float delta_time) {
             };
             listAttackAppend(&target->incoming_attacks, attack);
             guardian->cooldown = get_unit_cooldown(guardian);
+            play_unit_attack_sound(state, guardian);
         }
     }
 }
@@ -617,6 +623,8 @@ Result game_state_prepare (GameState * result, const Map * prefab) {
     }
     TraceLog(LOG_INFO, "Map ready to play");
 
+    result->active_sounds = listSFXInit(40, perm_allocator());
+    result->disabled_sounds = listSFXInit(40, perm_allocator());
     result->camera = setup_camera(&result->map);
     result->units  = listUnitInit(120, perm_allocator());
 
@@ -647,6 +655,10 @@ void game_state_deinit (GameState * state) {
     listPlayerDataDeinit(&state->players);
     listParticleDeinit(&state->particles_available);
     listParticleDeinit(&state->particles_in_use);
+    stop_sounds(&state->active_sounds);
+    stop_sounds(&state->disabled_sounds);
+    listSFXDeinit(&state->active_sounds);
+    listSFXDeinit(&state->disabled_sounds);
     map_deinit(&state->map);
     clear_memory(state, sizeof(GameState));
 }
@@ -656,6 +668,7 @@ void game_tick (GameState * state) {
     update_resources(state);
     simulate_ai(state);
     simulate_units(state);
+    clean_sounds(state);
 
     particles_advance(state->particles_in_use.items, state->particles_in_use.len, GetFrameTime());
     particles_clean(state);

@@ -162,6 +162,11 @@ void assets_deinit (Assets * assets) {
         UnloadMusicStream(assets->faction_themes[i]);
     }
     UnloadMusicStream(assets->main_theme);
+
+    for (usize i = 0; i < assets->sound_effects.len; i++) {
+        UnloadSound(assets->sound_effects.items[i].sound);
+    }
+    listSFXDeinit(&assets->sound_effects);
 }
 
 /* Json Handling *************************************************************/
@@ -1057,5 +1062,67 @@ Result load_music (Assets * assets) {
     temp_free(path);
 
     TraceLog(LOG_INFO, "Music loaded");
+    return SUCCESS;
+}
+typedef struct {
+    char * name;
+    SoundEffectType kind;
+} SoundLoader;
+Result load_sound_effects (Assets * assets) {
+    SoundLoader loader[] = {
+        { "hurt-man.wav", SOUND_HURT_HUMAN },
+        { "hurt-old.wav", SOUND_HURT_HUMAN_OLD },
+        { "hurt-knight.wav", SOUND_HURT_KNIGHT },
+        { "hurt-golem.wav", SOUND_HURT_GOLEM },
+        { "hurt-gremlin.wav", SOUND_HURT_GREMLIN },
+        { "hurt-genie.wav", SOUND_HURT_GENIE },
+        { "hurt-castle.wav", SOUND_HURT_CASTLE },
+
+        { "attack-sword.wav", SOUND_ATTACK_SWORD },
+        { "attack-bow.wav", SOUND_ATTACK_BOW },
+        { "attack-holy.wav", SOUND_ATTACK_HOLY },
+        { "attack-knight.wav", SOUND_ATTACK_KNIGHT },
+        { "attack-golem.wav", SOUND_ATTACK_GOLEM },
+        { "attack-fireball.wav", SOUND_ATTACK_FIREBALL },
+        { "attack-tornado.wav", SOUND_ATTACK_TORNADO },
+        { "attack-thunder.wav", SOUND_ATTACK_THUNDER },
+
+        { "magic-healing.wav", SOUND_MAGIC_HEALING },
+        { "magic-weakness.wav", SOUND_MAGIC_WEAKNESS },
+
+        { "ui-build.wav", SOUND_BUILDING_BUILD },
+        { "ui-demolish.wav", SOUND_BUILDING_DEMOLISH },
+        { "ui-upgrade.wav", SOUND_BUILDING_UPGRADE },
+
+        { "ui-flag-up.wav", SOUND_FLAG_UP },
+        { "ui-flag-down.wav", SOUND_FLAG_DOWN },
+
+        { "ui-region-gain.wav", SOUND_REGION_CONQUERED },
+        { "ui-region-loss.wav", SOUND_REGION_LOST },
+
+        { "ui-click.wav", SOUND_UI_CLICK },
+        {0},
+    };
+    assets->sound_effects = listSFXInit(26, perm_allocator());
+    if (NULL == assets->sound_effects.items) {
+        TraceLog(LOG_FATAL, "Failed to allocate memory for sound effects");
+        return FATAL;
+    }
+    usize i = 0;
+    while (loader[i].name != NULL) {
+        char * path = asset_path("sfx", loader[i].name, &temp_alloc);
+        Sound s = LoadSound(path);
+        if (s.frameCount == 0) {
+            TraceLog(LOG_ERROR, "Failed to load sound");
+            i ++;
+            continue;
+        }
+        SoundEffect se = { loader[i].kind, s };
+        if (listSFXAppend(&assets->sound_effects, se)) {
+            TraceLog(LOG_ERROR, "Failed to add sound effect %s", loader[i].name);
+            UnloadSound(s);
+        }
+        i++;
+    }
     return SUCCESS;
 }

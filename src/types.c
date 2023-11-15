@@ -14,6 +14,7 @@ implementList(MagicEffect, MagicEffect)
 implementList(Attack, Attack)
 implementList(Path*, PathP)
 implementList(Particle*, Particle)
+implementList(SoundEffect, SFX)
 
 implementList(Unit*, Unit)
 implementList(Region*, RegionP)
