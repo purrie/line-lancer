@@ -16,6 +16,8 @@ typedef struct Map Map;
 typedef struct Area Area;
 typedef struct GameState GameState;
 typedef struct Assets Assets;
+typedef struct Settings Settings;
+typedef struct Theme Theme;
 typedef struct Unit Unit;
 typedef struct PlayerData PlayerData;
 typedef struct MagicEffect MagicEffect;
@@ -384,6 +386,40 @@ struct Assets {
     // region graphics
 };
 
+struct Theme {
+    Color background;
+    Color background_light;
+    Color frame;
+    Color frame_light;
+    Color text;
+    Color text_dark;
+    Color button;
+    Color button_hover;
+    Color button_frame;
+
+    float font_size;
+    float margin;
+    float spacing;
+    float frame_thickness;
+
+    float info_bar_height;
+    float info_bar_field_width;
+
+    float dialog_build_width;
+    float dialog_build_height;
+    float dialog_upgrade_width;
+    float dialog_upgrade_height;
+};
+
+struct Settings {
+    float volume_master;
+    float volume_music;
+    float volume_sfx;
+    float volume_ui;
+
+    Theme theme;
+};
+
 enum PlayerState {
     INPUT_NONE = 0,
     INPUT_CLICKED_BUILDING,
@@ -408,6 +444,7 @@ struct GameState {
     ListSFX          active_sounds;
     ListSFX          disabled_sounds;
     const Assets   * resources;
+    const Settings * settings;
 };
 
 /* Utils *********************************************************************/

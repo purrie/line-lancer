@@ -35,6 +35,7 @@ CAKE_RECT cake_center_rect      (CAKE_RECT rect, float x, float y);
 CAKE_RECT cake_margin           (CAKE_RECT rect, float top, float bottom, float left, float right);
 CAKE_RECT cake_margin_all       (CAKE_RECT rect, float all);
 CAKE_RECT cake_carve_to         (CAKE_RECT rect, float width, float height);
+CAKE_RECT cake_carve_width      (CAKE_RECT rect, float width, float pivot);
 
 // TODO make those take ratio first, spacing last
 CAKE_RECT cake_cut_horizontal   (CAKE_RECT * rect, float ratio, float spacing);
@@ -111,6 +112,15 @@ CAKE_RECT cake_carve_to (CAKE_RECT rect, float width, float height) {
         float diff = result.height - height;
         result.y += diff * 0.5f;
         result.height -= diff;
+    }
+    return result;
+}
+CAKE_RECT cake_carve_width (CAKE_RECT rect, float width, float pivot) {
+    CAKE_RECT result = rect;
+    if (result.width > width) {
+        float diff = result.width - width;
+        result.x += diff * pivot;
+        result.width -= diff;
     }
     return result;
 }

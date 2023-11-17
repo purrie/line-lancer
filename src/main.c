@@ -30,6 +30,7 @@ ExecutionMode level_select (Assets * assets, GameState * game) {
     }
     int selected_map = -1;
     int action = 0;
+    const Theme * theme = &game->settings->theme;
 
     while (action == 0) {
         if (WindowShouldClose()) {
@@ -50,11 +51,11 @@ ExecutionMode level_select (Assets * assets, GameState * game) {
         if (selected_map >= 0) {
             selected = &assets->maps.items[selected_map];
         }
-        render_simple_map_preview(map_preview, selected, 5.0f, 2.0f);
+        render_simple_map_preview(map_preview, selected, theme);
 
-        usize max_len = map_list.height / UI_FONT_SIZE_BUTTON;
+        usize max_len = map_list.height / theme->font_size;
         if (max_len > assets->maps.len) {
-            int sel = render_map_list(map_list, &assets->maps, 0, assets->maps.len);
+            int sel = render_map_list(map_list, &assets->maps, 0, assets->maps.len, theme);
             if (sel >= 0) {
                 play_sound(assets, SOUND_UI_CLICK);
                 selected_map = sel;
@@ -65,19 +66,19 @@ ExecutionMode level_select (Assets * assets, GameState * game) {
         }
 
 
-        Rectangle buttons = cake_cut_horizontal(&screen, UI_FONT_SIZE_BUTTON * -1.5f, 20);
+        Rectangle buttons = cake_cut_horizontal(&screen, theme->font_size * -1.5f, 20);
         render_player_select(screen, game, selected_map);
 
         Rectangle cancel = cake_cut_vertical(&buttons, 0.5f, 0);
-        float width = MeasureText("Cancel", UI_FONT_SIZE_BUTTON) + 10.0f;
-        float height = UI_FONT_SIZE_BUTTON * 1.5f;
+        float width = MeasureText("Cancel", theme->font_size) + 10.0f;
+        float height = theme->font_size * 1.5f;
         cancel = cake_carve_to(cancel, width, height);
-        width = MeasureText("Start", UI_FONT_SIZE_BUTTON) + 10.0f;
+        width = MeasureText("Start", theme->font_size) + 10.0f;
         Rectangle accept = cake_carve_to(buttons, width, height);
 
         Vector2 cursor = GetMousePosition();
-        draw_button(cancel, "Cancel", cursor, UI_LAYOUT_CENTER, DARKBLUE, BLUE, RAYWHITE);
-        draw_button(accept, "Start", cursor, UI_LAYOUT_CENTER, DARKBLUE, BLUE, RAYWHITE);
+        draw_button(cancel, "Cancel", cursor, UI_LAYOUT_CENTER, theme);
+        draw_button(accept, "Start", cursor, UI_LAYOUT_CENTER, theme);
 
         if (IsMouseButtonReleased(MOUSE_BUTTON_LEFT)) {
             if (CheckCollisionPointRec(cursor, cancel)) {
@@ -122,11 +123,17 @@ ExecutionMode play_mode (GameState * game) {
     }
     Music theme = game->resources->faction_themes[game->players.items[player].faction];
     PlayMusicStream(theme);
-    while (!WindowShouldClose()) {
+    InfoBarAction play_state = INFO_BAR_ACTION_NONE;
+    while (play_state != INFO_BAR_ACTION_QUIT) {
+        if (WindowShouldClose()) {
+            break;
+        }
         BeginDrawing();
         ClearBackground(black);
         UpdateMusicStream(theme);
-        game_tick(game);
+        if (play_state == INFO_BAR_ACTION_NONE) {
+            game_tick(game);
+        }
 
         BeginMode2D(game->camera);
             render_interaction_hints(game);
@@ -135,7 +142,39 @@ ExecutionMode play_mode (GameState * game) {
             particles_render(game->particles_in_use.items, game->particles_in_use.len);
         EndMode2D();
 
-        render_ingame_ui(game);
+        if (play_state == INFO_BAR_ACTION_NONE && game->current_input == INPUT_OPEN_BUILDING) {
+            if (game->selected_building->type == BUILDING_EMPTY) {
+                render_empty_building_dialog(game);
+            }
+            else {
+                render_upgrade_building_dialog(game);
+            }
+        }
+
+        if (play_state == INFO_BAR_ACTION_SETTINGS) {
+            Rectangle screen = cake_rect(GetScreenWidth(), GetScreenHeight());
+            if (render_settings(screen, (Settings*)game->settings, game->resources)) {
+                play_sound(game->resources, SOUND_UI_CLICK);
+                play_state = INFO_BAR_ACTION_NONE;
+            }
+        }
+
+        switch (render_resource_bar(game)) {
+            case INFO_BAR_ACTION_NONE: break;
+            case INFO_BAR_ACTION_QUIT: {
+                play_sound(game->resources, SOUND_UI_CLICK);
+                play_state = INFO_BAR_ACTION_QUIT;
+            } break;
+            case INFO_BAR_ACTION_SETTINGS: {
+                play_sound(game->resources, SOUND_UI_CLICK);
+                if (play_state == INFO_BAR_ACTION_SETTINGS) {
+                    play_state = INFO_BAR_ACTION_NONE;
+                }
+                else {
+                    play_state = INFO_BAR_ACTION_SETTINGS;
+                }
+            } break;
+        }
         EndDrawing();
         temp_reset();
     }
@@ -143,12 +182,10 @@ ExecutionMode play_mode (GameState * game) {
     StopMusicStream(theme);
     return EXE_MODE_MAIN_MENU;
 }
-ExecutionMode main_menu (Assets * assets) {
-    Color bg = DARKBLUE;
-    Color hover = BLUE;
-    Color frame = BLACK;
-
+ExecutionMode main_menu (Assets * assets, Settings * settings) {
     ExecutionMode mode = EXE_MODE_MAIN_MENU;
+
+    int options = 0;
 
     while (mode == EXE_MODE_MAIN_MENU) {
         if (WindowShouldClose()) {
@@ -156,25 +193,39 @@ ExecutionMode main_menu (Assets * assets) {
             break;
         }
         UpdateMusicStream(assets->main_theme);
-
-        MainMenuLayout layout = main_menu_layout();
-        Vector2 cursor = GetMousePosition();
-
         BeginDrawing();
         ClearBackground(black);
 
-        draw_button(layout.new_game, "New Game", cursor, UI_LAYOUT_CENTER, bg, hover, frame);
-        draw_button(layout.quit, "Exit", cursor, UI_LAYOUT_CENTER, bg, hover, frame);
-
-        if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
-            if (CheckCollisionPointRec(cursor, layout.new_game)) {
-                play_sound(assets, SOUND_UI_CLICK);
-                mode = EXE_MODE_SINGLE_PLAYER_MAP_SELECT;
+        if (options) {
+            Rectangle screen = cake_rect(GetScreenWidth(), GetScreenHeight());
+            if (render_settings(screen, settings, assets)) {
+                options = 0;
+                save_settings(settings);
             }
+        }
+        else {
+            MainMenuLayout layout = main_menu_layout();
+            Vector2 cursor = GetMousePosition();
 
-            if (CheckCollisionPointRec(cursor, layout.quit)) {
-                play_sound(assets, SOUND_UI_CLICK);
-                mode = EXE_MODE_EXIT;
+
+            draw_button(layout.new_game, "New Game", cursor, UI_LAYOUT_CENTER, &settings->theme);
+            draw_button(layout.options, "Settings", cursor, UI_LAYOUT_CENTER, &settings->theme);
+            draw_button(layout.quit, "Exit", cursor, UI_LAYOUT_CENTER, &settings->theme);
+
+            if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
+                if (CheckCollisionPointRec(cursor, layout.new_game)) {
+                    play_sound(assets, SOUND_UI_CLICK);
+                    mode = EXE_MODE_SINGLE_PLAYER_MAP_SELECT;
+                }
+
+                if (CheckCollisionPointRec(cursor, layout.options)) {
+                    play_sound(assets, SOUND_UI_CLICK);
+                    options = 1;
+                }
+                if (CheckCollisionPointRec(cursor, layout.quit)) {
+                    play_sound(assets, SOUND_UI_CLICK);
+                    mode = EXE_MODE_EXIT;
+                }
             }
         }
 
@@ -192,6 +243,7 @@ int main(void) {
     SetRandomSeed(time(0));
 
     InitWindow(WINDOW_WIDTH, WINDOW_HEIGHT, "Hello!");
+    SetWindowState(FLAG_WINDOW_RESIZABLE);
 
     InitAudioDevice();
 
@@ -211,6 +263,7 @@ int main(void) {
 
     Assets game_assets = {0};
     GameState game_state = {0};
+    Settings game_settings = {0};
 
     game_assets.maps = listMapInit(6, perm_allocator());
     ExecutionMode mode = EXE_MODE_MAIN_MENU;
@@ -231,6 +284,12 @@ int main(void) {
         TraceLog(LOG_FATAL, "Failed to load sound effects");
         goto close;
     }
+    if (load_settings(&game_settings)) {
+        TraceLog(LOG_FATAL, "Failed to load game settings");
+        goto close;
+    }
+
+    apply_sound_settings(&game_assets, &game_settings);
 
     SetTargetFPS(FPS);
     PlayMusicStream(game_assets.main_theme);
@@ -240,6 +299,7 @@ int main(void) {
         }
 
         game_state.resources = &game_assets;
+        game_state.settings = &game_settings;
         switch (mode) {
             case EXE_MODE_IN_GAME: {
                 StopMusicStream(game_assets.main_theme);
@@ -249,7 +309,7 @@ int main(void) {
                 }
             } break;
             case EXE_MODE_MAIN_MENU: {
-                mode = main_menu(&game_assets);
+                mode = main_menu(&game_assets, &game_settings);
             } break;
             case EXE_MODE_SINGLE_PLAYER_MAP_SELECT: {
                 mode = level_select(&game_assets, &game_state);

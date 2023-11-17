@@ -3,6 +3,8 @@
 
 #include "types.h"
 
+void apply_sound_settings (const Assets * assets, const Settings * settings);
+
 /* Direct sound handling *****************************************************/
 void play_sound           (const Assets * assets, SoundEffectType sound);
 void play_sound_inworld   (const GameState * game, SoundEffectType kind, Vector2 position);

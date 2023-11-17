@@ -7,53 +7,46 @@
 #include "cake.h"
 #include <stdio.h>
 #include <raymath.h>
+#include <stdio.h>
 #include "audio.h"
 
 void draw_button (
-    Rectangle   area,
-    char      * text,
-    Vector2     cursor,
-    UiLayout    label_layout,
-    Color       bg,
-    Color       hover,
-    Color       frame
+    Rectangle     area,
+    char        * text,
+    Vector2       cursor,
+    UiLayout      label_layout,
+    const Theme * theme
 ) {
-    if (CheckCollisionPointRec(cursor, area)) {
-        DrawRectangleRec(area, hover);
-        DrawRectangleLinesEx(area, 2.0f, frame);
-    }
-    else {
-        DrawRectangleRec(area, bg);
-        DrawRectangleLinesEx(area, 1.0f, frame);
-    }
     Rectangle text_area;
     switch (label_layout) {
         case UI_LAYOUT_LEFT: {
-            text_area = cake_carve_to(area, area.width, UI_FONT_SIZE_BUTTON);
-            int space = MeasureText(" ", UI_FONT_SIZE_BUTTON);
+            text_area = cake_carve_to(area, area.width, theme->font_size);
+            int space = MeasureText(" ", theme->font_size);
             text_area.x += space;
         } break;
         case UI_LAYOUT_CENTER: {
-            int label_width = MeasureText(text, UI_FONT_SIZE_BUTTON);
-            text_area = cake_carve_to(area, label_width, UI_FONT_SIZE_BUTTON);
+            int label_width = MeasureText(text, theme->font_size);
+            text_area = cake_carve_to(area, label_width, theme->font_size);
         } break;
         case UI_LAYOUT_RIGHT: {
-            int label_width = MeasureText(text, UI_FONT_SIZE_BUTTON);
-            text_area = cake_carve_to(area, area.width, UI_FONT_SIZE_BUTTON);
+            int label_width = MeasureText(text, theme->font_size);
+            text_area = cake_carve_to(area, area.width, theme->font_size);
             text_area.x += area.width - label_width;
-            int space = MeasureText(" ", UI_FONT_SIZE_BUTTON);
+            int space = MeasureText(" ", theme->font_size);
             text_area.x -= space;
         } break;
     }
 
-    DrawText(text, text_area.x, text_area.y, UI_FONT_SIZE_BUTTON, frame);
-}
-
-float ui_margin () {
-    return 5.0f;
-}
-float ui_spacing () {
-    return 2.0f;
+    if (CheckCollisionPointRec(cursor, area)) {
+        DrawRectangleRec(area, theme->button_hover);
+        DrawRectangleLinesEx(area, 2.0f, theme->button_frame);
+        DrawText(text, text_area.x, text_area.y, theme->font_size, theme->text);
+    }
+    else {
+        DrawRectangleRec(area, theme->button);
+        DrawRectangleLinesEx(area, 1.0f, theme->button_frame);
+        DrawText(text, text_area.x, text_area.y, theme->font_size, theme->text_dark);
+    }
 }
 
 /* Helper UI *****************************************************************/
@@ -101,23 +94,50 @@ void render_interaction_hints (const GameState * state) {
         }
     }
 }
+void theme_update (Theme * theme) {
+    // TODO make those scale with resolution when necessary
+    theme->font_size = 20;
+    theme->margin = 5;
+    theme->spacing = 4;
+    theme->frame_thickness = 2;
+
+    theme->info_bar_field_width = 200;
+    theme->info_bar_height = 30;
+
+    theme->dialog_build_width = 350;
+    theme->dialog_build_height = 200;
+    theme->dialog_upgrade_width = 200;
+    theme->dialog_upgrade_height = 350;
+}
+Theme theme_setup () {
+    Theme theme = {0};
+    theme.background = BLACK;
+    theme.background_light = (Color){ 32, 32, 32, 255 };
+    theme.frame = DARKGRAY;
+    theme.frame_light = GRAY;
+    theme.text = WHITE;
+    theme.text_dark = LIGHTGRAY;
+    theme.button = DARKBLUE;
+    theme.button_hover = BLUE;
+    theme.button_frame = RAYWHITE;
+    theme_update(&theme);
+    return theme;
+}
 
 /* In Game Menu **************************************************************/
-EmptyDialog empty_dialog (Vector2 position) {
+EmptyDialog empty_dialog (Vector2 position, const Theme * theme) {
     EmptyDialog result;
-    float margin = ui_margin();
-    float spacing = ui_spacing();
 
     Rectangle screen = cake_rect(GetScreenWidth(), GetScreenHeight());
-    cake_cut_horizontal(&screen, UI_BAR_SIZE, 0);
+    cake_cut_horizontal(&screen, theme->info_bar_height, 0);
 
-    result.area = cake_rect(UI_DIALOG_BUILDING_WIDTH + spacing * 2.0f + margin * 2.0f, UI_DIALOG_BUILDING_HEIGHT + margin * 2.0f + spacing);
+    result.area = cake_rect(theme->dialog_build_width + theme->spacing * 2.0f + theme->margin * 2.0f, theme->dialog_build_height + theme->margin * 2.0f + theme->spacing);
     result.area = cake_center_rect(result.area, position.x, position.y);
     cake_clamp_inside(&result.area, screen);
 
-    Rectangle butt = cake_margin_all(result.area, margin);
+    Rectangle butt = cake_margin_all(result.area, theme->margin);
     Rectangle buttons[6];
-    cake_split_grid(butt, 3, 2, buttons, spacing);
+    cake_split_grid(butt, 3, 2, buttons, theme->spacing);
 
     result.warrior  = buttons[0];
     result.archer   = buttons[1];
@@ -127,21 +147,19 @@ EmptyDialog empty_dialog (Vector2 position) {
 
     return result;
 }
-BuildingDialog building_dialog (Vector2 position) {
+BuildingDialog building_dialog (Vector2 position, const Theme * theme) {
     BuildingDialog result;
-    float margin  = ui_margin();
-    float spacing = ui_spacing();
 
     Rectangle screen = cake_rect(GetScreenWidth(), GetScreenHeight());
-    cake_cut_horizontal(&screen, UI_BAR_SIZE, 0);
+    cake_cut_horizontal(&screen, theme->info_bar_height, 0);
 
-    result.area = cake_rect(UI_DIALOG_UPGRADE_WIDTH + margin * 2.0f, UI_DIALOG_UPGRADE_HEIGHT + margin * 2.0f + spacing * 2.0f);
+    result.area = cake_rect(theme->dialog_upgrade_width + theme->margin * 2.0f, theme->dialog_upgrade_height + theme->margin * 2.0f + theme->spacing * 2.0f);
     result.area = cake_center_rect(result.area, position.x, position.y);
     cake_clamp_inside(&result.area, screen);
 
-    Rectangle butt = cake_margin_all(result.area, margin);
+    Rectangle butt = cake_margin_all(result.area, theme->margin);
     Rectangle buttons[3];
-    cake_split_horizontal(butt, 3, buttons, spacing);
+    cake_split_horizontal(butt, 3, buttons, theme->spacing);
 
     result.label    = buttons[0];
     result.upgrade  = buttons[1];
@@ -152,7 +170,7 @@ BuildingDialog building_dialog (Vector2 position) {
 
 Result ui_building_action_click (const GameState * state, Vector2 cursor, BuildingAction * action) {
     Vector2 building_pos = GetWorldToScreen2D(state->selected_building->position, state->camera);
-    BuildingDialog dialog = building_dialog(building_pos);
+    BuildingDialog dialog = building_dialog(building_pos, &state->settings->theme);
     if (CheckCollisionPointRec(cursor, dialog.demolish)) {
         *action = BUILDING_ACTION_DEMOLISH;
     }
@@ -171,7 +189,7 @@ Result ui_building_buy_click (const GameState * state, Vector2 cursor, BuildingT
     }
 
     Vector2 ui_box = GetWorldToScreen2D(state->selected_building->position, state->camera);
-    EmptyDialog dialog = empty_dialog(ui_box);
+    EmptyDialog dialog = empty_dialog(ui_box, &state->settings->theme);
     if (! CheckCollisionPointRec(cursor, dialog.area)) {
         return FAILURE;
     }
@@ -201,46 +219,24 @@ Result ui_building_buy_click (const GameState * state, Vector2 cursor, BuildingT
 void render_empty_building_dialog (const GameState * state) {
     Vector2 cursor = GetMousePosition();
     Vector2 ui_box = GetWorldToScreen2D(state->selected_building->position, state->camera);
-    EmptyDialog dialog = empty_dialog(ui_box);
+    EmptyDialog dialog = empty_dialog(ui_box, &state->settings->theme);
 
-    {
-        Color dialog_bg;
+    DrawRectangleRec(dialog.area, state->settings->theme.background);
 
-        if (CheckCollisionPointRec(cursor, dialog.area)) {
-            dialog_bg = BLUE;
-        } else {
-            dialog_bg = DARKBLUE;
-        }
+    draw_button(dialog.warrior, "Fighter", cursor, UI_LAYOUT_CENTER, &state->settings->theme);
+    draw_button(dialog.archer, "Archer", cursor, UI_LAYOUT_CENTER, &state->settings->theme);
+    draw_button(dialog.support, "Support", cursor, UI_LAYOUT_CENTER, &state->settings->theme);
 
-        DrawRectangleRec(dialog.area, dialog_bg);
-    }
-
-    {
-        Color color_bg = DARKBLUE;
-        Color color_hover = LIGHTGRAY;
-        Color color_frame = BLACK;
-
-        draw_button(dialog.warrior, "Fighter", cursor, UI_LAYOUT_CENTER, color_bg, color_hover, color_frame);
-        draw_button(dialog.archer, "Archer", cursor, UI_LAYOUT_CENTER, color_bg, color_hover, color_frame);
-        draw_button(dialog.support, "Support", cursor, UI_LAYOUT_CENTER, color_bg, color_hover, color_frame);
-
-        draw_button(dialog.special, "Special", cursor, UI_LAYOUT_CENTER, color_bg, color_hover, color_frame);
-        draw_button(dialog.resource, "Cash", cursor, UI_LAYOUT_CENTER, color_bg, color_hover, color_frame);
-    }
+    draw_button(dialog.special, "Special", cursor, UI_LAYOUT_CENTER, &state->settings->theme);
+    draw_button(dialog.resource, "Cash", cursor, UI_LAYOUT_CENTER, &state->settings->theme);
 }
 void render_upgrade_building_dialog (const GameState * state) {
     Vector2 cursor = GetMousePosition();
     Vector2 building_pos = GetWorldToScreen2D(state->selected_building->position, state->camera);
-    BuildingDialog dialog = building_dialog(building_pos);
+    const Theme * theme = &state->settings->theme;
+    BuildingDialog dialog = building_dialog(building_pos, theme);
 
-    Color dialog_bg;
-    if (CheckCollisionPointRec(cursor, dialog.area)) {
-        dialog_bg = BLUE;
-    } else {
-        dialog_bg = DARKBLUE;
-    }
-
-    DrawRectangleRec(dialog.area, dialog_bg);
+    DrawRectangleRec(dialog.area, theme->background);
     Rectangle level = cake_cut_horizontal(&dialog.label, 0.6f, 2.0f);
     char * text;
     switch (state->selected_building->type) {
@@ -278,16 +274,13 @@ void render_upgrade_building_dialog (const GameState * state) {
             lvl = "Level N/A";
         } break;
     }
-    DrawText(text, dialog.label.x, dialog.label.y, 20, WHITE);
-    DrawText(lvl, level.x, level.y, 16, WHITE);
+    DrawText(text, dialog.label.x, dialog.label.y, 20, theme->text);
+    DrawText(lvl, level.x, level.y, 16, theme->text);
 
-    Color color_bg = DARKBLUE;
-    Color color_hover = LIGHTGRAY;
-    Color color_frame = BLACK;
-    draw_button(dialog.upgrade, "Upgrade", cursor, UI_LAYOUT_CENTER, color_bg, color_hover, color_frame);
-    draw_button(dialog.demolish, "Demolish", cursor, UI_LAYOUT_CENTER, color_bg, color_hover, color_frame);
+    draw_button(dialog.upgrade, "Upgrade", cursor, UI_LAYOUT_CENTER, theme);
+    draw_button(dialog.demolish, "Demolish", cursor, UI_LAYOUT_CENTER, theme);
 }
-void render_resource_bar (const GameState * state) {
+InfoBarAction render_resource_bar (const GameState * state) {
     usize player_index;
     if (get_local_player_index(state, &player_index)) {
         player_index = 1;
@@ -297,79 +290,69 @@ void render_resource_bar (const GameState * state) {
     float income = get_expected_income(&state->map, player_index);
     float upkeep = get_expected_maintenance_cost(&state->map, player_index);
 
-    Rectangle bar = cake_rect(GetScreenWidth(), UI_BAR_SIZE);
-    Rectangle mbar = cake_margin_all(bar, UI_BAR_MARGIN);
+    const Theme * theme = &state->settings->theme;
+    Rectangle bar = cake_rect(GetScreenWidth(), theme->info_bar_height);
+    Rectangle mbar = cake_margin_all(bar, theme->margin);
 
-    char * gold_label   = "Gold: ";
-    char * income_label = "Income: ";
-    char * upkeep_label = "Upkeep cost: ";
-    char * per_second = "/s ";
+    DrawRectangleRec(bar, theme->background_light);
+    DrawRectangleLinesEx(bar, theme->frame_thickness, get_player_color(player_index));
 
-    char * gold_value_label = convert_int_to_ascii(player->resource_gold, &temp_alloc);
-    if (gold_value_label == NULL) {
-        gold_value_label = "lots... ";
+    const usize buffer_size = 256;
+    char buffer[buffer_size];
+
+    char * label;
+    if (snprintf(buffer, buffer_size, "Gold: %zu ", player->resource_gold) <= 0) {
+        label = "too much...";
     }
-    char * income_value_label = convert_float_to_ascii(income, 1, &temp_alloc);
-    if (income_value_label == NULL) {
-        income_value_label = "too much...";
+    else {
+        label = buffer;
     }
-    char * upkeep_value_label = convert_float_to_ascii(upkeep, 1, &temp_alloc);
-    if (upkeep_value_label == NULL) {
-        upkeep_value_label = "too much...";
+    int label_width = MeasureText(label, theme->font_size);
+    if (label_width < theme->info_bar_field_width)
+        label_width = theme->info_bar_field_width;
+    Rectangle rect = cake_cut_vertical(&mbar, label_width, theme->spacing);
+    DrawText(label , rect.x, rect.y, theme->font_size, theme->text);
+
+    if (snprintf(buffer, buffer_size, "Income: %.1f/s ", income) <= 0) {
+        label = "too much ...";
     }
+    else {
+        label = buffer;
+    }
+    label_width = MeasureText(label, theme->font_size);
+    if (label_width < theme->info_bar_field_width)
+        label_width = theme->info_bar_field_width;
+    rect = cake_cut_vertical(&mbar, label_width, theme->spacing);
+    DrawText(label , rect.x, rect.y, theme->font_size, theme->text);
 
-    int gold_label_width = MeasureText(gold_label, UI_FONT_SIZE_BAR);
-    int gold_value_width = MeasureText(gold_value_label, UI_FONT_SIZE_BAR);
-    int income_label_width = MeasureText(income_label, UI_FONT_SIZE_BAR);
-    int income_value_width = MeasureText(income_value_label, UI_FONT_SIZE_BAR);
-    int upkeep_label_width = MeasureText(upkeep_label, UI_FONT_SIZE_BAR);
-    int upkeep_value_width = MeasureText(upkeep_value_label, UI_FONT_SIZE_BAR);
-    int per_second_width = MeasureText(per_second, UI_FONT_SIZE_BAR);
+    if (snprintf(buffer, buffer_size, "Upkeep: %.1f/s ", upkeep) <= 0) {
+        label = "too much ...";
+    }
+    else {
+        label = buffer;
+    }
+    label_width = MeasureText(label, theme->font_size);
+    if (label_width < theme->info_bar_field_width)
+        label_width = theme->info_bar_field_width;
+    rect = cake_cut_vertical(&mbar, label_width, theme->spacing);
+    DrawText(label , rect.x, rect.y, theme->font_size, theme->text);
 
-    #define MARGIN_SIZE 50
-
-    int gold_margin = UI_BAR_MARGIN;
-    if (gold_value_width < MARGIN_SIZE)
-        gold_margin += MARGIN_SIZE - gold_value_width;
-
-    int income_margin = UI_BAR_MARGIN;
-    if (income_value_width < MARGIN_SIZE)
-        income_margin += MARGIN_SIZE - income_value_width;
-
-    Rectangle rect_gold_label = cake_cut_vertical(&mbar, gold_label_width, 0);
-    Rectangle rect_gold  = cake_cut_vertical(&mbar, gold_value_width, gold_margin);
-
-    Rectangle rect_income_label = cake_cut_vertical(&mbar, income_label_width, 0);
-    Rectangle rect_income = cake_cut_vertical(&mbar, income_value_width, 0);
-    Rectangle rect_income_per_second = cake_cut_vertical(&mbar, per_second_width, income_margin);
-
-    Rectangle rect_upkeep_label = cake_cut_vertical(&mbar, upkeep_label_width, 0);
-    Rectangle rect_upkeep = cake_cut_vertical(&mbar, upkeep_value_width, 0);
-    Rectangle rect_upkeep_per_second = mbar;
-
-    DrawRectangleRec(bar, DARKGRAY);
-    DrawRectangleLinesEx(bar, UI_BORDER_SIZE, get_player_color(player_index));
-    DrawText(gold_label , rect_gold_label.x, rect_gold_label.y, UI_FONT_SIZE_BAR, WHITE);
-    DrawText(gold_value_label , rect_gold.x , rect_gold.y , UI_FONT_SIZE_BAR, WHITE);
-
-    DrawText(income_label , rect_income_label.x, rect_income_label.y, UI_FONT_SIZE_BAR, WHITE);
-    DrawText(income_value_label , rect_income.x , rect_income.y , UI_FONT_SIZE_BAR, WHITE);
-    DrawText(per_second, rect_income_per_second.x, rect_income_per_second.y, UI_FONT_SIZE_BAR, WHITE);
-
-    DrawText(upkeep_label , rect_upkeep_label.x, rect_upkeep_label.y, UI_FONT_SIZE_BAR, WHITE);
-    DrawText(upkeep_value_label , rect_upkeep.x , rect_upkeep.y , UI_FONT_SIZE_BAR, WHITE);
-    DrawText(per_second, rect_upkeep_per_second.x, rect_upkeep_per_second.y, UI_FONT_SIZE_BAR, WHITE);
-}
-void render_ingame_ui (const GameState * state) {
-    if (state->current_input == INPUT_OPEN_BUILDING) {
-        if (state->selected_building->type == BUILDING_EMPTY) {
-            render_empty_building_dialog(state);
+    char * menu_label = "Settings";
+    char * quit_label = "Exit to Menu";
+    Rectangle quit = cake_cut_vertical(&mbar, -MeasureText(quit_label, theme->font_size) * 1.2f, theme->spacing);
+    Rectangle menu = cake_cut_vertical(&mbar, -MeasureText(menu_label, theme->font_size) * 1.2f, theme->spacing);
+    Vector2 cursor = GetMousePosition();
+    draw_button(quit, quit_label, cursor, UI_LAYOUT_CENTER, theme);
+    draw_button(menu, menu_label, cursor, UI_LAYOUT_CENTER, theme);
+    if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
+        if (CheckCollisionPointRec(cursor, menu)) {
+            return INFO_BAR_ACTION_SETTINGS;
         }
-        else {
-            render_upgrade_building_dialog(state);
+        if (CheckCollisionPointRec(cursor, quit)) {
+            return INFO_BAR_ACTION_QUIT;
         }
     }
-    render_resource_bar(state);
+    return INFO_BAR_ACTION_NONE;
 }
 
 /* Main Menu *****************************************************************/
@@ -378,21 +361,22 @@ MainMenuLayout main_menu_layout () {
     Rectangle parts[3];
     cake_split_vertical(screen, 3, parts, 0.0f);
     cake_split_horizontal(parts[1], 3, parts, 0.0f);
-    cake_split_horizontal(parts[1], 2, parts, 0.0f);
+    cake_split_horizontal(parts[1], 3, parts, 0.0f);
 
     MainMenuLayout result = {
         .new_game = cake_carve_to(parts[0], 150.0f, 50.0f),
-        .quit     = cake_carve_to(parts[1], 150.0f, 50.0f),
+        .options  = cake_carve_to(parts[1], 150.0f, 50.0f),
+        .quit     = cake_carve_to(parts[2], 150.0f, 50.0f),
     };
     return result;
 }
-void render_simple_map_preview (Rectangle area, Map * map, float region_size, float path_thickness) {
-    DrawRectangleRec(area, BLACK);
-    DrawRectangleLinesEx(area, UI_BORDER_SIZE, DARKGRAY);
+void render_simple_map_preview (Rectangle area, Map * map, const Theme * theme) {
+    DrawRectangleRec(area, theme->background);
+    DrawRectangleLinesEx(area, theme->frame_thickness, theme->frame);
 
     if (map == NULL) {
-        DrawLine(area.x, area.y, area.x + area.width, area.y + area.height, RAYWHITE);
-        DrawLine(area.x + area.width, area.y, area.x, area.y + area.height, RAYWHITE);
+        DrawLine(area.x, area.y, area.x + area.width, area.y + area.height, theme->frame);
+        DrawLine(area.x + area.width, area.y, area.x, area.y + area.height, theme->frame);
         return;
     }
 
@@ -413,7 +397,7 @@ void render_simple_map_preview (Rectangle area, Map * map, float region_size, fl
         to   = Vector2Multiply (to,   (Vector2){ scale_w, scale_h });
         from = Vector2Add      (from, (Vector2){ area.x, area.y });
         to   = Vector2Add      (to,   (Vector2){ area.x, area.y });
-        DrawLineEx(from, to, path_thickness, ORANGE);
+        DrawLineEx(from, to, theme->frame_thickness, theme->frame_light);
     }
 
     for (usize i = 0; i < map->regions.len; i++) {
@@ -421,29 +405,28 @@ void render_simple_map_preview (Rectangle area, Map * map, float region_size, fl
         Vector2 point = Vector2Multiply(region->castle.position, (Vector2){ scale_w, scale_h });
         point = Vector2Add(point, (Vector2){ area.x, area.y });
         Color col = get_player_color(region->player_id);
-        DrawCircleV(point, region_size, col);
+        DrawCircleV(point, theme->frame_thickness * 3.0f, col);
     }
 }
 void render_player_select (Rectangle area, GameState * state, int selected_map) {
     if (selected_map < 0) return;
+    const Theme * theme = &state->settings->theme;
     const Map * map = &state->resources->maps.items[selected_map];
 
-    DrawRectangleRec(area, BLACK);
-    DrawRectangleLinesEx(area, UI_BORDER_SIZE, DARKGRAY);
-    area = cake_margin_all(area, UI_BORDER_SIZE * 3);
+    DrawRectangleRec(area, theme->background);
+    DrawRectangleLinesEx(area, theme->frame_thickness, theme->frame);
+    area = cake_margin_all(area, theme->frame_thickness * 3);
 
-    Rectangle title = cake_cut_horizontal(&area, UI_FONT_SIZE_BUTTON, UI_FONT_SIZE_BUTTON * 0.5f);
-    title = cake_diet_to(title, MeasureText(map->name, UI_FONT_SIZE_BUTTON));
-    DrawText(map->name, title.x, title.y, UI_FONT_SIZE_BUTTON, WHITE);
-
-    Color background = (Color){ 32, 32, 32, 255 };
+    Rectangle title = cake_cut_horizontal(&area, theme->font_size, theme->font_size * 0.5f);
+    title = cake_diet_to(title, MeasureText(map->name, theme->font_size));
+    DrawText(map->name, title.x, title.y, theme->font_size, theme->text);
 
     Rectangle * lines = temp_alloc(sizeof(Rectangle) * map->player_count);
     Rectangle * player_dropdowns = temp_alloc(sizeof(Rectangle) * map->player_count);
     Rectangle * faction_dropdowns = temp_alloc(sizeof(Rectangle) * map->player_count);
 
     for (usize i = 0; i < map->player_count; i++) {
-        lines[i] = cake_cut_horizontal(&area, UI_FONT_SIZE_BUTTON * 1.5f, UI_FONT_SIZE_BUTTON * 0.5f);
+        lines[i] = cake_cut_horizontal(&area, theme->font_size * 1.5f, theme->font_size * 0.5f);
     }
 
     Vector2 mouse = GetMousePosition();
@@ -452,85 +435,85 @@ void render_player_select (Rectangle area, GameState * state, int selected_map) 
     char * player_control = "Controlling: ";
     char * player_faction = "Faction: ";
     char * button_label = "v";
-    int player_control_size = MeasureText(player_control, UI_FONT_SIZE_BUTTON);
-    int player_faction_size = MeasureText(player_faction, UI_FONT_SIZE_BUTTON);
-    int button_label_size = MeasureText(button_label, UI_FONT_SIZE_BUTTON);
+    int player_control_size = MeasureText(player_control, theme->font_size);
+    int player_faction_size = MeasureText(player_faction, theme->font_size);
+    int button_label_size = MeasureText(button_label, theme->font_size);
 
     static int selected_player = -1;
     static int choosing = -1; // 0 - PC/CPU, 1 - Faction
 
     for (usize i = 0; i < map->player_count; i++) {
         PlayerData * player = &state->players.items[i + 1];
-        DrawRectangleRec(lines[i], background);
+        DrawRectangleRec(lines[i], theme->background_light);
 
         snprintf(name, 64, "Player %zu", i);
         Rectangle label = cake_cut_vertical(&lines[i], 0.3f, 5);
-        cake_cut_vertical(&label, UI_BORDER_SIZE * 2, 0);
-        Rectangle color_box = cake_cut_vertical(&label, UI_FONT_SIZE_BUTTON, UI_BORDER_SIZE * 2);
+        cake_cut_vertical(&label, theme->frame_thickness * 2, 0);
+        Rectangle color_box = cake_cut_vertical(&label, theme->font_size, theme->frame_thickness * 2);
         color_box = cake_shrink_to(color_box, color_box.width);
         DrawRectangleRec(color_box, get_player_color(i + 1));
-        label = cake_shrink_to(label, UI_FONT_SIZE_BUTTON);
-        DrawText(name, label.x, label.y, UI_FONT_SIZE_BUTTON, WHITE);
+        label = cake_shrink_to(label, theme->font_size);
+        DrawText(name, label.x, label.y, theme->font_size, theme->text);
 
         player_dropdowns[i] = cake_cut_vertical(&lines[i], 0.5f, 5);
         faction_dropdowns[i] = lines[i];
 
         // select who controls this player
         label = cake_cut_vertical(&player_dropdowns[i], player_control_size, 6);
-        label = cake_shrink_to(label, UI_FONT_SIZE_BUTTON);
-        DrawText(player_control, label.x, label.y, UI_FONT_SIZE_BUTTON, WHITE);
+        label = cake_shrink_to(label, theme->font_size);
+        DrawText(player_control, label.x, label.y, theme->font_size, theme->text);
 
-        player_dropdowns[i] = cake_margin_all(player_dropdowns[i], UI_BORDER_SIZE);
+        player_dropdowns[i] = cake_margin_all(player_dropdowns[i], theme->frame_thickness);
 
         int mouse_over = selected_player >= 0 ? 0 : CheckCollisionPointRec(mouse, player_dropdowns[i]);
-        DrawRectangleRec(player_dropdowns[i], BLACK);
-        DrawRectangleLinesEx(player_dropdowns[i], UI_BORDER_SIZE, mouse_over ? GRAY : DARKGRAY);
+        DrawRectangleRec(player_dropdowns[i], theme->background);
+        DrawRectangleLinesEx(player_dropdowns[i], theme->frame_thickness, mouse_over ? theme->frame_light : theme->frame);
 
         label = player_dropdowns[i];
         Rectangle button = cake_cut_vertical(&label, -label.height, 0);
-        DrawRectangleRec(button, mouse_over ? GRAY : DARKGRAY);
-        button = cake_carve_to(button, button_label_size, UI_FONT_SIZE_BUTTON);
-        DrawText(button_label, button.x, button.y, UI_FONT_SIZE_BUTTON, WHITE);
+        DrawRectangleRec(button, mouse_over ? theme->frame_light : theme->frame);
+        button = cake_carve_to(button, button_label_size, theme->font_size);
+        DrawText(button_label, button.x, button.y, theme->font_size, theme->text);
 
-        char * player_control_label = player->type == PLAYER_LOCAL ? "PC" : "CPU";
-        int player_control_label_size = MeasureText(player_control_label, UI_FONT_SIZE_BUTTON);
-        label = cake_carve_to(label, player_control_label_size, UI_FONT_SIZE_BUTTON);
-        DrawText(player_control_label, label.x, label.y, UI_FONT_SIZE_BUTTON, WHITE);
+        char * player_control_label = player->type == PLAYER_LOCAL ? "Player" : "CPU";
+        int player_control_label_size = MeasureText(player_control_label, theme->font_size);
+        label = cake_carve_to(label, player_control_label_size, theme->font_size);
+        DrawText(player_control_label, label.x, label.y, theme->font_size, theme->text);
 
         // select faction of this player
         label = cake_cut_vertical(&faction_dropdowns[i], player_faction_size, 6);
-        label = cake_shrink_to(label, UI_FONT_SIZE_BUTTON);
-        DrawText(player_faction, label.x, label.y, UI_FONT_SIZE_BUTTON, WHITE);
+        label = cake_shrink_to(label, theme->font_size);
+        DrawText(player_faction, label.x, label.y, theme->font_size, theme->text);
 
-        faction_dropdowns[i] = cake_margin_all(faction_dropdowns[i], UI_BORDER_SIZE);
+        faction_dropdowns[i] = cake_margin_all(faction_dropdowns[i], theme->frame_thickness);
 
         mouse_over = selected_player >= 0 ? 0 : CheckCollisionPointRec(mouse, faction_dropdowns[i]);
-        DrawRectangleRec(faction_dropdowns[i], BLACK);
-        DrawRectangleLinesEx(faction_dropdowns[i], UI_BORDER_SIZE, mouse_over ? GRAY : DARKGRAY);
+        DrawRectangleRec(faction_dropdowns[i], theme->background);
+        DrawRectangleLinesEx(faction_dropdowns[i], theme->frame_thickness, mouse_over ? theme->frame_light : theme->frame);
 
         label = faction_dropdowns[i];
         button = cake_cut_vertical(&label, -label.height, 0);
-        DrawRectangleRec(button, mouse_over ? GRAY : DARKGRAY);
-        button = cake_carve_to(button, button_label_size, UI_FONT_SIZE_BUTTON);
-        DrawText(button_label, button.x, button.y, UI_FONT_SIZE_BUTTON, WHITE);
+        DrawRectangleRec(button, mouse_over ? theme->frame_light : theme->frame);
+        button = cake_carve_to(button, button_label_size, theme->font_size);
+        DrawText(button_label, button.x, button.y, theme->font_size, theme->text);
 
         char * faction_name = faction_to_string(state->players.items[i + 1].faction);
-        int faction_name_size = MeasureText(faction_name, UI_FONT_SIZE_BUTTON);
-        label = cake_carve_to(label, faction_name_size, UI_FONT_SIZE_BUTTON);
-        DrawText(faction_name, label.x, label.y, UI_FONT_SIZE_BUTTON, WHITE);
+        int faction_name_size = MeasureText(faction_name, theme->font_size);
+        label = cake_carve_to(label, faction_name_size, theme->font_size);
+        DrawText(faction_name, label.x, label.y, theme->font_size, theme->text);
     }
 
     if (selected_player >= 0) {
         if (choosing) {
             Rectangle dropdown = faction_dropdowns[selected_player];
-            dropdown.height = UI_FONT_SIZE_BUTTON * (FACTION_LAST + 1) + UI_FONT_SIZE_BUTTON * (FACTION_LAST * 0.5f) + UI_BORDER_SIZE * 4;
-            DrawRectangleRec(dropdown, BLACK);
-            DrawRectangleLinesEx(dropdown, UI_BORDER_SIZE, CheckCollisionPointRec(mouse, dropdown) ? GRAY : DARKGRAY);
-            dropdown = cake_margin_all(dropdown, UI_BORDER_SIZE * 2);
+            dropdown.height = theme->font_size * (FACTION_LAST + 1) + theme->font_size * (FACTION_LAST * 0.5f) + theme->frame_thickness * 4;
+            DrawRectangleRec(dropdown, theme->background);
+            DrawRectangleLinesEx(dropdown, theme->frame_thickness, CheckCollisionPointRec(mouse, dropdown) ? theme->frame_light : theme->frame);
+            dropdown = cake_margin_all(dropdown, theme->frame_thickness * 2);
 
             int clicked = 0;
             for (usize i = 0; i <= FACTION_LAST; i++) {
-                Rectangle rect = cake_cut_horizontal(&dropdown, UI_FONT_SIZE_BUTTON, UI_FONT_SIZE_BUTTON * 0.5f);
+                Rectangle rect = cake_cut_horizontal(&dropdown, theme->font_size, theme->font_size * 0.5f);
                 int mouse_over = CheckCollisionPointRec(mouse, rect);
                 if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
                     if (mouse_over) {
@@ -542,8 +525,8 @@ void render_player_select (Rectangle area, GameState * state, int selected_map) 
                     clicked = 1;
                 }
 
-                rect = cake_carve_to(rect, MeasureText(faction_to_string(i), UI_FONT_SIZE_BUTTON), UI_FONT_SIZE_BUTTON);
-                DrawText(faction_to_string(i), rect.x, rect.y, UI_FONT_SIZE_BUTTON, mouse_over ? WHITE : GRAY);
+                rect = cake_carve_to(rect, MeasureText(faction_to_string(i), theme->font_size), theme->font_size);
+                DrawText(faction_to_string(i), rect.x, rect.y, theme->font_size, mouse_over ? theme->text : theme->text_dark);
             }
             if (clicked) {
                 selected_player = -1;
@@ -552,11 +535,11 @@ void render_player_select (Rectangle area, GameState * state, int selected_map) 
         }
         else {
             Rectangle dropdown = player_dropdowns[selected_player];
-            dropdown.height = UI_FONT_SIZE_BUTTON * 2 + UI_FONT_SIZE_BUTTON * 0.5f + UI_BORDER_SIZE * 4;
-            DrawRectangleRec(dropdown, BLACK);
-            DrawRectangleLinesEx(dropdown, UI_BORDER_SIZE, CheckCollisionPointRec(mouse, dropdown) ? GRAY : DARKGRAY);
-            dropdown = cake_margin_all(dropdown, UI_BORDER_SIZE * 2);
-            Rectangle pc_rect = cake_cut_horizontal(&dropdown, UI_FONT_SIZE_BUTTON, UI_FONT_SIZE_BUTTON * 0.5f);
+            dropdown.height = theme->font_size * 2 + theme->font_size * 0.5f + theme->frame_thickness * 4;
+            DrawRectangleRec(dropdown, theme->background);
+            DrawRectangleLinesEx(dropdown, theme->frame_thickness, CheckCollisionPointRec(mouse, dropdown) ? theme->frame_light : theme->frame);
+            dropdown = cake_margin_all(dropdown, theme->frame_thickness * 2);
+            Rectangle pc_rect = cake_cut_horizontal(&dropdown, theme->font_size, theme->font_size * 0.5f);
 
             if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
                 if (CheckCollisionPointRec(mouse, pc_rect)) {
@@ -577,12 +560,12 @@ void render_player_select (Rectangle area, GameState * state, int selected_map) 
                 return;
             }
             int mouse_over = CheckCollisionPointRec(mouse, pc_rect);
-            pc_rect = cake_carve_to(pc_rect, MeasureText("PC", UI_FONT_SIZE_BUTTON), UI_FONT_SIZE_BUTTON);
-            DrawText("PC", pc_rect.x, pc_rect.y, UI_FONT_SIZE_BUTTON, mouse_over ? WHITE : GRAY);
+            pc_rect = cake_carve_to(pc_rect, MeasureText("PC", theme->font_size), theme->font_size);
+            DrawText("PC", pc_rect.x, pc_rect.y, theme->font_size, mouse_over ? theme->text : theme->text_dark);
 
             mouse_over = CheckCollisionPointRec(mouse, dropdown);
-            dropdown = cake_carve_to(dropdown, MeasureText("CPU", UI_FONT_SIZE_BUTTON), UI_FONT_SIZE_BUTTON);
-            DrawText("CPU", dropdown.x, dropdown.y, UI_FONT_SIZE_BUTTON, mouse_over ? WHITE : GRAY);
+            dropdown = cake_carve_to(dropdown, MeasureText("CPU", theme->font_size), theme->font_size);
+            DrawText("CPU", dropdown.x, dropdown.y, theme->font_size, mouse_over ? theme->text : theme->text_dark);
         }
     }
     else if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
@@ -603,10 +586,10 @@ void render_player_select (Rectangle area, GameState * state, int selected_map) 
         selected_player = -1;
     }
 }
-int render_map_list (Rectangle area, ListMap * maps, usize from, usize len) {
+int render_map_list (Rectangle area, ListMap * maps, usize from, usize len, const Theme * theme) {
     int selected = -1;
-    DrawRectangleRec(area, BLACK);
-    DrawRectangleLinesEx(area, UI_BORDER_SIZE, DARKGRAY);
+    DrawRectangleRec(area, theme->background);
+    DrawRectangleLinesEx(area, theme->frame_thickness, theme->frame);
 
     if (len == 0) {
         TraceLog(LOG_WARNING, "No map entries to render");
@@ -624,11 +607,11 @@ int render_map_list (Rectangle area, ListMap * maps, usize from, usize len) {
         return selected;
     }
 
-    area = cake_margin_all(area, UI_BORDER_SIZE + 2);
-    cake_layers(area, len, boxes, UI_FONT_SIZE_BUTTON + ui_margin(), ui_spacing());
+    area = cake_margin_all(area, theme->frame_thickness + 2);
+    cake_layers(area, len, boxes, theme->font_size + theme->margin, theme->spacing);
     for (usize i = 0; i < len; i++) {
         usize index = i + from;
-        draw_button(boxes[i], maps->items[index].name, cursor, UI_LAYOUT_LEFT, DARKBLUE, BLUE, RAYWHITE);
+        draw_button(boxes[i], maps->items[index].name, cursor, UI_LAYOUT_LEFT, theme);
         if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
             if (CheckCollisionPointRec(cursor, boxes[i])) {
                 selected = index;
@@ -637,4 +620,155 @@ int render_map_list (Rectangle area, ListMap * maps, usize from, usize len) {
     }
     return selected;
 }
+Test render_settings (Rectangle area, Settings * settings, const Assets * assets) {
+    const Theme * theme = &settings->theme;
 
+    Rectangle center = cake_carve_to(area, area.width * 0.8, theme->font_size * 15);
+    DrawRectangleRec(center, theme->background);
+    DrawRectangleLinesEx(center, theme->frame_thickness, theme->frame);
+    Rectangle close = cake_carve_width(center, theme->font_size * 1.5f, 1.0f);
+    close.height = close.width;
+    center = cake_margin(center, theme->frame_thickness * 3, theme->frame_thickness * 3, theme->font_size * 2, theme->font_size * 2);
+
+    Rectangle top_label = cake_cut_horizontal(&center, theme->font_size * 2, theme->font_size);
+
+    Rectangle master_volume_slider = cake_cut_horizontal(&center, theme->font_size, theme->font_size);
+    Rectangle music_volume_slider  = cake_cut_horizontal(&center, theme->font_size, theme->font_size);
+    Rectangle sfx_volume_slider    = cake_cut_horizontal(&center, theme->font_size, theme->font_size);
+    Rectangle ui_volume_slider     = cake_cut_horizontal(&center, theme->font_size, theme->font_size);
+    Rectangle fullscreen_check     = cake_cut_horizontal(&center, theme->font_size, theme->font_size);
+
+    char * top_label_text = "Settings";
+    char * master_label = "Global Volume: ";
+    char * music_label = "Music Volume: ";
+    char * sfx_label = "SFX Volume: ";
+    char * ui_label = "UI Volume: ";
+    char * fullscreen = "Fullscreen ";
+
+    top_label = cake_carve_width(top_label, MeasureText(top_label_text, theme->font_size), 0.5f);
+
+    float labels_width = MeasureText(master_label, theme->font_size);
+
+    {
+        #define UPDATE_WIDTH(x) width = MeasureText(x, theme->font_size); \
+        if (width > labels_width) labels_width = width;
+
+        float width;
+        UPDATE_WIDTH(music_label)
+        UPDATE_WIDTH(sfx_label)
+        UPDATE_WIDTH(ui_label)
+        UPDATE_WIDTH(fullscreen)
+        #undef UPDATE_WIDTH
+    }
+
+    Rectangle master_volume_label = cake_cut_vertical(&master_volume_slider , labels_width, theme->spacing);
+    Rectangle music_volume_label  = cake_cut_vertical(&music_volume_slider  , labels_width, theme->spacing);
+    Rectangle sfx_volume_label    = cake_cut_vertical(&sfx_volume_slider    , labels_width, theme->spacing);
+    Rectangle ui_volume_label     = cake_cut_vertical(&ui_volume_slider     , labels_width, theme->spacing);
+    Rectangle fullscreen_label    = cake_cut_vertical(&fullscreen_check     , labels_width, theme->spacing);
+    fullscreen_check.width = fullscreen_check.height;
+
+    float GetMasterVolume();
+    float master_volume = GetMasterVolume();
+    Rectangle master_dot = cake_carve_width(master_volume_slider , theme->font_size, master_volume);
+    Rectangle music_dot  = cake_carve_width(music_volume_slider  , theme->font_size, settings->volume_music);
+    Rectangle sfx_dot    = cake_carve_width(sfx_volume_slider    , theme->font_size, settings->volume_sfx);
+    Rectangle ui_dot     = cake_carve_width(ui_volume_slider     , theme->font_size, settings->volume_ui);
+
+    Vector2 cursor = GetMousePosition();
+    int over_master = CheckCollisionPointRec(cursor, master_volume_slider);
+    int over_music = CheckCollisionPointRec(cursor, music_volume_slider);
+    int over_sfx = CheckCollisionPointRec(cursor, sfx_volume_slider);
+    int over_ui = CheckCollisionPointRec(cursor, ui_volume_slider);
+
+    if (IsMouseButtonReleased(MOUSE_BUTTON_LEFT)) {
+        if (CheckCollisionPointRec(cursor, fullscreen_check)) {
+            play_sound(assets, SOUND_UI_CLICK);
+            if (IsWindowState(FLAG_BORDERLESS_WINDOWED_MODE)) {
+                SetWindowState(FLAG_WINDOW_RESIZABLE);
+            }
+            else {
+                ClearWindowState(FLAG_WINDOW_RESIZABLE);
+            }
+            ToggleBorderlessWindowed();
+        }
+        if (CheckCollisionPointRec(cursor, close)) {
+            play_sound(assets, SOUND_UI_CLICK);
+            return YES;
+        }
+    }
+    if (IsMouseButtonDown(MOUSE_BUTTON_LEFT)) {
+        if (over_master) {
+            float local_pos = ( cursor.x - master_volume_slider.x ) / master_volume_slider.width;
+            settings->volume_master = local_pos;
+            SetMasterVolume(local_pos);
+        }
+        else if (over_music) {
+            float local_pos = ( cursor.x - music_volume_slider.x ) / music_volume_slider.width;
+            settings->volume_music = local_pos;
+            for (usize i = 0; i <= FACTION_LAST; i++) {
+                SetMusicVolume(assets->faction_themes[i], local_pos);
+            }
+            SetMusicVolume(assets->main_theme, local_pos);
+        }
+        else if (over_sfx) {
+            float local_pos = ( cursor.x - sfx_volume_slider.x ) / sfx_volume_slider.width;
+            settings->volume_sfx = local_pos;
+            const ListSFX * sounds = &assets->sound_effects;
+            for (usize i = 0; i < sounds->len; i++) {
+                if (sounds->items[i].kind != SOUND_UI_CLICK) {
+                    SetSoundVolume(sounds->items[i].sound, local_pos);
+                }
+            }
+            if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT) || IsMouseButtonReleased(MOUSE_BUTTON_LEFT)) {
+                int sound = GetRandomValue(0, SOUND_UI_CLICK-1);
+                play_sound(assets, sound);
+            }
+        }
+        else if (over_ui) {
+            float local_pos = ( cursor.x - ui_volume_slider.x ) / ui_volume_slider.width;
+            settings->volume_ui = local_pos;
+            const ListSFX * sounds = &assets->sound_effects;
+            for (usize i = 0; i < sounds->len; i++) {
+                if (sounds->items[i].kind == SOUND_UI_CLICK) {
+                    SetSoundVolume(sounds->items[i].sound, local_pos);
+                }
+            }
+            if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT) || IsMouseButtonReleased(MOUSE_BUTTON_LEFT)) {
+                play_sound(assets, SOUND_UI_CLICK);
+            }
+        }
+    }
+
+    DrawText(top_label_text, top_label.x, top_label.y, theme->font_size * 2.0f, theme->text);
+    DrawText(master_label, master_volume_label.x, master_volume_label.y, theme->font_size, theme->text);
+    DrawText(music_label, music_volume_label.x, music_volume_label.y, theme->font_size, theme->text);
+    DrawText(sfx_label, sfx_volume_label.x, sfx_volume_label.y, theme->font_size, theme->text);
+    DrawText(ui_label, ui_volume_label.x, ui_volume_label.y, theme->font_size, theme->text);
+    DrawText(fullscreen, fullscreen_label.x, fullscreen_label.y, theme->font_size, theme->text);
+
+    // This code could be abstracted into slider function but unless it's needed elsewhere I'm not going to do it.
+    DrawRectangleRec(master_volume_slider, theme->background_light);
+    DrawRectangleRec(music_volume_slider, theme->background_light);
+    DrawRectangleRec(sfx_volume_slider, theme->background_light);
+    DrawRectangleRec(ui_volume_slider, theme->background_light);
+
+    DrawRectangleLinesEx(master_volume_slider , theme->frame_thickness, over_master ? theme->frame_light : theme->frame);
+    DrawRectangleLinesEx(music_volume_slider  , theme->frame_thickness, over_music  ? theme->frame_light : theme->frame);
+    DrawRectangleLinesEx(sfx_volume_slider    , theme->frame_thickness, over_sfx    ? theme->frame_light : theme->frame);
+    DrawRectangleLinesEx(ui_volume_slider     , theme->frame_thickness, over_ui     ? theme->frame_light : theme->frame);
+
+    DrawRectangleRec(master_dot , over_master ? theme->button_hover : theme->button);
+    DrawRectangleRec(music_dot  , over_music  ? theme->button_hover : theme->button);
+    DrawRectangleRec(sfx_dot    , over_sfx    ? theme->button_hover : theme->button);
+    DrawRectangleRec(ui_dot     , over_ui     ? theme->button_hover : theme->button);
+
+    DrawRectangleLinesEx(master_dot , theme->frame_thickness, theme->button_frame);
+    DrawRectangleLinesEx(music_dot  , theme->frame_thickness, theme->button_frame);
+    DrawRectangleLinesEx(sfx_dot    , theme->frame_thickness, theme->button_frame);
+    DrawRectangleLinesEx(ui_dot     , theme->frame_thickness, theme->button_frame);
+
+    draw_button(fullscreen_check, IsWindowFullscreen() ? "X" : "", cursor, UI_LAYOUT_CENTER, theme);
+    draw_button(close, "X", cursor, UI_LAYOUT_CENTER, theme);
+    return NO;
+}

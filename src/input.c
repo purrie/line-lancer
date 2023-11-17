@@ -36,7 +36,7 @@ void camera_zoom (GameState * state) {
 
     Vector2 map_size;
     map_size.x = (GetScreenWidth()  - 20.0f) / (float)state->map.width;
-    map_size.y = (GetScreenHeight() - 20.0f - UI_BAR_SIZE) / (float)state->map.height;
+    map_size.y = (GetScreenHeight() - 20.0f - state->settings->theme.info_bar_height) / (float)state->map.height;
     float minz = (map_size.x < map_size.y) ? map_size.x : map_size.y;
     if (state->camera.zoom < minz) state->camera.zoom = minz;
 
@@ -50,8 +50,11 @@ void state_none (GameState * state) {
     if(IsMouseButtonPressed(MOUSE_BUTTON_LEFT) == false) {
         return;
     }
-    state->current_input = INPUT_MOVE_MAP;
     state->selected_point = GetMousePosition();
+    if (state->selected_point.y < state->settings->theme.info_bar_height) {
+        return;
+    }
+    state->current_input = INPUT_MOVE_MAP;
 
     usize player;
     if (get_local_player_index(state, &player)) {

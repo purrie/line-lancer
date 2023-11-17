@@ -593,15 +593,15 @@ void update_resources (GameState * state) {
         state->players.items[region->player_id].resource_gold += REGION_INCOME;
     }
 }
-Camera2D setup_camera(Map * map) {
+Camera2D setup_camera(Map * map, const Theme * theme) {
     Camera2D cam = {0};
     Vector2 map_size;
     map_size.x = (GetScreenWidth()  - 20.0f) / (float)map->width;
-    map_size.y = (GetScreenHeight() - 20.0f - UI_BAR_SIZE) / (float)map->height;
+    map_size.y = (GetScreenHeight() - 20.0f - theme->info_bar_height) / (float)map->height;
     cam.zoom   = (map_size.x < map_size.y) ? map_size.x : map_size.y;
 
     cam.offset = (Vector2) { GetScreenWidth() / 2 , GetScreenHeight() / 2 };
-    cam.target = (Vector2) { map->width / 2       , map->height / 2 - UI_BAR_SIZE * 0.5f };
+    cam.target = (Vector2) { map->width / 2       , map->height / 2 - theme->info_bar_height * 0.5f };
 
     return cam;
 }
@@ -625,7 +625,7 @@ Result game_state_prepare (GameState * result, const Map * prefab) {
 
     result->active_sounds = listSFXInit(40, perm_allocator());
     result->disabled_sounds = listSFXInit(40, perm_allocator());
-    result->camera = setup_camera(&result->map);
+    result->camera = setup_camera(&result->map, &result->settings->theme);
     result->units  = listUnitInit(120, perm_allocator());
 
     result->particles_available = listParticleInit(PARTICLES_MAX, perm_allocator());

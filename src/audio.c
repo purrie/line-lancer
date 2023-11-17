@@ -42,6 +42,21 @@ char * sound_kind_name (SoundEffectType kind) {
 Sound LoadSoundAlias(Sound);
 void UnloadSoundAlias(Sound);
 
+void apply_sound_settings (const Assets * assets, const Settings * settings) {
+    SetMasterVolume(settings->volume_master);
+    for (usize i = 0; i <= FACTION_LAST; i++) {
+        SetMusicVolume(assets->faction_themes[i], settings->volume_music);
+    }
+    SetMusicVolume(assets->main_theme, settings->volume_music);
+    for (usize i = 0; i < assets->sound_effects.len; i++) {
+        if (assets->sound_effects.items[i].kind == SOUND_UI_CLICK) {
+            SetSoundVolume(assets->sound_effects.items[i].sound, settings->volume_ui);
+        }
+        else {
+            SetSoundVolume(assets->sound_effects.items[i].sound, settings->volume_sfx);
+        }
+    }
+}
 void play_sound (const Assets * assets, SoundEffectType kind) {
     Sound sound = {0};
     for (usize i = 0; i < assets->sound_effects.len; i++) {
@@ -84,7 +99,7 @@ void play_sound_inworld (const GameState * game, SoundEffectType kind, Vector2 p
         TraceLog(LOG_WARNING, "Couldn't find sound: %s", sound_kind_name(kind));
         return;
     }
-    SetSoundVolume(sound, volume);
+    SetSoundVolume(sound, volume * game->settings->volume_sfx);
 
     float pan = ( center.x - screen_pos.x ) / len;
     pan = pan * 0.5f + 0.5f;
@@ -134,7 +149,7 @@ void play_sound_concurent (GameState * game, SoundEffectType kind, Vector2 posit
         return;
     }
 
-    SetSoundVolume(sound.sound, volume);
+    SetSoundVolume(sound.sound, volume * game->settings->volume_sfx);
 
     float pan = ( center.x - screen_pos.x ) / len;
     pan = pan * 0.5f + 0.5f;

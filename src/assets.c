@@ -8,6 +8,7 @@
 #include "std.h"
 #include "constants.h"
 #include "alloc.h"
+#include "ui.h"
 
 #define JSMN_PARENT_LINKS
 #include "../vendor/jsmn.h"
@@ -1124,5 +1125,23 @@ Result load_sound_effects (Assets * assets) {
         }
         i++;
     }
+    return SUCCESS;
+}
+
+float GetMasterVolume(void);
+
+/* Settings ******************************************************************/
+Result load_settings (Settings * settings) {
+    // TODO load the settings from file
+    settings->volume_master = 1.0;
+    settings->volume_music = 0.1;
+    settings->volume_sfx = 0.5;
+    settings->volume_ui = 0.5;
+    settings->theme = theme_setup();
+    return SUCCESS;
+}
+Result save_settings (const Settings * settings) {
+    (void)settings;
+    // TODO implement settings saving to file
     return SUCCESS;
 }
