@@ -768,7 +768,7 @@ Test render_settings (Rectangle area, Settings * settings, const Assets * assets
     DrawRectangleLinesEx(sfx_dot    , theme->frame_thickness, theme->button_frame);
     DrawRectangleLinesEx(ui_dot     , theme->frame_thickness, theme->button_frame);
 
-    draw_button(fullscreen_check, IsWindowFullscreen() ? "X" : "", cursor, UI_LAYOUT_CENTER, theme);
+    draw_button(fullscreen_check, IsWindowState(FLAG_BORDERLESS_WINDOWED_MODE) ? "X" : "", cursor, UI_LAYOUT_CENTER, theme);
     draw_button(close, "X", cursor, UI_LAYOUT_CENTER, theme);
     return NO;
 }
