@@ -6,19 +6,10 @@
 #include <raymath.h>
 
 void clamp_camera (GameState * state) {
-    Vector2 map = { state->map.width, state->map.height };
-    Vector2 limit_top    = map;
+    Vector2 limit_top    = { state->map.width, state->map.height };
     Vector2 limit_bottom = Vector2Zero();
 
-    Vector2 screen = (Vector2) { GetScreenWidth(), GetScreenHeight() };
-    Vector2 pixels = Vector2Divide(screen, (Vector2) { state->camera.zoom, state->camera.zoom });
-    Vector2 diff = Vector2Subtract(pixels, map);
-
-    diff.x = diff.x < 0.0f ? 0.0f : diff.x * 0.5f;
-    diff.y = diff.y < 0.0f ? 0.0f : diff.y * 0.5f;
-
-    limit_top = Vector2Add(limit_top, diff);
-    limit_bottom = Vector2Subtract(limit_bottom, diff);
+    state->camera.offset = (Vector2) { GetScreenWidth() * 0.5f, GetScreenHeight() * 0.5f };
 
     if (state->camera.target.x > limit_top.x)
         state->camera.target.x = limit_top.x;
