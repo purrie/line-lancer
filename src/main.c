@@ -243,7 +243,11 @@ int main(void) {
     SetRandomSeed(time(0));
 
     InitWindow(WINDOW_WIDTH, WINDOW_HEIGHT, "Hello!");
+    #ifdef DEBUG
     SetWindowState(FLAG_WINDOW_RESIZABLE);
+    #else
+    SetWindowState(FLAG_BORDERLESS_WINDOWED_MODE);
+    #endif
 
     InitAudioDevice();
 
