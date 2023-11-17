@@ -888,6 +888,10 @@ void map_apply_textures (const Assets * assets, Map * map) {
         Material * mat = map->regions.items[i].area.model.materials;
         SetMaterialTexture(mat, MATERIAL_MAP_DIFFUSE, assets->ground_texture);
     }
+    Shader shader = assets->water_shader;
+    float size[2] = { assets->water_texture.width, assets->water_texture.height };
+    SetShaderValue(shader, GetShaderLocation(shader, "size"), &size, SHADER_ATTRIB_VEC2);
+    /* SetShaderValueV(shader, GetShaderLocation(shader, "size"), &size, SHADER_ATTRIB_FLOAT, 2); */
     map->background.materials[0].shader = assets->water_shader;
     SetMaterialTexture(&map->background.materials[0], MATERIAL_MAP_DIFFUSE, assets->water_texture);
 }
