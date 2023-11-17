@@ -560,8 +560,8 @@ void render_player_select (Rectangle area, GameState * state, int selected_map) 
                 return;
             }
             int mouse_over = CheckCollisionPointRec(mouse, pc_rect);
-            pc_rect = cake_carve_to(pc_rect, MeasureText("PC", theme->font_size), theme->font_size);
-            DrawText("PC", pc_rect.x, pc_rect.y, theme->font_size, mouse_over ? theme->text : theme->text_dark);
+            pc_rect = cake_carve_to(pc_rect, MeasureText("Player", theme->font_size), theme->font_size);
+            DrawText("Player", pc_rect.x, pc_rect.y, theme->font_size, mouse_over ? theme->text : theme->text_dark);
 
             mouse_over = CheckCollisionPointRec(mouse, dropdown);
             dropdown = cake_carve_to(dropdown, MeasureText("CPU", theme->font_size), theme->font_size);
