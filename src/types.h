@@ -376,6 +376,7 @@ struct Assets {
     Particle particle_pool[PARTICLES_MAX];
     BuildingSpriteSet buildings[FACTION_LAST + 1];
     Texture2D neutral_castle;
+    Texture2D flag;
     Music faction_themes[FACTION_LAST + 1];
     Music main_theme;
     Texture2D water_texture;
@@ -383,7 +384,6 @@ struct Assets {
     ListSFX sound_effects;
     // TODO fill assets:
     // units
-    // region graphics
 };
 
 struct Theme {

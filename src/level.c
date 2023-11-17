@@ -644,9 +644,13 @@ void render_map_mesh (const GameState * state) {
 
         if (region->active_path < region->paths.len && region->player_id) {
             Path * active_path = region->paths.items[region->active_path];
-            Vector2 end = active_path->region_a == region ? active_path->lines.items[0].a :
+            Vector2 end = active_path->region_a == region ?
+                active_path->lines.items[0].a :
                 active_path->lines.items[active_path->lines.len - 1].b;
-            DrawRing(end, 2.0f, 6.0f, 0.0f, 360.0f, 8, get_player_color(region->player_id));
+            Rectangle whole = {0, 0, state->resources->flag.width, state->resources->flag.height};
+            Rectangle target = {end.x, end.y, NAV_GRID_SIZE, NAV_GRID_SIZE};
+            Vector2 origin = {target.width * 0.5f, target.height * 0.5f};
+            DrawTexturePro(state->resources->flag, whole, target, origin, 0, get_player_color(region->player_id));
         }
 
     }

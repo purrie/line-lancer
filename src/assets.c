@@ -982,6 +982,16 @@ Result load_buildings (Assets * assets) {
             }
         }
     }
+    char * path = asset_path("buildings", "flag.png", &temp_alloc);
+    if (NULL == path) {
+        TraceLog(LOG_ERROR, "Failed to allocate memory for flag path");
+        return FAILURE;
+    }
+    assets->flag = LoadTexture(path);
+    if (0 == assets->flag.format) {
+        TraceLog(LOG_ERROR, "Failed to load flag texture");
+        return FAILURE;
+    }
     return SUCCESS;
 }
 Result load_backgrounds (Assets * assets) {
