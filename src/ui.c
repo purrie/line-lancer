@@ -697,11 +697,15 @@ Test render_settings (Rectangle area, Settings * settings, const Assets * assets
             return YES;
         }
     }
-    if (IsMouseButtonDown(MOUSE_BUTTON_LEFT)) {
+    if (IsMouseButtonDown(MOUSE_BUTTON_LEFT) || IsMouseButtonReleased(MOUSE_BUTTON_LEFT)) {
         if (over_master) {
             float local_pos = ( cursor.x - master_volume_slider.x ) / master_volume_slider.width;
             settings->volume_master = local_pos;
             SetMasterVolume(local_pos);
+            if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT) || IsMouseButtonReleased(MOUSE_BUTTON_LEFT)) {
+                int sound = GetRandomValue(0, SOUND_UI_CLICK);
+                play_sound(assets, sound);
+            }
         }
         else if (over_music) {
             float local_pos = ( cursor.x - music_volume_slider.x ) / music_volume_slider.width;
