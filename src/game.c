@@ -593,17 +593,38 @@ void update_resources (GameState * state) {
         state->players.items[region->player_id].resource_gold += REGION_INCOME;
     }
 }
-Camera2D setup_camera(Map * map, const Theme * theme) {
-    Camera2D cam = {0};
-    Vector2 map_size;
-    map_size.x = (GetScreenWidth()  - 20.0f) / (float)map->width;
-    map_size.y = (GetScreenHeight() - 20.0f - theme->info_bar_height) / (float)map->height;
-    cam.zoom   = (map_size.x < map_size.y) ? map_size.x : map_size.y;
+void setup_camera(GameState * state, const Theme * theme) {
+    Map * map = &state->map;
+    state->camera = (Camera2D){0};
+    state->camera.offset = (Vector2) { GetScreenWidth() / 2 , GetScreenHeight() / 2 };
+    usize player;
+    if (get_local_player_index(state, &player)) {
+        TraceLog(LOG_WARNING, "Couldn't find player to set up camera");
+    no_player: {}
+        Vector2 map_size;
+        map_size.x = (GetScreenWidth()  - 20.0f) / (float)map->width;
+        map_size.y = (GetScreenHeight() - 20.0f - theme->info_bar_height) / (float)map->height;
+        state->camera.zoom   = (map_size.x < map_size.y) ? map_size.x : map_size.y;
+        state->camera.target = (Vector2) { map->width / 2 , map->height / 2 - theme->info_bar_height * 0.5f };
+        return;
+    }
 
-    cam.offset = (Vector2) { GetScreenWidth() / 2 , GetScreenHeight() / 2 };
-    cam.target = (Vector2) { map->width / 2       , map->height / 2 - theme->info_bar_height * 0.5f };
-
-    return cam;
+    Region * region = NULL;
+    for (usize i = 0; i < map->regions.len; i++) {
+        if (map->regions.items[i].player_id == player) {
+            region = &map->regions.items[i];
+            break;
+        }
+    }
+    if (region == NULL) {
+        TraceLog(LOG_WARNING, "Couldn't find player region to set up camera");
+        goto no_player;
+    }
+    Rectangle bounds = area_bounds(&region->area);
+    state->camera.target = (Vector2) { bounds.x + bounds.width * 0.5f, bounds.y + bounds.height * 0.5f };
+    bounds.width = ( GetScreenWidth() - 20.0f ) / ( bounds.width  * 2.0f );
+    bounds.height = ( GetScreenHeight() - 20.0f - theme->info_bar_height ) / ( bounds.height * 2.0f );
+    state->camera.zoom = (bounds.width < bounds.height) ? bounds.width : bounds.height;
 }
 Result game_state_prepare (GameState * result, const Map * prefab) {
     TraceLog(LOG_INFO, "Cloning map for gameplay");
@@ -625,7 +646,6 @@ Result game_state_prepare (GameState * result, const Map * prefab) {
 
     result->active_sounds = listSFXInit(40, perm_allocator());
     result->disabled_sounds = listSFXInit(40, perm_allocator());
-    result->camera = setup_camera(&result->map, &result->settings->theme);
     result->units  = listUnitInit(120, perm_allocator());
 
     result->particles_available = listParticleInit(PARTICLES_MAX, perm_allocator());
@@ -648,6 +668,9 @@ Result game_state_prepare (GameState * result, const Map * prefab) {
     for (usize i = 1; i < result->players.len; i++) {
         result->players.items[i].resource_gold = 20;
     }
+
+    setup_camera(result, &result->settings->theme);
+
     return SUCCESS;
 }
 void game_state_deinit (GameState * state) {
