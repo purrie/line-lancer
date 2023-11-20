@@ -56,6 +56,7 @@ void draw_building_button (
     const char  * cost,
     float         cost_offset,
     Vector2       cursor,
+    Test          active,
     const Theme * theme
 ) {
     Rectangle button = cake_margin_all(area, theme->margin * 2);
@@ -64,7 +65,7 @@ void draw_building_button (
     Rectangle label      = cake_cut_vertical(&button, cost_offset, theme->spacing);
     Rectangle label_cost = button;
 
-    if (CheckCollisionPointRec(cursor, area)) {
+    if (active && CheckCollisionPointRec(cursor, area)) {
         DrawRectangleRec(area, theme->button_hover);
         DrawRectangleLinesEx(area, theme->frame_thickness, theme->button_frame);
         DrawTexturePro(icon, (Rectangle){0, 0, icon.width, icon.height}, image, Vector2Zero(), 0, WHITE);
@@ -72,7 +73,7 @@ void draw_building_button (
         DrawText(cost, label_cost.x, label_cost.y, theme->font_size, theme->text);
     }
     else {
-        DrawRectangleRec(area, theme->button);
+        DrawRectangleRec(area, active ? theme->button : theme->button_inactive);
         DrawRectangleLinesEx(area, theme->frame_thickness, theme->button_frame);
         DrawTexturePro(icon, (Rectangle){0, 0, icon.width, icon.height}, image, Vector2Zero(), 0, WHITE);
         DrawText(text, label.x, label.y, theme->font_size, theme->text_dark);
@@ -149,6 +150,7 @@ Theme theme_setup () {
     theme.text = WHITE;
     theme.text_dark = LIGHTGRAY;
     theme.button = DARKBLUE;
+    theme.button_inactive = DARKGRAY;
     theme.button_hover = BLUE;
     theme.button_frame = RAYWHITE;
     theme_update(&theme);
@@ -306,11 +308,56 @@ void render_empty_building_dialog (const GameState * state) {
     snprintf(cost_label_special  , buffer_size, "Cost: %zu", cost_special);
     snprintf(cost_label_resource , buffer_size, "Cost: %zu", cost_resource);
 
-    draw_building_button(dialog.fighter  , icon_fighter  , name_fighter  , cost_label_fighter  , max_width, cursor, theme);
-    draw_building_button(dialog.archer   , icon_archer   , name_archer   , cost_label_archer   , max_width, cursor, theme);
-    draw_building_button(dialog.support  , icon_support  , name_support  , cost_label_support  , max_width, cursor, theme);
-    draw_building_button(dialog.special  , icon_special  , name_special  , cost_label_special  , max_width, cursor, theme);
-    draw_building_button(dialog.resource , icon_resource , name_resource , cost_label_resource , max_width, cursor, theme);
+    draw_building_button(
+        dialog.fighter,
+        icon_fighter,
+        name_fighter,
+        cost_label_fighter,
+        max_width,
+        cursor,
+        cost_fighter <= player->resource_gold,
+        theme
+    );
+    draw_building_button(
+        dialog.archer,
+        icon_archer,
+        name_archer,
+        cost_label_archer,
+        max_width,
+        cursor,
+        cost_archer <= player->resource_gold,
+        theme
+    );
+    draw_building_button(
+        dialog.support,
+        icon_support,
+        name_support,
+        cost_label_support,
+        max_width,
+        cursor,
+        cost_support <= player->resource_gold,
+        theme
+    );
+    draw_building_button(
+        dialog.special,
+        icon_special,
+        name_special,
+        cost_label_special,
+        max_width,
+        cursor,
+        cost_special <= player->resource_gold,
+        theme
+    );
+    draw_building_button(
+        dialog.resource,
+        icon_resource,
+        name_resource,
+        cost_label_resource,
+        max_width,
+        cursor,
+        cost_resource <= player->resource_gold,
+        theme
+    );
 }
 void render_upgrade_building_dialog (const GameState * state) {
     Vector2 cursor = GetMousePosition();

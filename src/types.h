@@ -395,6 +395,7 @@ struct Theme {
     Color text_dark;
     Color button;
     Color button_hover;
+    Color button_inactive;
     Color button_frame;
 
     float font_size;
