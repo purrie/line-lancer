@@ -138,6 +138,29 @@ void state_clicked_path (GameState * state) {
     state->current_input = INPUT_NONE;
 }
 void state_building (GameState * state) {
+    usize player_id;
+    if (get_local_player_index(state, &player_id)) {
+        #ifdef DEBUG
+        player_id = 1;
+        #else
+        state->selected_building = NULL;
+        state->current_input = INPUT_NONE;
+        return;
+        #endif
+    }
+    if (player_id != state->selected_building->region->player_id) {
+        #ifdef DEBUG
+        if (IsKeyDown(KEY_LEFT_SHIFT) == 0) {
+            state->selected_building = NULL;
+            state->current_input = INPUT_NONE;
+            return;
+        }
+        #else
+        state->selected_building = NULL;
+        state->current_input = INPUT_NONE;
+        return;
+        #endif
+    }
     if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT) == false) {
         return;
     }
