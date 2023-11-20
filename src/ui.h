@@ -17,7 +17,7 @@ typedef enum {
 
 typedef struct {
     Rectangle area;
-    Rectangle warrior;
+    Rectangle fighter;
     Rectangle archer;
     Rectangle support;
     Rectangle special;

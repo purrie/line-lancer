@@ -366,7 +366,7 @@ typedef struct {
     Texture2D archer[3];
     Texture2D support[3];
     Texture2D special[3];
-    Texture2D money[3];
+    Texture2D resource[3];
 } BuildingSpriteSet;
 
 struct Assets {

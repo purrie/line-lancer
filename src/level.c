@@ -387,6 +387,80 @@ Building * get_building_by_position (const Map * map, Vector2 position) {
 
     return NULL;
 }
+const char * building_name (BuildingType building, FactionType faction, usize upgrade) {
+    if (upgrade > 2) return "Max Level";
+
+    switch (faction) {
+        case FACTION_KNIGHTS:
+            switch (building) {
+                case BUILDING_FIGHTER:
+                    switch (upgrade) {
+                        case 0: return "Militia Barracks";
+                        case 1: return "Fighters Guild";
+                        case 2: return "Veteran Company";
+                    }
+                case BUILDING_ARCHER:
+                    switch (upgrade) {
+                        case 0: return "Archery Targets";
+                        case 1: return "Shooting Range";
+                        case 2: return "Bowmen School";
+                    }
+                case BUILDING_SUPPORT:
+                    switch (upgrade) {
+                        case 0: return "Shrine";
+                        case 1: return "Temple";
+                        case 2: return "Cathedral";
+                    }
+                case BUILDING_SPECIAL:
+                    switch (upgrade) {
+                        case 0: return "Horse Trainers";
+                        case 1: return "Rider School";
+                        case 2: return "Knight Mansion";
+                    }
+                case BUILDING_RESOURCE:
+                    switch (upgrade) {
+                        case 0: return "Farms";
+                        case 1: return "Ranch";
+                        case 2: return "Village";
+                    }
+                case BUILDING_EMPTY: return "";
+            }
+        case FACTION_MAGES:
+            switch (building) {
+                case BUILDING_FIGHTER:
+                    switch (upgrade) {
+                        case 0: return "Golem Mines";
+                        case 1: return "Golem Workshop";
+                        case 2: return "Golem Factoria";
+                    }
+                case BUILDING_ARCHER:
+                    switch (upgrade) {
+                        case 0: return "Mage's Study";
+                        case 1: return "Magic School";
+                        case 2: return "Magic University";
+                    }
+                case BUILDING_SUPPORT:
+                    switch (upgrade) {
+                        case 0: return "Summoning Circle";
+                        case 1: return "Ritual Grounds";
+                        case 2: return "Tempest Shrine";
+                    }
+                case BUILDING_SPECIAL:
+                    switch (upgrade) {
+                        case 0: return "Genie Tomb";
+                        case 1: return "Genie Temple";
+                        case 2: return "Genie Citadel";
+                    }
+                case BUILDING_RESOURCE:
+                    switch (upgrade) {
+                        case 0: return "Mana Crystal";
+                        case 1: return "Mana Array";
+                        case 2: return "Mana Cluster";
+                    }
+                case BUILDING_EMPTY: return "";
+            }
+    }
+}
 
 /* Path Functions **********************************************************/
 Result path_by_position (const Map * map, Vector2 position, Path ** result) {
@@ -623,7 +697,7 @@ void render_map_mesh (const GameState * state) {
                     sprite = &state->resources->buildings[region->faction].special[building->upgrades];
                 } break;
                 case BUILDING_RESOURCE: {
-                    sprite = &state->resources->buildings[region->faction].money[building->upgrades];
+                    sprite = &state->resources->buildings[region->faction].resource[building->upgrades];
                 } break;
             }
             if (sprite != NULL) {

@@ -30,9 +30,10 @@ usize  building_cost_to_spawn    (const Building * building);
 usize  building_generated_income (const Building * building);
 float  building_trigger_interval (const Building * building);
 
-float       building_size            ();
-Rectangle   building_bounds          (const Building * building);
-Building  * get_building_by_position (const Map * map, Vector2 position);
+float        building_size            ();
+Rectangle    building_bounds          (const Building * building);
+Building   * get_building_by_position (const Map * map, Vector2 position);
+const char * building_name            (BuildingType building, FactionType faction, usize upgrade);
 
 /* Path Functions ************************************************************/
 Result path_by_position (const Map * map, Vector2 position, Path ** result);
