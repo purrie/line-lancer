@@ -447,7 +447,7 @@ void unit_deinit(Unit * unit) {
     MemFree(unit);
 }
 Unit * unit_from_building (const Building * building) {
-    if (building->units_spawned >= BUILDING_MAX_UNITS)
+    if (building->units_spawned >= building_max_units(building))
         return NULL;
 
     WayPoint * spawn = NULL;

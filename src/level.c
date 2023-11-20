@@ -363,6 +363,11 @@ float building_trigger_interval (const Building * building) {
 float building_size () {
     return 10.0f;
 }
+usize building_max_units (const Building * building) {
+    if (building->type == BUILDING_EMPTY || building->type == BUILDING_RESOURCE)
+        return 0;
+    return BUILDING_MAX_UNITS;
+}
 Rectangle building_bounds (const Building * building) {
     Rectangle bounds = {0};
     float b_size       = building_size();
@@ -459,6 +464,19 @@ const char * building_name (BuildingType building, FactionType faction, usize up
                     }
                 case BUILDING_EMPTY: return "";
             }
+    }
+}
+Texture2D building_image (const Assets * assets, FactionType faction, BuildingType building, usize level) {
+    if (level > BUILDING_MAX_UPGRADES || faction > FACTION_LAST || building > BUILDING_TYPE_LAST)
+        return (Texture2D){0};
+    const BuildingSpriteSet * set = &assets->buildings[faction];
+    switch (building) {
+        case BUILDING_EMPTY: return (Texture2D) {0};
+        case BUILDING_FIGHTER: return set->fighter[level];
+        case BUILDING_ARCHER: return set->archer[level];
+        case BUILDING_SUPPORT: return set->support[level];
+        case BUILDING_SPECIAL: return set->special[level];
+        case BUILDING_RESOURCE: return set->resource[level];
     }
 }
 

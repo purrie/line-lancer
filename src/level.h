@@ -20,15 +20,17 @@ bool      area_contains_point  (const Area * area, const Vector2 point);
 Rectangle area_bounds          (const Area * area);
 
 /* Building Functions ******************************************************/
-void   place_building            (Building * building, BuildingType type);
-void   upgrade_building          (Building * building);
-void   demolish_building         (Building * building);
-usize  building_buy_cost         (BuildingType type);
-usize  building_upgrade_cost     (const Building * building);
-usize  building_upgrade_cost_raw (BuildingType type, usize level);
-usize  building_cost_to_spawn    (const Building * building);
-usize  building_generated_income (const Building * building);
-float  building_trigger_interval (const Building * building);
+void      place_building            (Building * building, BuildingType type);
+void      upgrade_building          (Building * building);
+void      demolish_building         (Building * building);
+usize     building_buy_cost         (BuildingType type);
+usize     building_upgrade_cost     (const Building * building);
+usize     building_upgrade_cost_raw (BuildingType type, usize level);
+usize     building_cost_to_spawn    (const Building * building);
+usize     building_generated_income (const Building * building);
+float     building_trigger_interval (const Building * building);
+usize     building_max_units        (const Building * building);
+Texture2D building_image            (const Assets * assets, FactionType faction, BuildingType building, usize level);
 
 float        building_size            ();
 Rectangle    building_bounds          (const Building * building);

@@ -138,7 +138,7 @@ void theme_update (Theme * theme) {
 
     theme->dialog_build_width = 350;
     theme->dialog_build_height = 350;
-    theme->dialog_upgrade_width = 200;
+    theme->dialog_upgrade_width = 350;
     theme->dialog_upgrade_height = 350;
 }
 Theme theme_setup () {
@@ -364,31 +364,17 @@ void render_upgrade_building_dialog (const GameState * state) {
     Vector2 building_pos = GetWorldToScreen2D(state->selected_building->position, state->camera);
     const Theme * theme = &state->settings->theme;
     BuildingDialog dialog = building_dialog(building_pos, theme);
+    usize player_id;
+    if (get_local_player_index(state, &player_id)) {
+        player_id = 1;
+    }
+    PlayerData * player = &state->players.items[player_id];
+    FactionType faction = player->faction;
+    Building * building = state->selected_building;
 
     DrawRectangleRec(dialog.area, theme->background);
-    Rectangle level = cake_cut_horizontal(&dialog.label, 0.6f, 2.0f);
-    char * text;
-    switch (state->selected_building->type) {
-        case BUILDING_FIGHTER: {
-            text = "Fighter";
-        } break;
-        case BUILDING_ARCHER: {
-            text = "Archer";
-        } break;
-        case BUILDING_SUPPORT: {
-            text = "Support";
-        } break;
-        case BUILDING_SPECIAL: {
-            text = "Special";
-        } break;
-        case BUILDING_RESOURCE: {
-            text = "Cash";
-        } break;
-        case BUILDING_EMPTY: {
-            DrawText("Invalid", dialog.label.x, dialog.label.y, 20, WHITE);
-        } return;
-    }
-    char * lvl;
+    const char * text = building_name(building->type, faction, building->upgrades);
+    const char * lvl;
     switch (state->selected_building->upgrades) {
         case 0: {
             lvl = "Level 1";
@@ -403,10 +389,68 @@ void render_upgrade_building_dialog (const GameState * state) {
             lvl = "Level N/A";
         } break;
     }
-    DrawText(text, dialog.label.x, dialog.label.y, 20, theme->text);
-    DrawText(lvl, level.x, level.y, 16, theme->text);
+    usize max_units = building_max_units(building);
+    usize now_units = building->units_spawned;
+    char counter[20];
+    snprintf(counter, 20, "Units: %zu/%zu", now_units, max_units);
 
-    draw_button(dialog.upgrade, "Upgrade", cursor, UI_LAYOUT_CENTER, theme);
+    float title_scale = 1.5f;
+
+    DrawRectangleRec(dialog.label, theme->background_light);
+    dialog.label = cake_margin_all(dialog.label, theme->margin);
+
+    Rectangle r_title = cake_cut_horizontal(&dialog.label, theme->font_size * title_scale, theme->spacing * 2);
+    Rectangle r_level = cake_cut_horizontal(&dialog.label, theme->font_size, theme->spacing);
+    Rectangle r_units = cake_cut_horizontal(&dialog.label, theme->font_size, theme->spacing);
+
+    r_title = cake_carve_width(r_title, MeasureText(text, theme->font_size * title_scale), 0.5f);
+
+    DrawText(text, r_title.x, r_title.y, theme->font_size * title_scale, theme->text);
+    DrawText(lvl, r_level.x, r_level.y, theme->font_size, theme->text);
+    DrawText(counter, r_units.x, r_units.y, theme->font_size, theme->text);
+
+    if (building->upgrades < BUILDING_MAX_UPGRADES) {
+        const char * u_label = building_name(building->type, faction, building->upgrades + 1);
+        usize cost = building_upgrade_cost(building);
+        char u_cost[10];
+        if (building->upgrades >= BUILDING_MAX_UPGRADES) {
+            u_cost[0] = 0;
+        }
+        else {
+            snprintf(u_cost, 10, "Cost: %zu", cost);
+        }
+        Texture2D icon = building_image(state->resources, faction, building->type, building->upgrades + 1);
+        Test active = cost <= player->resource_gold;
+
+        Rectangle button = cake_margin_all(dialog.upgrade, theme->margin * 2);
+        Rectangle image  = cake_cut_vertical(&button, -button.height, theme->spacing);
+        button = cake_shrink_to(button, theme->font_size * 2 + theme->spacing * 2);
+
+        Rectangle label      = cake_cut_horizontal(&button, theme->font_size, theme->spacing * 2);
+        Rectangle label_cost = button;
+
+        if (active && CheckCollisionPointRec(cursor, dialog.upgrade)) {
+            DrawRectangleRec(dialog.upgrade, theme->button_hover);
+            DrawRectangleLinesEx(dialog.upgrade, theme->frame_thickness, theme->button_frame);
+            DrawTexturePro(icon, (Rectangle){0, 0, icon.width, icon.height}, image, Vector2Zero(), 0, WHITE);
+            DrawText(u_label, label.x, label.y, theme->font_size, theme->text);
+            DrawText(u_cost, label_cost.x, label_cost.y, theme->font_size, theme->text);
+        }
+        else {
+            DrawRectangleRec(dialog.upgrade, active ? theme->button : theme->button_inactive);
+            DrawRectangleLinesEx(dialog.upgrade, theme->frame_thickness, theme->button_frame);
+            DrawTexturePro(icon, (Rectangle){0, 0, icon.width, icon.height}, image, Vector2Zero(), 0, WHITE);
+            DrawText(u_label, label.x, label.y, theme->font_size, theme->text_dark);
+            DrawText(u_cost, label_cost.x, label_cost.y, theme->font_size, theme->text_dark);
+        }
+    }
+    else {
+        DrawRectangleRec(dialog.upgrade, theme->button_inactive);
+        DrawRectangleLinesEx(dialog.upgrade, theme->frame_thickness, theme->button_frame);
+        dialog.upgrade = cake_carve_to(dialog.upgrade, MeasureText("Max Level", theme->font_size), theme->font_size);
+        DrawText("Max Level", dialog.upgrade.x, dialog.upgrade.y, theme->font_size, theme->text_dark);
+    }
+
     draw_button(dialog.demolish, "Demolish", cursor, UI_LAYOUT_CENTER, theme);
 }
 InfoBarAction render_resource_bar (const GameState * state) {
