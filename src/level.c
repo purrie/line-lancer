@@ -126,7 +126,7 @@ Test lines_check_hit (const ListLine * lines, Vector2 point, float distance) {
     for (usize i = 0; i < lines->len; i++) {
         Line line = lines->items[i];
 
-        float angle = Vector2Angle(line.a, line.b);
+        float angle = Vector2AngleHorizon(Vector2Subtract(line.b, line.a));
         float length = Vector2DistanceSqr(line.a, line.b);
         Vector2 local_point = Vector2Subtract(point, line.a);
         Vector2 rotated = Vector2Rotate(local_point, -angle);
@@ -761,6 +761,7 @@ void render_map_mesh (const GameState * state) {
     #endif
 
     #ifdef RENDER_NAV_GRID
+    const Map * map = &state->map;
     for (usize p = 0; p < map->paths.len; p++) {
         Path * path = &map->paths.items[p];
         nav_render(&path->nav_graph);
