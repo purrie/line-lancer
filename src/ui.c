@@ -854,65 +854,74 @@ Test render_settings (Rectangle area, Settings * settings, const Assets * assets
     int over_sfx = CheckCollisionPointRec(cursor, sfx_volume_slider);
     int over_ui = CheckCollisionPointRec(cursor, ui_volume_slider);
 
-    if (IsMouseButtonReleased(MOUSE_BUTTON_LEFT)) {
-        if (CheckCollisionPointRec(cursor, fullscreen_check)) {
-            play_sound(assets, SOUND_UI_CLICK);
-            if (IsWindowState(FLAG_BORDERLESS_WINDOWED_MODE)) {
-                SetWindowState(FLAG_WINDOW_RESIZABLE);
-            }
-            else {
-                ClearWindowState(FLAG_WINDOW_RESIZABLE);
-            }
-            ToggleBorderlessWindowed();
-        }
-        if (CheckCollisionPointRec(cursor, close)) {
-            play_sound(assets, SOUND_UI_CLICK);
-            return YES;
+    static bool input_enabled = false;
+    if (input_enabled == false) {
+        if (IsMouseButtonReleased(MOUSE_BUTTON_LEFT)) {
+            input_enabled = true;
         }
     }
-    if (IsMouseButtonDown(MOUSE_BUTTON_LEFT) || IsMouseButtonReleased(MOUSE_BUTTON_LEFT)) {
-        if (over_master) {
-            float local_pos = ( cursor.x - master_volume_slider.x ) / master_volume_slider.width;
-            settings->volume_master = local_pos;
-            SetMasterVolume(local_pos);
-            if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT) || IsMouseButtonReleased(MOUSE_BUTTON_LEFT)) {
-                int sound = GetRandomValue(0, SOUND_UI_CLICK);
-                play_sound(assets, sound);
-            }
-        }
-        else if (over_music) {
-            float local_pos = ( cursor.x - music_volume_slider.x ) / music_volume_slider.width;
-            settings->volume_music = local_pos;
-            for (usize i = 0; i <= FACTION_LAST; i++) {
-                SetMusicVolume(assets->faction_themes[i], local_pos);
-            }
-            SetMusicVolume(assets->main_theme, local_pos);
-        }
-        else if (over_sfx) {
-            float local_pos = ( cursor.x - sfx_volume_slider.x ) / sfx_volume_slider.width;
-            settings->volume_sfx = local_pos;
-            const ListSFX * sounds = &assets->sound_effects;
-            for (usize i = 0; i < sounds->len; i++) {
-                if (sounds->items[i].kind != SOUND_UI_CLICK) {
-                    SetSoundVolume(sounds->items[i].sound, local_pos);
-                }
-            }
-            if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT) || IsMouseButtonReleased(MOUSE_BUTTON_LEFT)) {
-                int sound = GetRandomValue(0, SOUND_UI_CLICK-1);
-                play_sound(assets, sound);
-            }
-        }
-        else if (over_ui) {
-            float local_pos = ( cursor.x - ui_volume_slider.x ) / ui_volume_slider.width;
-            settings->volume_ui = local_pos;
-            const ListSFX * sounds = &assets->sound_effects;
-            for (usize i = 0; i < sounds->len; i++) {
-                if (sounds->items[i].kind == SOUND_UI_CLICK) {
-                    SetSoundVolume(sounds->items[i].sound, local_pos);
-                }
-            }
-            if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT) || IsMouseButtonReleased(MOUSE_BUTTON_LEFT)) {
+    else {
+        if (IsMouseButtonReleased(MOUSE_BUTTON_LEFT)) {
+            if (CheckCollisionPointRec(cursor, fullscreen_check)) {
                 play_sound(assets, SOUND_UI_CLICK);
+                if (IsWindowState(FLAG_BORDERLESS_WINDOWED_MODE)) {
+                    SetWindowState(FLAG_WINDOW_RESIZABLE);
+                }
+                else {
+                    ClearWindowState(FLAG_WINDOW_RESIZABLE);
+                }
+                ToggleBorderlessWindowed();
+            }
+            if (CheckCollisionPointRec(cursor, close)) {
+                play_sound(assets, SOUND_UI_CLICK);
+                input_enabled = false;
+                return YES;
+            }
+        }
+        if (IsMouseButtonDown(MOUSE_BUTTON_LEFT) || IsMouseButtonReleased(MOUSE_BUTTON_LEFT)) {
+            if (over_master) {
+                float local_pos = ( cursor.x - master_volume_slider.x ) / master_volume_slider.width;
+                settings->volume_master = local_pos;
+                SetMasterVolume(local_pos);
+                if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT) || IsMouseButtonReleased(MOUSE_BUTTON_LEFT)) {
+                    int sound = GetRandomValue(0, SOUND_UI_CLICK);
+                    play_sound(assets, sound);
+                }
+            }
+            else if (over_music) {
+                float local_pos = ( cursor.x - music_volume_slider.x ) / music_volume_slider.width;
+                settings->volume_music = local_pos;
+                for (usize i = 0; i <= FACTION_LAST; i++) {
+                    SetMusicVolume(assets->faction_themes[i], local_pos);
+                }
+                SetMusicVolume(assets->main_theme, local_pos);
+            }
+            else if (over_sfx) {
+                float local_pos = ( cursor.x - sfx_volume_slider.x ) / sfx_volume_slider.width;
+                settings->volume_sfx = local_pos;
+                const ListSFX * sounds = &assets->sound_effects;
+                for (usize i = 0; i < sounds->len; i++) {
+                    if (sounds->items[i].kind != SOUND_UI_CLICK) {
+                        SetSoundVolume(sounds->items[i].sound, local_pos);
+                    }
+                }
+                if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT) || IsMouseButtonReleased(MOUSE_BUTTON_LEFT)) {
+                    int sound = GetRandomValue(0, SOUND_UI_CLICK-1);
+                    play_sound(assets, sound);
+                }
+            }
+            else if (over_ui) {
+                float local_pos = ( cursor.x - ui_volume_slider.x ) / ui_volume_slider.width;
+                settings->volume_ui = local_pos;
+                const ListSFX * sounds = &assets->sound_effects;
+                for (usize i = 0; i < sounds->len; i++) {
+                    if (sounds->items[i].kind == SOUND_UI_CLICK) {
+                        SetSoundVolume(sounds->items[i].sound, local_pos);
+                    }
+                }
+                if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT) || IsMouseButtonReleased(MOUSE_BUTTON_LEFT)) {
+                    play_sound(assets, SOUND_UI_CLICK);
+                }
             }
         }
     }
