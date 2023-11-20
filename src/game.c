@@ -399,7 +399,7 @@ void units_support (GameState * state, float delta_time) {
                 for (usize u = 0; u < buffer.len; u++) {
                     Unit * target = buffer.items[u];
                     if (target->type == UNIT_GUARDIAN) continue;
-                    if (unit_has_effect(unit, MAGIC_WEAKNESS, NULL))
+                    if (unit_has_effect(target, MAGIC_WEAKNESS, NULL))
                         continue;
                     MagicEffect magic;
                     if (get_unit_support_power(unit, &magic)) {
