@@ -310,10 +310,11 @@ void particles_render_attacks (const GameState * state, Unit * attacked) {
             arc:
             origin = (Vector2) { size - 1.0f , half_size };
             attack_position = Vector2Lerp(attack->origin_position, attacked->position, 0.5);
+            Vector2 attack_progress = Vector2Lerp(attack->origin_position, attacked->position, 0.75f);
             AnimationCurve curve = {
                 .start = attack->origin_position,
                 .start_handle = Vector2Add(attack_position, (Vector2){ 0.0f, -NAV_GRID_SIZE * 2.0f }),
-                .end_handle = Vector2Add(attacked->position, (Vector2){ 0.0f, -NAV_GRID_SIZE * 4.0f }),
+                .end_handle = Vector2Add(attack_progress, (Vector2){ 0.0f, -NAV_GRID_SIZE * 4.0f }),
                 .end = attacked->position,
             };
             attack_position = animation_curve_position(curve, t);
