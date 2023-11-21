@@ -191,7 +191,7 @@ void make_purchasing_decision (GameState * state, usize player_index, ListRegion
     // choose what to buy
     if (upkeep + 0.3f >= income) {
         wanted_building = BUILDING_RESOURCE;
-        wanted_upgrade = buildings_empty_count == 0;
+        wanted_upgrade = buildings_unupgraded_spread[BUILDING_RESOURCE] || buildings_first_level_spread[BUILDING_RESOURCE];
         wanted_building_upgrade_level = buildings_unupgraded_spread[BUILDING_RESOURCE] == 0;
     }
     else {
