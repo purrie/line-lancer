@@ -666,7 +666,7 @@ Result game_state_prepare (GameState * result, const Map * prefab) {
     }
 
     for (usize i = 1; i < result->players.len; i++) {
-        result->players.items[i].resource_gold = 20;
+        result->players.items[i].resource_gold = 25;
     }
 
     setup_camera(result, &result->settings->theme);
