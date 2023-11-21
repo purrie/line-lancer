@@ -473,8 +473,13 @@ InfoBarAction render_resource_bar (const GameState * state) {
     const usize buffer_size = 256;
     char buffer[buffer_size];
 
+    const char * fmt;
+    switch (player->faction) {
+        case FACTION_KNIGHTS: fmt = "Gold: %zu"; break;
+        case FACTION_MAGES:   fmt = "Mana: %zu"; break;
+    }
     char * label;
-    if (snprintf(buffer, buffer_size, "Gold: %zu ", player->resource_gold) <= 0) {
+    if (snprintf(buffer, buffer_size, fmt, player->resource_gold) <= 0) {
         label = "too much...";
     }
     else {
