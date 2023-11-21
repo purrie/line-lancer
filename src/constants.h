@@ -10,7 +10,6 @@
 #define PLAYERS_MAX 16
 
 #define UNIT_SIZE 6.0f
-#define UNIT_SPEED 20.0f
 #define UNIT_MAX_RANGE 6
 
 #define PARTICLES_MAX 512
@@ -22,7 +21,6 @@
 
 #define BUILDING_MAX_UPGRADES 2
 #define BUILDING_MAX_LEVEL 3
-#define BUILDING_MAX_UNITS 5
 
 #define PATH_THICKNESS (NAV_GRID_SIZE * 3)
 

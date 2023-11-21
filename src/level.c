@@ -285,43 +285,47 @@ void demolish_building (Building * building) {
     building->units_spawned = 0;
 }
 usize building_buy_cost (BuildingType type) {
+    // @balance
     switch (type) {
         case BUILDING_FIGHTER:  return 10;
         case BUILDING_ARCHER:   return 15;
-        case BUILDING_SUPPORT:  return 15;
-        case BUILDING_SPECIAL:  return 20;
-        case BUILDING_RESOURCE: return 10;
+        case BUILDING_SUPPORT:  return 20;
+        case BUILDING_SPECIAL:  return 40;
+        case BUILDING_RESOURCE: return 15;
         default: {
             TraceLog(LOG_ERROR, "Attempted to get cost of unbuildable building type");
         } return 10000;
     }
 }
 usize building_upgrade_cost_raw (BuildingType type, usize level) {
+    // @balance
     return building_buy_cost(type) * (level + 2);
 }
 usize building_upgrade_cost (const Building * building) {
     return building_upgrade_cost_raw(building->type, building->upgrades);
 }
 usize building_cost_to_spawn (const Building * building) {
+    // @balance
     switch (building->type) {
         case BUILDING_EMPTY:
         case BUILDING_RESOURCE:
             return 0;
-        case BUILDING_ARCHER:
-        case BUILDING_FIGHTER:
-        case BUILDING_SUPPORT:
-        case BUILDING_SPECIAL:
-            return 1 + building->upgrades;
+        case BUILDING_FIGHTER: return 1 + building->upgrades;
+        case BUILDING_ARCHER:  return 1 + building->upgrades;
+        case BUILDING_SUPPORT: return 1 + building->upgrades;
+        case BUILDING_SPECIAL: return 2 * (building->upgrades + 1);
     }
     TraceLog(LOG_ERROR, "Attempted to get spawning cost from unhandled building: %s", building_type_to_string(building->type));
     return 0;
 }
 usize building_generated_income (const Building * building) {
+    // @balance
     if (building->type == BUILDING_RESOURCE)
-        return 3 * ( building->upgrades + 1);
+        return 3 * ( building->upgrades + 1) * ( building->upgrades + 1 );
     return 0;
 }
 float building_trigger_interval (const Building * building) {
+    // @balance
     switch (building->type) {
         case BUILDING_EMPTY:
             return 0.0f;
@@ -352,8 +356,8 @@ float building_trigger_interval (const Building * building) {
             break;
         case BUILDING_SPECIAL:
             switch (building->region->faction) {
-                case FACTION_KNIGHTS: return 5.0f - building->upgrades;
-                case FACTION_MAGES:   return 5.0f - building->upgrades;
+                case FACTION_KNIGHTS: return 7.0f - building->upgrades;
+                case FACTION_MAGES:   return 7.0f - building->upgrades;
             }
             break;
     }
@@ -364,9 +368,10 @@ float building_size () {
     return 10.0f;
 }
 usize building_max_units (const Building * building) {
+    // @balance
     if (building->type == BUILDING_EMPTY || building->type == BUILDING_RESOURCE)
         return 0;
-    return BUILDING_MAX_UNITS;
+    return 5 * (building->upgrades + 1);
 }
 Rectangle building_bounds (const Building * building) {
     Rectangle bounds = {0};
@@ -515,20 +520,25 @@ void region_reset_unit_pathfinding (Region * region) {
     }
 }
 void region_change_ownership (GameState * state, Region * region, usize player_id) {
-    usize local_player;
-    if (get_local_player_index(state, &local_player)) {
-        local_player = 1;
+    { // sounds
+        usize local_player;
+        if (get_local_player_index(state, &local_player)) {
+            local_player = 1;
+        }
+        if (region->player_id == local_player) {
+            play_sound(state->resources, SOUND_REGION_LOST);
+        }
+        else if (player_id == local_player) {
+            play_sound(state->resources, SOUND_REGION_CONQUERED);
+        }
     }
-    if (region->player_id == local_player) {
-        play_sound(state->resources, SOUND_REGION_LOST);
-    }
-    else if (player_id == local_player) {
-        play_sound(state->resources, SOUND_REGION_CONQUERED);
-    }
+
     region->player_id = player_id;
     region->faction = state->players.items[player_id].faction;
     region->active_path = region->paths.len;
     setup_unit_guardian(region);
+    // @balance
+    region->castle.health *= 0.2f;
 
     for (usize i = 0; i < region->buildings.len; i++) {
         Building * b = &region->buildings.items[i];

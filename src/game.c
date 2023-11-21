@@ -234,7 +234,7 @@ void move_units (GameState * state, float delta_time) {
                 if (unit->cooldown > 0) {
                     continue;
                 }
-                unit->cooldown = FPS / 10;
+                unit->cooldown = 0.1f;
                 unit->current_path = 0;
 
                 NavRangeSearchContext context = {
@@ -301,7 +301,7 @@ void move_units (GameState * state, float delta_time) {
                         };
                         if (nav_find_path(unit->waypoint, navtarget, &unit->pathfind)) {
                             TraceLog(LOG_DEBUG, "Failed to find idling path inside region");
-                            unit->cooldown = FPS;
+                            unit->cooldown = 1.0f;
                         }
                         break;
                     }
@@ -329,7 +329,7 @@ void move_units (GameState * state, float delta_time) {
                 unit->position = Vector2MoveTowards(
                     unit->position,
                     unit->waypoint->world_position,
-                    UNIT_SPEED * delta_time
+                    get_unit_speed(unit) * delta_time
                 );
             } break;
             default: break;
@@ -430,7 +430,7 @@ void units_fight (GameState * state, float delta_time) {
         Unit * target = get_enemy_in_range(unit);
         if (target) {
             Attack attack = {
-                .damage = get_unit_attack(unit),
+                .damage = get_unit_attack_damage(unit),
                 .attacker_player_id = unit->player_owned,
                 .attacker_faction = unit->faction,
                 .attacker_type = unit->type,
@@ -474,6 +474,16 @@ void units_damage(GameState * state, float delta_time) {
         Region * region = &state->map.regions.items[i];
         Unit * guardian = &region->castle;
         usize attacks = guardian->incoming_attacks.len;
+        if (attacks == 0) { // regenerate if not under attack
+            float max_health = get_unit_health(UNIT_GUARDIAN, region->faction, 0);
+            if (guardian->health < max_health) {
+                // @balance
+                guardian->health += delta_time * max_health * 0.01;
+                if (guardian->health > max_health)
+                    guardian->health = max_health;
+            }
+        }
+        else
         while (attacks --> 0) {
             Attack * attack = &guardian->incoming_attacks.items[attacks];
             attack->timer += delta_time;
@@ -507,7 +517,7 @@ void guardian_fight (GameState * state, float delta_time) {
         Unit * target = get_enemy_in_range(guardian);
         if (target) {
             Attack attack = {
-                .damage = get_unit_attack(guardian),
+                .damage = get_unit_attack_damage(guardian),
                 .attacker_player_id = guardian->player_owned,
                 .attacker_faction = guardian->faction,
                 .attacker_type = UNIT_GUARDIAN,
@@ -528,32 +538,22 @@ void process_effects (GameState * state, float delta_time) {
         usize e = unit->effects.len;
         while (e --> 0) {
             MagicEffect * effect = &unit->effects.items[e];
+            // @balance
             switch (effect->type) {
                 case MAGIC_HEALING: {
                     float max_health = get_unit_health(unit->type, unit->faction, unit->upgrade);
-                    float healing = effect->strength <= delta_time ? delta_time : effect->strength * delta_time;
+                    float healing = max_health * effect->strength * delta_time;
                     float healed = unit->health + healing;
                     unit->health = max_health < healed ? max_health : healed;
-                    effect->strength -= healing;
-                } break;
-                case MAGIC_HELLFIRE: {
-                    float damage = effect->strength <= delta_time ? delta_time : effect->strength * delta_time;
-                    unit->health -= damage;
-                    effect->strength -= damage;
-                    if (unit->health <= 0.0f) {
-                        unit_kill(state, unit);
-                        goto next;
-                    }
                 } break;
                 default: {
-                    effect->strength -= delta_time;
                 } break;
             }
-            if (effect->strength <= 0.0f) {
+            effect->duration -= delta_time;
+            if (effect->duration <= 0.0f) {
                 listMagicEffectRemove(&unit->effects, e);
             }
         }
-        next: {}
     }
 }
 void simulate_units (GameState * state) {
@@ -562,12 +562,12 @@ void simulate_units (GameState * state) {
     for (usize i = 0; i < state->units.len; i++) {
         Unit * unit = state->units.items[i];
         if (unit->cooldown > 0)
-            unit->cooldown --;
+            unit->cooldown -= dt;
     }
     for (usize i = 0; i < state->map.regions.len; i++) {
         Unit * guard = &state->map.regions.items[i].castle;
         if (guard->cooldown > 0)
-            guard->cooldown --;
+            guard->cooldown -= dt;
     }
 
     spawn_units       (state, dt);

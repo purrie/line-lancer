@@ -117,11 +117,11 @@ enum UnitState {
 
 enum MagicType {
     MAGIC_HEALING = 0,
-    MAGIC_CURSE,
+    /* MAGIC_CURSE, */
     MAGIC_WEAKNESS,
-    MAGIC_STRENGTH,
-    MAGIC_HELLFIRE,
-    MAGIC_TYPE_LAST = MAGIC_HELLFIRE,
+    /* MAGIC_STRENGTH, */
+    /* MAGIC_HELLFIRE, */
+    MAGIC_TYPE_LAST = MAGIC_WEAKNESS,
 };
 
 enum GraphType {
@@ -241,9 +241,10 @@ struct GlobalNavGrid {
 } ;
 
 struct MagicEffect {
-    MagicType type;
     float     strength;
+    float     duration;
     usize     source_player;
+    MagicType type;
 };
 
 struct Attack {
@@ -263,7 +264,7 @@ struct Unit {
     usize       player_owned;
     FactionType faction;
 
-    usize     cooldown;
+    float     cooldown;
     float     health;
     UnitState state;
     Vector2   position;
