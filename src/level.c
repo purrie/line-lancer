@@ -605,8 +605,9 @@ void region_deinit (Region * region) {
 
     TraceLog(LOG_DEBUG, "  Releasing Area");
     listLineDeinit(&region->area.lines);
-    TraceLog(LOG_DEBUG, "  Unloading Model");
+    TraceLog(LOG_DEBUG, "  Unloading Models");
     UnloadModel(region->area.model);
+    UnloadModel(region->area.outline);
     TraceLog(LOG_DEBUG, "  Deinitializing region nav grid");
     listWayPointDeinit(&region->nav_graph.waypoints);
 
@@ -691,19 +692,7 @@ void render_map_mesh (const GameState * state) {
     for (usize i = 0; i < state->map.regions.len; i++) {
         const Region * region = &state->map.regions.items[i];
         DrawModel(region->area.model, Vector3Zero(), 1.0f, WHITE);
-
-        for (usize l = 0; l < region->area.lines.len; l++) {
-            Line line = region->area.lines.items[l];
-
-            Vector2 grow = Vector2Subtract(line.a, line.b);
-            grow = Vector2Normalize(grow);
-            grow = Vector2Scale(grow, 0.5f);
-            line.a = Vector2Add(line.a, grow);
-            grow = Vector2Scale(grow, -1.0f);
-            line.b = Vector2Add(line.b, grow);
-
-            DrawLineEx(line.a, line.b, 4.0f, get_player_color(region->player_id));
-        }
+        DrawModel(region->area.outline, Vector3Zero(), 1.0f, get_player_color(region->player_id));
 
         const ListBuilding * buildings = &region->buildings;
         for (usize b = 0; b < buildings->len; b++) {

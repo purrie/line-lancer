@@ -392,5 +392,6 @@ void generate_map_mesh(Map * map) {
     TraceLog(LOG_INFO, "  Generating region mesh");
     Region * region = &map->regions.items[i];
     region->area.model = generate_area_mesh(&region->area, LAYER_MAP);
+    region->area.outline = generate_line_mesh(region->area.lines, PATH_THICKNESS * 0.1f, 3, LAYER_MAP_OUTLINE);
   }
 }

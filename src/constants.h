@@ -26,6 +26,7 @@
 
 #define LAYER_BACKGROUND -0.4f
 #define LAYER_MAP -0.3f
+#define LAYER_MAP_OUTLINE -0.25f
 #define LAYER_PATH -0.2f
 #define LAYER_BUILDING -0.1f
 #define MAP_BEVEL 5

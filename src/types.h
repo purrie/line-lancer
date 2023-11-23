@@ -307,6 +307,7 @@ struct Building {
 struct Area {
     ListLine lines;
     Model    model;
+    Model    outline;
 };
 
 struct Path {
