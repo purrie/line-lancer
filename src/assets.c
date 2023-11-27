@@ -168,6 +168,11 @@ void assets_deinit (Assets * assets) {
         UnloadSound(assets->sound_effects.items[i].sound);
     }
     listSFXDeinit(&assets->sound_effects);
+    UnloadTexture(assets->empty_building);
+    UnloadTexture(assets->ground_texture);
+    UnloadTexture(assets->water_texture);
+    UnloadTexture(assets->bridge_texture);
+    UnloadShader(assets->water_shader);
 }
 
 /* Json Handling *************************************************************/
@@ -1003,6 +1008,26 @@ Result load_backgrounds (Assets * assets) {
     assets->ground_texture = LoadTexture(path);
     if (0 == assets->ground_texture.format) {
         TraceLog(LOG_ERROR, "Failed to load background");
+        return FAILURE;
+    }
+    path = asset_path("backgrounds", "bridge.png", &temp_alloc);
+    if (NULL == path) {
+        TraceLog(LOG_ERROR, "Failed to allocate path for bridge");
+        return FAILURE;
+    }
+    assets->bridge_texture = LoadTexture(path);
+    if (0 == assets->bridge_texture.format) {
+        TraceLog(LOG_ERROR, "Failed to load bridge texture");
+        return FAILURE;
+    }
+    path = asset_path("backgrounds", "building-ground.png", &temp_alloc);
+    if (NULL == path) {
+        TraceLog(LOG_ERROR, "Temp allocator failed to allocate path for building ground");
+        return FAILURE;
+    }
+    assets->empty_building = LoadTexture(path);
+    if (0 == assets->empty_building.format) {
+        TraceLog(LOG_ERROR, "Failed to load empty building texture");
         return FAILURE;
     }
     path = asset_path("backgrounds", "water.png", &temp_alloc);

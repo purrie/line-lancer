@@ -140,6 +140,18 @@ Test lines_check_hit (const ListLine * lines, Vector2 point, float distance) {
     }
     return NO;
 }
+float lines_length (const ListLine * lines) {
+    float result = 0;
+    for (usize i = 0; i < lines->len; i++) {
+        result += Vector2Distance(lines->items[i].a, lines->items[i].b);
+    }
+    return result;
+}
+float line_angle (const Line line) {
+    Vector2 local = Vector2Subtract(line.b, line.a);
+    local = Vector2Normalize(local);
+    return Vector2AngleHorizon(local);
+}
 
 void bevel_lines (ListLine * lines, usize resolution, float depth, bool enclosed) {
     if (enclosed) {
@@ -717,19 +729,20 @@ void render_map_mesh (const GameState * state) {
                     sprite = &state->resources->buildings[region->faction].resource[building->upgrades];
                 } break;
             }
+            Rectangle destination = {
+                building->position.x,
+                building->position.y,
+                NAV_GRID_SIZE * 2,
+                NAV_GRID_SIZE * 2
+            };
+            Vector2 origin = (Vector2){ NAV_GRID_SIZE, NAV_GRID_SIZE };
             if (sprite != NULL) {
-                Rectangle source = (Rectangle){ 0, 0, sprite->width, sprite->height };
-                Rectangle destination = (Rectangle){
-                    building->position.x,
-                    building->position.y,
-                    NAV_GRID_SIZE * 2,
-                    NAV_GRID_SIZE * 2
-                };
-                Vector2 origin = (Vector2){ destination.width * 0.5f, destination.height * 0.5f };
+                Rectangle source = { 0, 0, sprite->width, sprite->height };
                 DrawTexturePro(*sprite, source, destination, origin, 0.0f, WHITE);
             }
             else {
-                DrawCircleGradient(building->position.x, building->position.y, UNIT_SIZE, GRAY, (Color){ 255, 255, 255, 0 });
+                Rectangle source = { 0, 0, state->resources->empty_building.width, state->resources->empty_building.height };
+                DrawTexturePro(state->resources->empty_building, source, destination, origin, 0, WHITE);
             }
         }
 
@@ -749,7 +762,7 @@ void render_map_mesh (const GameState * state) {
     #ifdef RENDER_PATHS
     for (usize i = 0; i < state->map.paths.len; i++) {
         const Path * path = &state->map.paths.items[i];
-        DrawModel(path->model, Vector3Zero(), 1.0f, ORANGE);
+        DrawModel(path->model, Vector3Zero(), 1.0f, WHITE);
         #ifdef RENDER_PATHS_DEBUG
         for (usize l = 0; l < path->lines.len; l++) {
             Line line = path->lines.items[l];
@@ -957,7 +970,7 @@ void map_subdivide_paths (Map * map) {
     }
     depth = sqrtf(depth) * 0.25f;
 
-    bevel_lines(&map->paths.items[i].lines, PATH_BEVEL, depth, false);
+    bevel_lines(&map->paths.items[i].lines, 1, depth, false);
   }
 
   for (usize i = 0; i < map->regions.len; i++) {
@@ -980,10 +993,13 @@ void map_apply_textures (const Assets * assets, Map * map) {
         Material * mat = map->regions.items[i].area.model.materials;
         SetMaterialTexture(mat, MATERIAL_MAP_DIFFUSE, assets->ground_texture);
     }
+    for (usize i = 0; i < map->paths.len; i++) {
+        Material * mat = map->paths.items[i].model.materials;
+        SetMaterialTexture(mat, MATERIAL_MAP_DIFFUSE, assets->bridge_texture);
+    }
     Shader shader = assets->water_shader;
     float size[2] = { assets->water_texture.width, assets->water_texture.height };
     SetShaderValue(shader, GetShaderLocation(shader, "size"), &size, SHADER_ATTRIB_VEC2);
-    /* SetShaderValueV(shader, GetShaderLocation(shader, "size"), &size, SHADER_ATTRIB_FLOAT, 2); */
     map->background.materials[0].shader = assets->water_shader;
     SetMaterialTexture(&map->background.materials[0], MATERIAL_MAP_DIFFUSE, assets->water_texture);
 }

@@ -33,59 +33,65 @@ Model generate_line_mesh(const ListLine lines, float thickness, ushort cap_resol
 
   const float thickness_half = thickness * 0.5f;
   const usize points = lines.len + 1 + cap_resolution * 2;
+  const bool first_bot = lines.items[0].a.x < lines.items[lines.len - 1].b.x;
 
   // generating vertex positions
   {
     mesh.vertexCount = points * 2;
-    mesh.vertices = MemAlloc(sizeof(float) * 3 * mesh.vertexCount);
+    mesh.vertices  = MemAlloc(sizeof(float) * 3 * mesh.vertexCount);
+    mesh.texcoords = MemAlloc(sizeof(float) * 2 * mesh.vertexCount);
 
     TraceLog(LOG_INFO, "  Generating verticle positions");
     for (usize i = 0; i < points; i++) {
       // modifying 2 vertex positions at a time, each with 3 components
       const usize vert = i * 2 * 3;
-      Vector2 v, a;
+      Vector2 anchor_position;
       Vector2 line;
 
-      if (i < cap_resolution) {
+      if (i <= cap_resolution) {
         usize index = 0;
-        a = lines.items[index].a;
-        line = Vector2Subtract(lines.items[index].b, lines.items[index].a);
+        anchor_position = lines.items[index].a;
+        line = Vector2Subtract(lines.items[index].b, anchor_position);
         line = Vector2Normalize(line);
 
-        float step = (float)(cap_resolution - i) / (float)cap_resolution;
-        float thick = 1.0f - (step * step * 0.9f);
+        if (cap_resolution > 0) {
+          float step = (float)(cap_resolution - i) / (float)cap_resolution;
+          float thick = 1.0f - (step * step * 0.9f);
 
-        Vector2 offset = Vector2Scale(line, step);
-        offset = Vector2Scale(offset, thickness_half);
+          Vector2 offset = Vector2Scale(line, step);
+          offset = Vector2Scale(offset, thickness_half);
 
-        a = Vector2Subtract(a, offset);
-        line = Vector2Scale(line, thick);
+          anchor_position = Vector2Subtract(anchor_position, offset);
+          line = Vector2Scale(line, thick);
+        }
       }
 
       else if (i >= lines.len + cap_resolution) {
         usize index = lines.len - 1;
-        a = lines.items[index].b;
-        line = Vector2Subtract(lines.items[index].b, lines.items[index].a);
+        anchor_position = lines.items[index].b;
+        line = Vector2Subtract(lines.items[index].b, lines.items[index].a); // extending past end
         line = Vector2Normalize(line);
 
-        float step = (float)(i - lines.len - cap_resolution) / (float)cap_resolution;
-        float thick = 1.0f - (step * step * 0.9f);
+        if (cap_resolution > 0) {
+          float step = (float)(i - lines.len - cap_resolution) / (float)cap_resolution;
+          float thick = 1.0f - (step * step * 0.9f);
 
-        Vector2 offset = Vector2Scale(line, step);
-        offset = Vector2Scale(offset, thickness_half);
+          Vector2 offset = Vector2Scale(line, step);
+          offset = Vector2Scale(offset, thickness_half);
 
-        a = Vector2Add(a, offset);
-        line = Vector2Scale(line, thick);
+          anchor_position = Vector2Add(anchor_position, offset);
+          line = Vector2Scale(line, thick);
+        }
       }
 
       else {
         usize index = i - cap_resolution;
-        a = lines.items[index].a;
-        line = Vector2Subtract(lines.items[index].b, a);
+        anchor_position = lines.items[index].a;
+        line = Vector2Subtract(lines.items[index].b, anchor_position);
 
         usize last = lines.len ;
         if (index < last && index > 0 ) {
-          v = Vector2Subtract(lines.items[index - 1].b, lines.items[index - 1].a);
+          Vector2 v = Vector2Subtract(lines.items[index - 1].b, lines.items[index - 1].a);
           line = Vector2Slerp(line, v, Vector2Zero(), 0.5f);
         }
 
@@ -94,18 +100,32 @@ Model generate_line_mesh(const ListLine lines, float thickness, ushort cap_resol
 
       line = Vector2Scale(line, thickness_half);
 
-      v = Vector2PerpCounter(line);
-      v = Vector2Add(v, a);
-      mesh.vertices[vert] = v.x;
-      mesh.vertices[vert + 1] = v.y;
+      Vector2 top_pos = Vector2PerpCounter(line);
+      Vector2 bot_pos = Vector2Perp(line);
+      top_pos = Vector2Add(top_pos, anchor_position);
+      bot_pos = Vector2Add(bot_pos, anchor_position);
+
+      mesh.vertices[vert]     = top_pos.x;
+      mesh.vertices[vert + 1] = top_pos.y;
       mesh.vertices[vert + 2] = layer;
 
-      v = Vector2Perp(line);
-      v = Vector2Add(v, a);
-      mesh.vertices[vert + 3] = v.x;
-      mesh.vertices[vert + 4] = v.y;
+      mesh.vertices[vert + 3] = bot_pos.x;
+      mesh.vertices[vert + 4] = bot_pos.y;
       mesh.vertices[vert + 5] = layer;
 
+      const usize uv = i * 2 * 2; // setting 2 points at a time, each having 2 elements
+      float progress = (float)i / (float)(points - 1);
+      mesh.texcoords[uv] = progress;
+      mesh.texcoords[uv + 2] = progress;
+
+      if (first_bot) {
+        mesh.texcoords[uv + 1] = 1.0f;
+        mesh.texcoords[uv + 3] = 0;
+      }
+      else {
+        mesh.texcoords[uv + 1] = 0;
+        mesh.texcoords[uv + 3] = 1.0f;
+      }
     }
   }
   // resolving mesh collisions
@@ -211,7 +231,17 @@ Model generate_line_mesh(const ListLine lines, float thickness, ushort cap_resol
   }
 
   UploadMesh(&mesh, false);
-  return LoadModelFromMesh(mesh);
+  Model model = LoadModelFromMesh(mesh);
+  model.materialCount = 1;
+  model.materials = MemAlloc(sizeof(Material));
+  if (model.materials == NULL) {
+    TraceLog(LOG_ERROR, "Failed to allocate memory for material of a path");
+    UnloadModel(model);
+    return (Model) {0};
+  }
+  model.materials[0] = LoadMaterialDefault();
+  SetModelMeshMaterial(&model, 0, 0);
+  return model;
 }
 Model generate_area_mesh(const Area * area, const float layer) {
   temp_reset();
@@ -380,12 +410,11 @@ void generate_background_mesh (Map * map) {
 
 /* Handlers ******************************************************************/
 void generate_map_mesh(Map * map) {
-  // TODO sizes and thickness will depend on the map size I imagine
   TraceLog(LOG_INFO, "Generating meshes");
   generate_background_mesh(map);
   for (usize i = 0; i < map->paths.len; i++) {
     TraceLog(LOG_INFO, "  Generating path mesh #%d", i);
-    map->paths.items[i].model = generate_line_mesh(map->paths.items[i].lines, (float)PATH_THICKNESS, 3, LAYER_PATH);
+    map->paths.items[i].model = generate_line_mesh(map->paths.items[i].lines, PATH_THICKNESS, 0, LAYER_PATH);
   }
   for (usize i = 0; i < map->regions.len; i++) {
     TraceLog(LOG_INFO, "Generating region #%d", i);

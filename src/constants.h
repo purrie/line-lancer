@@ -30,7 +30,6 @@
 #define LAYER_PATH -0.2f
 #define LAYER_BUILDING -0.1f
 #define MAP_BEVEL 5
-#define PATH_BEVEL 3
 
 /* #define RENDER_NAV_GRID */
 #define RENDER_PATHS

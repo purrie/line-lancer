@@ -383,6 +383,8 @@ struct Assets {
     Music main_theme;
     Texture2D water_texture;
     Texture2D ground_texture;
+    Texture2D bridge_texture;
+    Texture2D empty_building;
     ListSFX sound_effects;
     // TODO fill assets:
     // units
