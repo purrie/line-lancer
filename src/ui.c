@@ -624,7 +624,7 @@ void render_player_select (Rectangle area, GameState * state, int selected_map) 
         PlayerData * player = &state->players.items[i + 1];
         DrawRectangleRec(lines[i], theme->background_light);
 
-        snprintf(name, 64, "Player %zu", i);
+        snprintf(name, 64, "Player %zu", i + 1);
         Rectangle label = cake_cut_vertical(&lines[i], 0.3f, 5);
         cake_cut_vertical(&label, theme->frame_thickness * 2, 0);
         Rectangle color_box = cake_cut_vertical(&label, theme->font_size, theme->frame_thickness * 2);
