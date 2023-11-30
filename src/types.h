@@ -28,6 +28,7 @@ typedef struct NavGraph NavGraph;
 typedef struct GlobalNavGrid GlobalNavGrid;
 typedef struct Particle Particle;
 typedef struct SoundEffect SoundEffect;
+typedef struct AIRegionScore AIRegionScore;
 
 typedef enum BuildingType BuildingType;
 typedef enum PlayerState PlayerState;
@@ -85,6 +86,8 @@ makeList(Attack, Attack);
 makeList(Path*, PathP);
 makeList(Particle*, Particle);
 makeList(SoundEffect, SFX);
+makeList(AIRegionScore, AIRegionScore);
+makeList(AIRegionScore*, AIRegionScoreP);
 
 makeList(FindPoint, FindPoint);
 makeList(WayPoint*, WayPoint);
@@ -348,11 +351,35 @@ typedef enum PlayerType {
     PLAYER_AI,
 } PlayerType;
 
+struct AIRegionScore {
+    Region * region;
+    usize random_focus_bonus;
+    usize frontline_distance;
+    bool enemies_present;
+    bool frontline;
+    bool gather_troops;
+};
+typedef struct {
+    float fighter;
+    float archer;
+    float support;
+    float special;
+    float resources;
+} AIDesiredBuildings;
+
+typedef struct {
+    usize seed;
+    AIDesiredBuildings buildings;
+    ListAIRegionScore regions;
+    bool aggressive;
+    bool new_conquest;
+} AIData;
+
 struct PlayerData {
     usize resource_gold;
     PlayerType type;
     FactionType faction;
-    usize seed;
+    AIData * ai;
 };
 
 typedef enum {

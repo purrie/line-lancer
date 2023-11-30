@@ -656,25 +656,25 @@ Result game_state_prepare (GameState * result, const Map * prefab) {
 
     result->players.len = result->map.player_count + 1;
 
+    setup_camera(result, &result->settings->theme);
+
     // player 0 is neutral faction
     for (usize i = 1; i < result->players.len; i++) {
-        if (result->players.items[i].type != PLAYER_AI) continue;
-        unsigned int max = -1;
-        max /= 2;
-        max -= 1;
-        result->players.items[i].seed = GetRandomValue(0, (int)max);
-    }
-
-    for (usize i = 1; i < result->players.len; i++) {
+        if (result->players.items[i].type == PLAYER_AI) {
+            ai_init(i, result);
+        }
         result->players.items[i].resource_gold = 25;
     }
-
-    setup_camera(result, &result->settings->theme);
 
     return SUCCESS;
 }
 void game_state_deinit (GameState * state) {
     clear_unit_list(&state->units);
+    for (usize p = 0; p < state->players.len; p++) {
+        if (state->players.items[p].type == PLAYER_AI) {
+            ai_deinit(&state->players.items[p]);
+        }
+    }
     listPlayerDataDeinit(&state->players);
     listParticleDeinit(&state->particles_available);
     listParticleDeinit(&state->particles_in_use);

@@ -8,6 +8,7 @@
 #include "pathfinding.h"
 #include "units.h"
 #include "audio.h"
+#include "ai.h"
 #include <raymath.h>
 
 /* Line Functions **********************************************************/
@@ -544,6 +545,9 @@ void region_change_ownership (GameState * state, Region * region, usize player_i
             play_sound(state->resources, SOUND_REGION_CONQUERED);
         }
     }
+    if (state->players.items[region->player_id].type == PLAYER_AI) {
+        ai_region_lost(region->player_id, state, region);
+    }
 
     region->player_id = player_id;
     region->faction = state->players.items[player_id].faction;
@@ -555,6 +559,9 @@ void region_change_ownership (GameState * state, Region * region, usize player_i
     for (usize i = 0; i < region->buildings.len; i++) {
         Building * b = &region->buildings.items[i];
         demolish_building(b);
+    }
+    if (state->players.items[player_id].type == PLAYER_AI) {
+        ai_region_gain(player_id, state, region);
     }
 }
 Region * region_by_unit (const Unit * unit) {
