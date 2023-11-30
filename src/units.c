@@ -114,15 +114,15 @@ float get_unit_attack_damage (const Unit * unit) {
             switch (unit->faction) {
                 case FACTION_KNIGHTS:
                     switch (unit->upgrade) {
-                        case 0: attack = 40.0f; break;
-                        case 1: attack = 80.0f; break;
-                        case 2: attack = 120.0f; break;
-                    } break;
-                case FACTION_MAGES:
-                    switch (unit->upgrade) {
                         case 0: attack = 45.0f; break;
                         case 1: attack = 90.0f; break;
                         case 2: attack = 135.0f; break;
+                    } break;
+                case FACTION_MAGES:
+                    switch (unit->upgrade) {
+                        case 0: attack = 35.0f; break;
+                        case 1: attack = 70.0f; break;
+                        case 2: attack = 105.0f; break;
                     } break;
             }
         } break;
@@ -136,9 +136,9 @@ float get_unit_attack_damage (const Unit * unit) {
                     } break;
                 case FACTION_MAGES:
                     switch (unit->upgrade) {
-                        case 0: attack = 30.0f; break;
-                        case 1: attack = 60.0f; break;
-                        case 2: attack = 90.0f; break;
+                        case 0: attack = 35.0f; break;
+                        case 1: attack = 70.0f; break;
+                        case 2: attack = 105.0f; break;
                     } break;
             }
         } break;
@@ -231,9 +231,9 @@ float get_unit_health (UnitType type, FactionType faction, unsigned int upgrades
             switch (faction) {
                 case FACTION_KNIGHTS:
                     switch (upgrades) {
-                        case 0: return 100.0f;
-                        case 1: return 200.0f;
-                        case 2: return 300.0f;
+                        case 0: return 105.0f;
+                        case 1: return 210.0f;
+                        case 2: return 315.0f;
                     } break;
                 case FACTION_MAGES:
                     switch (upgrades) {
@@ -267,9 +267,9 @@ float get_unit_health (UnitType type, FactionType faction, unsigned int upgrades
                     } break;
                 case FACTION_MAGES:
                     switch (upgrades) {
-                        case 0: return 40.0f;
-                        case 1: return 80.0f;
-                        case 2: return 120.0f;
+                        case 0: return 45.0f;
+                        case 1: return 90.0f;
+                        case 2: return 135.0f;
                     } break;
             } break;
         case UNIT_SPECIAL:
@@ -316,7 +316,7 @@ float get_unit_cooldown (const Unit * unit) {
             switch (unit->type) {
                 case UNIT_FIGHTER:  return 0.5f - (unit->upgrade * 0.1f);
                 case UNIT_ARCHER:   return 1.0f - (unit->upgrade * 0.1f);
-                case UNIT_SUPPORT:  return 1.2f - (unit->upgrade * 0.1f);
+                case UNIT_SUPPORT:  return 0.5f - (unit->upgrade * 0.1f);
                 case UNIT_SPECIAL:  return 0.4f - (unit->upgrade * 0.1f);
                 case UNIT_GUARDIAN: return 1.1f;
             }
@@ -341,7 +341,7 @@ float get_unit_attack_delay  (const Unit * unit) {
             switch (unit->type) {
                 case UNIT_FIGHTER:  return 0.4f - (unit->upgrade * 0.1f);
                 case UNIT_ARCHER:   return 0.7f - (unit->upgrade * 0.1f);
-                case UNIT_SUPPORT:  return 0.5f - (unit->upgrade * 0.1f);
+                case UNIT_SUPPORT:  return 0.4f - (unit->upgrade * 0.1f);
                 case UNIT_SPECIAL:  return 0.4f - (unit->upgrade * 0.1f);
                 case UNIT_GUARDIAN: return 1.0f;
             }
@@ -386,8 +386,8 @@ float get_unit_speed (const Unit * unit) {
             switch (unit->type) {
                 case UNIT_FIGHTER:
                     switch (unit->upgrade) {
-                        case 0: return 12.0f;
-                        case 1: return 17.0f;
+                        case 0: return 15.0f;
+                        case 1: return 20.0f;
                         case 2: return 25.0f;
                     }
                 case UNIT_ARCHER:
