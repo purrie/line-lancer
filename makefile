@@ -49,7 +49,7 @@ $(BIN_FOLDER)/raylib_linux.a: vendor/raylib/
 
 vendor/raylib/:
 	git submodule init
-	git submodule update --remote --recursive
+	git submodule update --recursive
 
 $(BIN_FOLDER)/$(BIN): $(OBJECTS) $(BIN_FOLDER)/raylib_linux.a
 	$(CC) $(FLAGS) $(LIBS) -o $@ $(OBJECTS) -L$(BIN_FOLDER)/ -l:raylib_linux.a
