@@ -2,3 +2,6 @@ cache/
 bin/
 .ccls-cache/
 trash/
+*.tiled*
+core
+TODO.org
