@@ -12,5 +12,6 @@ float Vector2AngleHorizon(Vector2 direction);
 Rectangle RectangleUnion(Rectangle a, Rectangle b);
 Rectangle RectangleIntersection(Rectangle a, Rectangle b);
 Rectangle RectangleEnvelop(Rectangle rect, Vector2 point);
+bool RectangleEquals(Rectangle a, Rectangle b);
 
 #endif // MATH_H_

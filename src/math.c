@@ -95,3 +95,10 @@ Rectangle RectangleEnvelop(Rectangle rect, Vector2 point) {
 
     return rect;
 }
+bool RectangleEquals(Rectangle a, Rectangle b) {
+    if (a.x != b.x) return false;
+    if (a.y != b.y) return false;
+    if (a.width != b.width) return false;
+    if (a.height != b.height) return false;
+    return true;
+}
