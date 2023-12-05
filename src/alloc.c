@@ -33,6 +33,12 @@ Allocator perm_allocator () {
     };
 }
 void * temp_alloc (unsigned int size) {
+    #ifdef DEBUG
+    if (size > MAX_ARENA_SIZE) {
+        TraceLog(LOG_FATAL, "Attempted to allocate more memory than arena is configured to store at a time. MAX = %zu, REQUESTED = %zu", MAX_ARENA_SIZE, size);
+        return (void*)0;
+    }
+    #endif
     Arena * arena = &global_arena;
     int depth = 0;
     while (arena->cursor + size > MAX_ARENA_SIZE) {
