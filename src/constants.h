@@ -11,6 +11,7 @@
 
 #define UNIT_SIZE 6.0f
 #define UNIT_MAX_RANGE 6
+#define UNIT_LEVELS 3
 
 #define PARTICLES_MAX 512
 
@@ -39,6 +40,12 @@
 #define PATH_SEPARATOR '\\'
 #else
 #define PATH_SEPARATOR '/'
+#endif
+
+#ifdef _WIN32
+#define PATH_SEPARATOR_STR "\\"
+#else
+#define PATH_SEPARATOR_STR "/"
 #endif
 
 #endif // CONSTANTS_H_

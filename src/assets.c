@@ -9,6 +9,7 @@
 #include "constants.h"
 #include "alloc.h"
 #include "ui.h"
+#include "animation.h"
 
 #define JSMN_PARENT_LINKS
 #include "../vendor/jsmn.h"
@@ -17,6 +18,8 @@ typedef struct {
     uchar * start;
     usize   len;
 } StringSlice;
+
+void unload_animations (Assets * assets);
 
 /* String Handling ***********************************************************/
 void log_slice(TraceLogLevel log_level, char * text, StringSlice slice) {
@@ -30,6 +33,36 @@ StringSlice make_slice_u(uchar * from, usize start, usize end) {
     s.start = from + start;
     s.len = end - start;
     return s;
+}
+StringSlice split_backwards(StringSlice text, usize * in_out_from, uchar split) {
+    usize from = *in_out_from;
+    if (text.len <= from) {
+        from = text.len;
+    }
+    StringSlice result = {0};
+    if (from == 0) {
+        return result;
+    }
+
+    int offset = 0;
+    while (from --> 0) {
+        if (text.start[from] == PATH_SEPARATOR) {
+            offset = 1;
+            break;
+        }
+        if (text.start[from] == split) {
+            offset = 1;
+            break;
+        }
+    }
+    result.start = &text.start[from + offset];
+    result.len = *in_out_from - from;
+    if (from > 0)
+      *in_out_from = from - 1;
+    else
+      *in_out_from = from;
+
+    return result;
 }
 bool compare_literal(StringSlice slice, const char * literal) {
     usize i = 0;
@@ -154,6 +187,7 @@ char * asset_path (const char * target_folder, const char * file, Alloc alloc) {
     return result;
 }
 void assets_deinit (Assets * assets) {
+    unload_animations(assets);
     for (usize i = 0; i < assets->maps.len; i++) {
         map_deinit(&assets->maps.items[i]);
     }
@@ -1050,6 +1084,16 @@ Result load_backgrounds (Assets * assets) {
         TraceLog(LOG_ERROR, "Failed to load water shader");
         return FAILURE;
     }
+    path = asset_path("shaders", "outline.fs", &temp_alloc);
+    if (NULL == path) {
+        TraceLog(LOG_ERROR, "Temp allocator failed to allocate path for outline shader");
+        return FAILURE;
+    }
+    assets->outline_shader = LoadShader(0, path);
+    if (NULL == assets->outline_shader.locs) {
+        TraceLog(LOG_ERROR, "Failed to load outline shader");
+        return FAILURE;
+    }
     return SUCCESS;
 }
 Result load_graphics (Assets * assets) {
@@ -1059,6 +1103,297 @@ Result load_graphics (Assets * assets) {
     if (result != SUCCESS) return result;
     result = load_backgrounds(assets);
     return result;
+}
+
+/* Units *********************************************************************/
+Result initialize_animation_set (AnimationSet * set) {
+    set->attack = listFrameInit(10, perm_allocator());
+    set->idle = listFrameInit(10, perm_allocator());
+    set->walk = listFrameInit(10, perm_allocator());
+    set->cast = listFrameInit(10, perm_allocator());
+
+    if (NULL == set->attack.items) return FAILURE;
+    if (NULL == set->idle.items) return FAILURE;
+    if (NULL == set->walk.items) return FAILURE;
+    if (NULL == set->cast.items) return FAILURE;
+    return SUCCESS;
+}
+Result initialize_animation_data (Assets * assets) {
+    for (usize f = 0; f <= FACTION_LAST; f++) {
+        for (usize l = 0; l < UNIT_LEVELS; l++) {
+            for (usize t = 0; t < UNIT_TYPE_COUNT; t++) {
+                initialize_animation_set(&assets->animations.sets[f][t][l]);
+            }
+        }
+    }
+    return SUCCESS;
+}
+Result load_animations (Assets * assets) {
+    clear_memory(&assets->animations, sizeof(Animations));
+    if (initialize_animation_data(assets)) {
+        return FAILURE;
+    }
+    temp_reset();
+    FilePathList data = LoadDirectoryFilesEx("assets" PATH_SEPARATOR_STR "units", ".json", false);
+    for (usize i = 0; i < data.count; i++) {
+        TraceLog(LOG_INFO, "Loading Animation from %s", data.paths[i]);
+
+        int data_len;
+        uchar * text = LoadFileData(data.paths[i], &data_len);
+
+        usize counter = string_length(data.paths[i]);
+        StringSlice path = { (uchar*)data.paths[i], counter };
+        split_backwards(path, &counter, '.'); // skip the extension
+
+        StringSlice identifier = split_backwards(path, &counter, '-');
+        if (NULL == identifier.start) {
+            TraceLog(LOG_ERROR, "Couldn't find unit level identifier in %s", data.paths[i]);
+            goto next_file;
+        }
+        usize level;
+        if (convert_slice_usize(identifier, &level)) {
+            TraceLog(LOG_ERROR, "Expected a number to be last part of unit animation path in %s", data.paths[i]);
+            log_slice(LOG_ERROR, "  Instead found", identifier);
+            goto next_file;
+        }
+        if (level == 0 || level > UNIT_LEVELS) {
+            TraceLog(LOG_ERROR, "Unit range is incorrect, expected from 1 to %d", UNIT_LEVELS);
+            goto next_file;
+        }
+
+        identifier = split_backwards(path, &counter, '-');
+        if (NULL == identifier.start) {
+            TraceLog(LOG_ERROR, "Couldn't find unit type in %s", data.paths[i]);
+            goto next_file;
+        }
+        UnitActiveType unit_type;
+        if (compare_literal(identifier, "melee")) {
+            unit_type = UNIT_TYPE_FIGHTER;
+        }
+        else if (compare_literal(identifier, "archer")) {
+            unit_type = UNIT_TYPE_ARCHER;
+        }
+        else if (compare_literal(identifier, "support")) {
+            unit_type = UNIT_TYPE_SUPPORT;
+        }
+        else if (compare_literal(identifier, "special")) {
+            unit_type = UNIT_TYPE_SPECIAL;
+        }
+        else {
+            TraceLog(LOG_ERROR, "Failed to get unit identifier in %s", data.paths[i]);
+            log_slice(LOG_ERROR, "  Expected unit identifier, got ", identifier);
+            goto next_file;
+        }
+
+        identifier = split_backwards(path, &counter, '-');
+        if (NULL == identifier.start) {
+            TraceLog(LOG_ERROR, "Couldn't find faction type in %s", data.paths[i]);
+            goto next_file;
+        }
+        FactionType faction;
+        if (compare_literal(identifier, "knight")) {
+            faction = FACTION_KNIGHTS;
+        }
+        else if (compare_literal(identifier, "mage")) {
+            faction = FACTION_MAGES;
+        }
+        else {
+            TraceLog(LOG_ERROR, "Failed to get unit faction in %s", data.paths[i]);
+            log_slice(LOG_ERROR, "  Expected faction type, got ", identifier);
+            goto next_file;
+        }
+
+        AnimationSet * animations = &assets->animations.sets[faction][unit_type][level - 1];
+
+        usize path_len = string_length(data.paths[i]);
+        char * texture_path = temp_alloc(path_len);
+        copy_memory(texture_path, data.paths[i], path_len - 4);
+        copy_memory(texture_path + path_len - 4, "png", 3);
+        texture_path[path_len - 1] = 0;
+        animations->sprite_sheet = LoadTexture(texture_path);
+        if (animations->sprite_sheet.format == 0) {
+            TraceLog(LOG_ERROR, "Missing sprite sheet at %s", texture_path);
+            goto next_file;
+        }
+
+        jsmn_parser json;
+        jsmn_init(&json);
+        usize token_count = jsmn_parse(&json, (char*)text, data_len, NULL, 0);
+        jsmntok_t * tokens = temp_alloc(sizeof(jsmntok_t) * token_count);
+        if (NULL == tokens) {
+            TraceLog(LOG_ERROR, "Failed to allocate memory for reading %s", data.paths[i]);
+            goto next_file;
+        }
+
+        jsmn_init(&json);
+        jsmn_parse(&json, (char*)text, data_len, tokens, token_count);
+
+        usize cursor = 1;
+
+        while (cursor < token_count) {
+            if (tokens[cursor].type != JSMN_STRING) {
+                if (tokens[cursor].type == JSMN_UNDEFINED) {
+                  TraceLog(LOG_INFO, "Finished loading %s", data.paths[i]);
+                  break;
+                }
+                StringSlice s = make_slice_u(text, tokens[cursor].start, tokens[cursor].end);
+                log_slice(LOG_ERROR, "Got unexpected result:", s);
+                goto next_file;
+            }
+            StringSlice json_key = make_slice_u(text, tokens[cursor].start, tokens[cursor].end);
+            if (! compare_literal(json_key, "frames")) {
+                cursor = skip_tokens(tokens, cursor);
+                continue;
+            }
+            TraceLog(LOG_INFO, "Found frames, reading...");
+            int end = tokens[cursor].parent;
+            cursor++;
+            if (tokens[cursor].type != JSMN_ARRAY) {
+                TraceLog(LOG_ERROR, "Expected frames to be within an array");
+                goto next_file;
+            }
+
+            cursor++;
+            int frame_object_index = cursor;
+            AnimationType type;
+            Rectangle rect;
+            usize duration;
+            cursor++;
+
+            while (cursor < token_count && tokens[cursor].parent != end) {
+                if (cursor >= token_count || tokens[cursor].parent != frame_object_index) {
+                    // finished loading frame data, save it into the array
+                    ListFrame * frames;
+                    switch (type) {
+                        case ANIMATION_IDLE:
+                            frames = &animations->idle; break;
+                        case ANIMATION_ATTACK:
+                            frames = &animations->attack; break;
+                        case ANIMATION_WALK:
+                            frames = &animations->walk; break;
+                        case ANIMATION_CAST:
+                            frames = &animations->cast; break;
+                    }
+
+                    bool the_same = false;
+                    if (frames->len > 0 && RectangleEquals(rect, frames->items[frames->len - 1].source)) {
+                        the_same = true;
+                    }
+
+                    if (the_same) {
+                        frames->items[frames->len - 1].duration += duration * 0.001f;
+                    }
+                    else {
+                        AnimationFrame new = {
+                            .duration = duration * 0.0001f,
+                            .source = rect,
+                        };
+                        listFrameAppend(frames, new);
+                    }
+
+                    // continue to next object frame or break if there is no more objects
+                    if (tokens[cursor].type == JSMN_OBJECT) {
+                        frame_object_index = cursor;
+                        cursor++;
+                        continue;
+                    }
+                    else {
+                        break;
+                    }
+                }
+
+                // read animation frame data
+                StringSlice key = make_slice_u(text, tokens[cursor].start, tokens[cursor].end);
+                if (tokens[cursor].type != JSMN_STRING) {
+                    log_slice(LOG_ERROR, "Keyframe data key name expected, got", key);
+                    goto next_file;
+                }
+
+                if (compare_literal(key, "filename")) {
+                    cursor++;
+                    StringSlice value = make_slice_u(text, tokens[cursor].start, tokens[cursor].end);
+                    if (compare_literal(value, "idle")) {
+                        type = ANIMATION_IDLE;
+                    }
+                    else if (compare_literal(value, "walk")) {
+                        type = ANIMATION_WALK;
+                    }
+                    else if (compare_literal(value, "attack")) {
+                        type = ANIMATION_ATTACK;
+                    }
+                    else if (compare_literal(value, "cast")) {
+                        type = ANIMATION_CAST;
+                    }
+                    else {
+                        log_slice(LOG_ERROR, "Invalid animation type:", value);
+                        goto next_file;
+                    }
+                    cursor++;
+                }
+                else if (compare_literal(key, "frame")) {
+                    cursor += 3;
+                    StringSlice value = make_slice_u(text, tokens[cursor].start, tokens[cursor].end);
+                    if (convert_slice_float(value, &rect.x)) {
+                        log_slice(LOG_ERROR, "Failed to get frame x value from", value);
+                        goto next_file;
+                    }
+                    cursor += 2;
+                    value = make_slice_u(text, tokens[cursor].start, tokens[cursor].end);
+                    if (convert_slice_float(value, &rect.y)) {
+                        log_slice(LOG_ERROR, "Failed to get frame y value from", value);
+                        goto next_file;
+                    }
+                    cursor += 2;
+                    value = make_slice_u(text, tokens[cursor].start, tokens[cursor].end);
+                    if (convert_slice_float(value, &rect.width)) {
+                        log_slice(LOG_ERROR, "Failed to get frame width from", value);
+                        goto next_file;
+                    }
+                    cursor += 2;
+                    value = make_slice_u(text, tokens[cursor].start, tokens[cursor].end);
+                    if (convert_slice_float(value, &rect.height)) {
+                        log_slice(LOG_ERROR, "Failed to get frame height from", value);
+                        goto next_file;
+                    }
+                    cursor ++;
+                }
+                else if (compare_literal(key, "duration")) {
+                    cursor ++;
+                    StringSlice value = make_slice_u(text, tokens[cursor].start, tokens[cursor].end);
+                    if (convert_slice_usize(value, &duration)) {
+                        log_slice(LOG_ERROR, "Failed to get frame duration from", value);
+                        goto next_file;
+                    }
+                    cursor ++;
+                }
+                else {
+                    cursor = skip_tokens(tokens, cursor);
+                }
+            }
+        }
+
+        next_file:
+        UnloadFileData((unsigned char*)text);
+        temp_reset();
+    }
+    UnloadDirectoryFiles(data);
+    return SUCCESS;
+}
+void unload_animation_set (AnimationSet * set) {
+    listFrameDeinit(&set->idle);
+    listFrameDeinit(&set->walk);
+    listFrameDeinit(&set->attack);
+    listFrameDeinit(&set->cast);
+    UnloadTexture(set->sprite_sheet);
+}
+void unload_animations (Assets * assets) {
+    for (usize f = 0; f <= FACTION_LAST; f++) {
+        for (usize l = 0; l < UNIT_LEVELS; l++) {
+            for (usize t = 0; t < UNIT_TYPE_COUNT; t++) {
+                unload_animation_set(&assets->animations.sets[f][t][l]);
+            }
+        }
+    }
 }
 
 /* Sounds ********************************************************************/

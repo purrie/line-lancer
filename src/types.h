@@ -29,11 +29,15 @@ typedef struct GlobalNavGrid GlobalNavGrid;
 typedef struct Particle Particle;
 typedef struct SoundEffect SoundEffect;
 typedef struct AIRegionScore AIRegionScore;
+typedef struct AnimationFrame AnimationFrame;
+typedef struct AnimationSet AnimationSet;
+typedef struct Animations Animations;
 
 typedef enum BuildingType BuildingType;
 typedef enum PlayerState PlayerState;
 typedef enum MagicType MagicType;
 typedef enum UnitType UnitType;
+typedef enum UnitActiveType UnitActiveType;
 typedef enum UnitState UnitState;
 typedef enum Result Result;
 typedef enum Test Test;
@@ -88,6 +92,7 @@ makeList(Particle*, Particle);
 makeList(SoundEffect, SFX);
 makeList(AIRegionScore, AIRegionScore);
 makeList(AIRegionScore*, AIRegionScoreP);
+makeList(AnimationFrame, Frame);
 
 makeList(FindPoint, FindPoint);
 makeList(WayPoint*, WayPoint);
@@ -101,6 +106,8 @@ typedef enum FactionType {
     FACTION_LAST = FACTION_MAGES,
 } FactionType;
 
+#define FACTION_COUNT (FACTION_LAST + 1)
+
 enum UnitType {
     UNIT_FIGHTER,
     UNIT_ARCHER,
@@ -108,6 +115,15 @@ enum UnitType {
     UNIT_SPECIAL,
     UNIT_GUARDIAN,
 };
+
+enum UnitActiveType {
+   UNIT_TYPE_FIGHTER = UNIT_FIGHTER,
+   UNIT_TYPE_ARCHER = UNIT_ARCHER,
+   UNIT_TYPE_SUPPORT = UNIT_SUPPORT,
+   UNIT_TYPE_SPECIAL = UNIT_SPECIAL,
+};
+
+#define UNIT_TYPE_COUNT (UNIT_TYPE_SPECIAL + 1)
 
 enum UnitState {
     UNIT_STATE_IDLE = 0,
@@ -144,6 +160,13 @@ typedef enum {
     PARTICLE_TORNADO,
     PARTICLE_LAST = PARTICLE_TORNADO,
 } ParticleType;
+
+typedef enum {
+    ANIMATION_IDLE,
+    ANIMATION_WALK,
+    ANIMATION_ATTACK,
+    ANIMATION_CAST,
+} AnimationType;
 
 typedef enum {
     SOUND_HURT_HUMAN,
@@ -267,10 +290,12 @@ struct Unit {
     usize       player_owned;
     FactionType faction;
 
+    float     state_time;
     float     cooldown;
     float     health;
     UnitState state;
     Vector2   position;
+    Vector2   facing_direction;
 
     WayPoint * waypoint;
     ListWayPoint pathfind;
@@ -280,6 +305,23 @@ struct Unit {
     ListAttack incoming_attacks;
 
     Building * origin;
+};
+
+struct AnimationFrame {
+    Rectangle source;
+    float duration;
+};
+
+struct AnimationSet {
+    Texture2D sprite_sheet;
+    ListFrame idle;
+    ListFrame walk;
+    ListFrame attack;
+    ListFrame cast;
+};
+
+struct Animations {
+    AnimationSet sets[FACTION_COUNT][UNIT_TYPE_COUNT][UNIT_LEVELS];
 };
 
 struct Line {
@@ -401,6 +443,7 @@ typedef struct {
 struct Assets {
     ListMap maps;
     Shader water_shader;
+    Shader outline_shader;
     Texture2D particles[PARTICLE_LAST + 1];
     Particle particle_pool[PARTICLES_MAX];
     BuildingSpriteSet buildings[FACTION_LAST + 1];
@@ -413,8 +456,7 @@ struct Assets {
     Texture2D bridge_texture;
     Texture2D empty_building;
     ListSFX sound_effects;
-    // TODO fill assets:
-    // units
+    Animations animations;
 };
 
 struct Theme {

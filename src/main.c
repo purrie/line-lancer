@@ -292,6 +292,10 @@ int main(void) {
         TraceLog(LOG_FATAL, "Failed to load game settings");
         goto close;
     }
+    if (load_animations(&game_assets)) {
+        TraceLog(LOG_FATAL, "Failed to load animations");
+        goto close;
+    }
 
     apply_sound_settings(&game_assets, &game_settings);
 

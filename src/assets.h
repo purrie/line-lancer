@@ -9,6 +9,7 @@ Result load_levels   (ListMap * maps);
 Result load_graphics (Assets * assets);
 Result load_settings (Settings * settings);
 Result save_settings (const Settings * settings);
+Result load_animations (Assets * assets);
 
 /* Asset Management **********************************************************/
 void   assets_deinit (Assets * assets);

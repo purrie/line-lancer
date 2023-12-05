@@ -3,6 +3,7 @@
 #include "game.h"
 #include "constants.h"
 #include "particle.h"
+#include "animation.h"
 #include <raymath.h>
 
 
@@ -510,6 +511,7 @@ Result unit_progress_path (Unit * unit) {
     unit->waypoint->unit = NULL;
     unit->waypoint = next;
     unit->waypoint->unit = unit;
+    unit->facing_direction = Vector2Normalize(Vector2Subtract(unit->waypoint->world_position, unit->position));
     return SUCCESS;
 }
 Result unit_calculate_path (Unit * unit) {
@@ -623,6 +625,7 @@ Unit * unit_from_building (const Building * building) {
     result->pathfind.items[0] = spawn;
     result->current_path = 0;
     result->waypoint = spawn;
+    result->facing_direction = Vector2Normalize(Vector2Subtract(spawn->world_position, result->position));
     spawn->unit = result;
 
     return result;
@@ -678,53 +681,15 @@ void render_unit_health (const Unit * unit) {
 }
 void render_units (const GameState * state) {
     const ListUnit * units = &state->units;
+    BeginShaderMode(state->resources->outline_shader);
     for (usize i = 0; i < units->len; i ++) {
         Unit * unit = units->items[i];
-        Color col;
-        switch (unit->type) {
-            case UNIT_FIGHTER: {
-                col = RED;
-            } break;
-            case UNIT_ARCHER: {
-                col = GREEN;
-            } break;
-            case UNIT_SUPPORT: {
-                col = YELLOW;
-            } break;
-            case UNIT_SPECIAL: {
-                col = BLUE;
-            } break;
-            default: {
-                col = BLACK;
-            } break;
-        }
 
-        Color player = get_player_color(unit->player_owned);
-        Color unit_state = GREEN;
-
-        switch (unit->state) {
-            case UNIT_STATE_FIGHTING: {
-                unit_state = RED;
-            } break;
-            case UNIT_STATE_MOVING: {
-                unit_state = LIME;
-            } break;
-            case UNIT_STATE_SUPPORTING: {
-                unit_state = BLUE;
-            } break;
-            case UNIT_STATE_GUARDING: {
-                TraceLog(LOG_ERROR, "Unit is in guard state, that shouldn't happen!");
-                unit_state = PINK;
-            } break;
-            default: {
-                unit_state = PINK;
-            } break;
-        }
-        col.b = unit->player_owned * 127;
-
-        DrawCircleV(unit->position, 7.0f, player);
-        DrawCircleV(unit->position, 5.0f, unit_state);
-        DrawCircleV(unit->position, 3.0f, col);
+        animate_unit(state, unit);
+    }
+    EndShaderMode();
+    for (usize i = 0; i < units->len; i ++) {
+        Unit * unit = units->items[i];
 
         particles_render_attacks(state, unit);
         particles_render_effects(state, unit);

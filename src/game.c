@@ -151,19 +151,23 @@ void update_unit_state (GameState * state) {
             case UNIT_STATE_IDLE: {
                 if (unit->type == UNIT_SUPPORT) {
                     if (support_can_support(unit, &buffer)) {
+                        unit->state_time = 0;
                         unit->state = UNIT_STATE_SUPPORTING;
                         continue;
                     }
                 }
                 if (get_enemy_in_range(unit)) {
+                    unit->state_time = 0;
                     unit->state = UNIT_STATE_FIGHTING;
                     continue;
                 }
                 if (unit->current_path < unit->pathfind.len) {
                     if (get_enemy_in_sight(unit)) {
+                        unit->state_time = 0;
                         unit->state = UNIT_STATE_CHASING;
                     }
                     else {
+                        unit->state_time = 0;
                         unit->state = UNIT_STATE_MOVING;
                     }
                 }
@@ -173,15 +177,18 @@ void update_unit_state (GameState * state) {
 
                 if (unit->type == UNIT_SUPPORT) {
                     if (support_can_support(unit, &buffer)) {
+                        unit->state_time = 0;
                         unit->state = UNIT_STATE_SUPPORTING;
                         continue;
                     }
                 }
                 if (get_enemy_in_sight(unit)) {
+                    unit->state_time = 0;
                     unit->state = UNIT_STATE_IDLE;
                 }
 
                 if (!unit_has_path(unit)) {
+                    unit->state_time = 0;
                     unit->state = UNIT_STATE_IDLE;
                 }
             } break;
@@ -190,21 +197,25 @@ void update_unit_state (GameState * state) {
 
                 if (unit->type == UNIT_SUPPORT) {
                     if (support_can_support(unit, &buffer)) {
+                        unit->state_time = 0;
                         unit->state = UNIT_STATE_SUPPORTING;
                         continue;
                     }
                 }
                 if (get_enemy_in_range(unit)) {
+                    unit->state_time = 0;
                     unit->state = UNIT_STATE_FIGHTING;
                 }
 
                 if (!unit_has_path(unit)) {
+                    unit->state_time = 0;
                     unit->state = UNIT_STATE_IDLE;
                 }
 
             } break;
             case UNIT_STATE_SUPPORTING: {
                 if (support_can_support(unit, &buffer) == NO) {
+                    unit->state_time = 0;
                     unit->state = UNIT_STATE_IDLE;
                 }
             } break;
@@ -213,11 +224,13 @@ void update_unit_state (GameState * state) {
             case UNIT_STATE_FIGHTING: {
                 if (unit->type == UNIT_SUPPORT) {
                     if (support_can_support(unit, &buffer)) {
+                        unit->state_time = 0;
                         unit->state = UNIT_STATE_SUPPORTING;
                         continue;
                     }
                 }
                 if (get_enemy_in_range(unit) == NULL) {
+                    unit->state_time = 0;
                     unit->state = UNIT_STATE_IDLE;
                 }
             } break;
@@ -384,6 +397,8 @@ void units_support (GameState * state, float delta_time) {
                     continue;
                 }
                 unit->cooldown = get_unit_cooldown(unit);
+                unit->state_time = 0;
+                unit->facing_direction = Vector2Normalize(Vector2Subtract(most_hurt->position, unit->position));
                 listMagicEffectAppend(&most_hurt->effects, magic);
                 particles_magic(state, unit, most_hurt);
                 play_sound_concurent(state, SOUND_MAGIC_HEALING, unit->position);
@@ -407,6 +422,8 @@ void units_support (GameState * state, float delta_time) {
                         goto next;
                     }
                     unit->cooldown = get_unit_cooldown(unit);
+                    unit->state_time = 0;
+                    unit->facing_direction = Vector2Normalize(Vector2Subtract(target->position, unit->position));
                     listMagicEffectAppend(&target->effects, magic);
                     particles_magic(state, unit, target);
                     play_sound_concurent(state, SOUND_MAGIC_WEAKNESS, unit->position);
@@ -440,6 +457,8 @@ void units_fight (GameState * state, float delta_time) {
             };
             listAttackAppend(&target->incoming_attacks, attack);
             unit->cooldown = get_unit_cooldown(unit);
+            unit->state_time = 0;
+            unit->facing_direction = Vector2Normalize(Vector2Subtract(target->position, unit->position));
             play_unit_attack_sound(state, unit);
         }
     }
@@ -563,6 +582,7 @@ void simulate_units (GameState * state) {
         Unit * unit = state->units.items[i];
         if (unit->cooldown > 0)
             unit->cooldown -= dt;
+        unit->state_time += dt;
     }
     for (usize i = 0; i < state->map.regions.len; i++) {
         Unit * guard = &state->map.regions.items[i].castle;

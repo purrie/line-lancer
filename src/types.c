@@ -17,6 +17,7 @@ implementList(Particle*, Particle)
 implementList(SoundEffect, SFX)
 implementList(AIRegionScore, AIRegionScore)
 implementList(AIRegionScore*, AIRegionScoreP)
+implementList(AnimationFrame, Frame)
 
 implementList(Unit*, Unit)
 implementList(Region*, RegionP)
