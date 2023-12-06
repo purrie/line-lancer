@@ -1,6 +1,7 @@
 #ifndef ARRAY_H_
 #define ARRAY_H_
 
+#include <raylib.h>
 #include "alloc.h"
 
 #define makeList(type, name) typedef struct {\
@@ -33,7 +34,10 @@ void list ## name ## Deinit(List ## name * list) {\
         list->items = NULL;\
         list->cap = 0;\
         list->len = 0;\
-    }\
+    } \
+    else if (list->mem.free == NULL && list->items != NULL) { \
+        TraceLog(LOG_ERROR, "Failed to dealocate list %s, missing deallocator", #name); \
+    } \
 }\
 int list ## name ## Grow(List ## name * list, unsigned long new_cap) {\
     if (new_cap <= list->cap) {\
