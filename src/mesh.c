@@ -231,17 +231,7 @@ Model generate_line_mesh(const ListLine lines, float thickness, ushort cap_resol
   }
 
   UploadMesh(&mesh, false);
-  Model model = LoadModelFromMesh(mesh);
-  model.materialCount = 1;
-  model.materials = MemAlloc(sizeof(Material));
-  if (model.materials == NULL) {
-    TraceLog(LOG_ERROR, "Failed to allocate memory for material of a path");
-    UnloadModel(model);
-    return (Model) {0};
-  }
-  model.materials[0] = LoadMaterialDefault();
-  SetModelMeshMaterial(&model, 0, 0);
-  return model;
+  return LoadModelFromMesh(mesh);
 }
 Model generate_area_mesh(const Area * area, const float layer) {
   temp_reset();
@@ -329,17 +319,7 @@ Model generate_area_mesh(const Area * area, const float layer) {
   }
 
   UploadMesh(&mesh, false);
-  Model model = LoadModelFromMesh(mesh);
-  model.materials = MemAlloc(sizeof(Material));
-  if (model.materials == NULL) {
-    TraceLog(LOG_ERROR, "Failed to allocate model material");
-    UnloadModel(model);
-    return (Model){0};
-  }
-  model.materials[0] = LoadMaterialDefault();
-  model.materialCount = 1;
-  SetModelMeshMaterial(&model, 0, 0);
-  return model;
+  return LoadModelFromMesh(mesh);
 }
 void generate_background_mesh (Map * map) {
     TraceLog(LOG_INFO, "  Building background [%zu, %zu]", map->width, map->height);
@@ -398,14 +378,7 @@ void generate_background_mesh (Map * map) {
     mesh.indices[5] = 3;
 
     UploadMesh(&mesh, false);
-    Model model = LoadModelFromMesh(mesh);
-
-    model.materials = MemAlloc(sizeof(Material));
-    model.materials[0] = LoadMaterialDefault();
-    model.materialCount = 1;
-    SetModelMeshMaterial(&model, 0, 0);
-
-    map->background = model;
+    map->background = LoadModelFromMesh(mesh);
 }
 
 /* Handlers ******************************************************************/

@@ -690,6 +690,7 @@ Result game_state_prepare (GameState * result, const Map * prefab) {
 }
 void game_state_deinit (GameState * state) {
     clear_unit_list(&state->units);
+    listUnitDeinit(&state->units);
     for (usize p = 0; p < state->players.len; p++) {
         if (state->players.items[p].type == PLAYER_AI) {
             ai_deinit(&state->players.items[p]);

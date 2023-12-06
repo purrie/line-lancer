@@ -207,6 +207,7 @@ void assets_deinit (Assets * assets) {
     UnloadTexture(assets->water_texture);
     UnloadTexture(assets->bridge_texture);
     UnloadShader(assets->water_shader);
+    UnloadShader(assets->outline_shader);
 }
 
 /* Json Handling *************************************************************/
@@ -619,6 +620,7 @@ bool load_regions(
 
   usize cursor = regions_list + 1;
   usize children = tokens[regions_list].size;
+  map->regions = listRegionInit(children, perm_allocator());
 
   while (children --> 0) {
     cursor = load_region(map, data, tokens, cursor, layer_offset);
@@ -766,9 +768,6 @@ Result load_level(Map * result, char * path) {
     goto fail;
   }
 
-  result->regions = listRegionInit (10, perm_allocator());
-  result->paths   = listPathInit   (10, perm_allocator());
-
   usize cursor = 1;
 
   TraceLog(LOG_INFO, "Starting loading");
@@ -880,11 +879,13 @@ Result load_level(Map * result, char * path) {
     }
   }
 
+  MemFree(tokens);
   UnloadFileData(data);
 
   return SUCCESS;
 
 fail:
+  MemFree(tokens);
   UnloadFileData(data);
   map_deinit(result);
   return FAILURE;
