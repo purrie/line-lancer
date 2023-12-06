@@ -7,7 +7,7 @@ SOURCE_TEST_FOLDER=tests
 BIN_FOLDER=bin
 
 FLAGS=-Wall -Wextra -Warray-bounds -Wshadow -Wunused -Wdeprecated -I "vendor/raylib/src"
-DEBUG_FLAGS=-g
+DEBUG_FLAGS=-ggdb
 LIBS=-lm
 
 SOURCES=$(wildcard $(SOURCE_FOLDER)/*.c)
