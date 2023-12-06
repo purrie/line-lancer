@@ -1246,7 +1246,6 @@ Result load_animations (Assets * assets) {
                 cursor = skip_tokens(tokens, cursor);
                 continue;
             }
-            TraceLog(LOG_INFO, "Found frames, reading...");
             int end = tokens[cursor].parent;
             cursor++;
             if (tokens[cursor].type != JSMN_ARRAY) {
