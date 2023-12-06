@@ -966,20 +966,6 @@ Result map_make_connections (Map * map) {
 }
 void map_subdivide_paths (Map * map) {
   TraceLog(LOG_INFO, "Smoothing map meshes");
-  for(usize i = 0; i < map->paths.len; i++) {
-    Vector2 a = map->paths.items[i].lines.items[0].a;
-    Vector2 b = map->paths.items[i].lines.items[0].b;
-    float depth = Vector2DistanceSqr(a, b);
-    for (usize l = 1; l < map->paths.items[i].lines.len; l++) {
-      a = map->paths.items[i].lines.items[l].a;
-      b = map->paths.items[i].lines.items[l].b;
-      float test = Vector2DistanceSqr(a, b);
-      if (test < depth) depth = test;
-    }
-    depth = sqrtf(depth) * 0.25f;
-
-    bevel_lines(&map->paths.items[i].lines, 1, depth, false);
-  }
 
   for (usize i = 0; i < map->regions.len; i++) {
     Vector2 a = map->regions.items[i].area.lines.items[0].a;
