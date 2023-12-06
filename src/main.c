@@ -246,6 +246,7 @@ int main(void) {
     #ifdef DEBUG
     SetWindowState(FLAG_WINDOW_RESIZABLE);
     #else
+    SetTraceLogLevel(LOG_ERROR);
     SetWindowState(FLAG_BORDERLESS_WINDOWED_MODE);
     #endif
 
