@@ -32,7 +32,7 @@ run: build
 	$(BIN_FOLDER)/$(BIN)
 
 debug: build-debug
-	gdb $(BIN_FOLDER)/$(BIN) -d $(SOURCE_FOLDER)
+	gf2 $(BIN_FOLDER)/$(BIN) -d $(SOURCE_FOLDER)
 
 test: $(BIN_FOLDER) $(OBJ_FOLDER) $(BIN_TESTS)
 	@for test in $(BIN_TESTS); do $$test; done
