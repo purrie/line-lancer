@@ -356,6 +356,7 @@ struct Area {
 };
 
 struct Path {
+    usize path_id;
     ListLine lines;
     Model    model;
     Region * region_a;
@@ -366,6 +367,7 @@ struct Path {
 
 struct Region {
     FactionType   faction;
+    usize         region_id;
     usize         player_id;
     Area          area;
     Unit          castle;

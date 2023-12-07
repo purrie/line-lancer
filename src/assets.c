@@ -241,6 +241,7 @@ bool load_paths(
   while (path_count --> 0) {
     Vector2 offset = layer_offset;
     ListLine lines = listLineInit(5, perm_allocator());
+    usize id = 0;
 
     usize elements = tokens[cursor].size;
     cursor ++;
@@ -295,6 +296,17 @@ bool load_paths(
         }
       }
 
+      else if (compare_literal(key, "id")) {
+        cursor++;
+        StringSlice val = make_slice_u(data, tokens[cursor].start, tokens[cursor].end);
+        if (convert_slice_usize(val, &id)) {
+          log_slice(LOG_ERROR, "Failed to convert id to a number:", val);
+          listLineDeinit(&lines);
+          goto fail;
+        }
+        cursor++;
+      }
+
       else if (compare_literal(key, "x") || compare_literal(key, "y")) {
         cursor ++;
         StringSlice val = make_slice_u(data, tokens[cursor].start, tokens[cursor].end);
@@ -324,7 +336,7 @@ bool load_paths(
       lines.items[i].b.x += offset.x;
       lines.items[i].b.y += offset.y;
     }
-    Path p = { .lines = lines };
+    Path p = { .lines = lines, .path_id = id };
     listPathAppend(&map->paths, p);
   }
 
@@ -554,6 +566,17 @@ usize load_region(
         TraceLog(LOG_ERROR, "Failed to load region properties");
         goto fail;
       }
+    }
+    else if (compare_literal(key_name, "id")) {
+      region_pos ++;
+      StringSlice value = make_slice_u(data, tokens[region_pos].start, tokens[region_pos].end);
+      usize id = 0;
+      if (convert_slice_usize(value, &id)) {
+        log_slice(LOG_ERROR, "Expected region id to be a valid number, got:", value);
+        goto fail;
+      }
+      region.region_id = id;
+      region_pos++;
     }
     else if (compare_literal(key_name, "x") || compare_literal(key_name, "y")) {
       region_pos ++;

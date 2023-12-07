@@ -511,6 +511,7 @@ Result path_by_position (const Map * map, Vector2 position, Path ** result) {
 }
 
 Result path_clone (Path * dest, const Path * src) {
+    dest->path_id = src->path_id;
     dest->lines = listLineInit(src->lines.len, src->lines.mem);
     dest->lines.len = src->lines.len;
     copy_memory(dest->lines.items, src->lines.items, sizeof(Line) * src->lines.len);
@@ -580,6 +581,7 @@ Result region_by_position (const Map * map, Vector2 position, Region ** result) 
 
 Result region_clone (Region * dest, const Region * src) {
     dest->player_id = src->player_id;
+    dest->region_id = src->region_id;
     dest->faction = src->faction;
 
     dest->area.lines = listLineInit(src->area.lines.len, src->area.lines.mem);
@@ -873,15 +875,15 @@ Result map_make_connections (Map * map) {
             WayPoint * point;
 
             if (nav_find_waypoint(&region->nav_graph, building->position, &point)) {
-                TraceLog(LOG_ERROR, "!Failed to find navigation position for building nr %zu", b);
+                TraceLog(LOG_ERROR, "!Failed to find navigation position for building nr %zu in region %zu", b, region->region_id);
                 return FAILURE;
             }
             if (point == NULL) {
-                TraceLog(LOG_ERROR, "!The point the building %zu is at doesn't have nav grid coverage", b);
+                TraceLog(LOG_ERROR, "!The point the building %zu is at doesn't have nav grid coverage in region %zu", b, region->region_id);
                 return FAILURE;
             }
             if (point->blocked) {
-                TraceLog(LOG_ERROR, "!The position of the building %zu overlaps with another one", b);
+                TraceLog(LOG_ERROR, "!The position of the building %zu overlaps with another one in region %zu", b, region->region_id);
                 return FAILURE;
             }
 
@@ -938,7 +940,7 @@ Result map_make_connections (Map * map) {
 
             if (path->region_a && path->region_b) {
                 if (path->region_a == path->region_b) {
-                    TraceLog(LOG_ERROR, "!Path has both ends in the same region");
+                    TraceLog(LOG_ERROR, "!Path has both ends in the same region, ID: %zu", path->path_id);
                     return FAILURE;
                 }
                 if (nav_init_path(path)) {
@@ -1003,7 +1005,9 @@ Result map_prepare_to_play (const Assets * assets, Map * map) {
   if(map_make_connections(map)) {
     return FAILURE;
   }
-  generate_map_mesh(map);
+  if(generate_map_mesh(map)) {
+      return FAILURE;
+  }
   map_apply_textures(assets, map);
   return SUCCESS;
 }

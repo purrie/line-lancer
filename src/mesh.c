@@ -382,18 +382,35 @@ void generate_background_mesh (Map * map) {
 }
 
 /* Handlers ******************************************************************/
-void generate_map_mesh(Map * map) {
+Result generate_map_mesh(Map * map) {
   TraceLog(LOG_INFO, "Generating meshes");
   generate_background_mesh(map);
-  for (usize i = 0; i < map->paths.len; i++) {
-    TraceLog(LOG_INFO, "  Generating path mesh #%d", i);
-    map->paths.items[i].model = generate_line_mesh(map->paths.items[i].lines, PATH_THICKNESS, 0, LAYER_PATH);
+  if (map->background.meshCount == 0) {
+    TraceLog(LOG_ERROR, "Failed to generate background");
+    return FAILURE;
   }
-  for (usize i = 0; i < map->regions.len; i++) {
-    TraceLog(LOG_INFO, "Generating region #%d", i);
+  for (usize p = 0; p < map->paths.len; p++) {
+    TraceLog(LOG_INFO, "  Generating path mesh #%d", p);
+    map->paths.items[p].model = generate_line_mesh(map->paths.items[p].lines, PATH_THICKNESS, 0, LAYER_PATH);
+    if (map->paths.items[p].model.meshCount == 0) {
+      TraceLog(LOG_ERROR, "Failed to generate mesh for path %zu", p);
+      return FAILURE;
+    }
+  }
+  for (usize r = 0; r < map->regions.len; r++) {
+    Region * region = &map->regions.items[r];
+    TraceLog(LOG_INFO, "Generating region #%d, id: %zu", r, region->region_id);
     TraceLog(LOG_INFO, "  Generating region mesh");
-    Region * region = &map->regions.items[i];
     region->area.model = generate_area_mesh(&region->area, LAYER_MAP);
+    if (region->area.model.meshCount == 0) {
+      TraceLog(LOG_ERROR, "Failed to generate mesh for region %zu, id: %zu", r, region->region_id);
+      return FAILURE;
+    }
     region->area.outline = generate_line_mesh(region->area.lines, PATH_THICKNESS * 0.1f, 3, LAYER_MAP_OUTLINE);
+    if (region->area.outline.meshCount == 0) {
+      TraceLog(LOG_ERROR, "Failed to generate outline for region %zu, id: %zu", r, region->region_id);
+      return FAILURE;
+    }
   }
+  return SUCCESS;
 }

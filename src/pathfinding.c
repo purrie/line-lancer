@@ -140,7 +140,7 @@ Result nav_init_path (Path * path) {
         }
     }
     if (actual_points == 0) {
-        TraceLog(LOG_ERROR, " !Failed to initialize path because it would contain no waypoints");
+        TraceLog(LOG_ERROR, " !Failed to initialize path because it would contain no waypoints, ID: %zu", path->path_id);
         listWayPointDeinit(&result->waypoints);
         return FAILURE;
     }
