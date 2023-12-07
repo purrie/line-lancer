@@ -3,10 +3,31 @@
 #include "math.h"
 #include <raymath.h>
 
-void render_debug_unit (const Unit * unit) {
+void render_debug_unit (const GameState * game, const Unit * unit) {
+    EndShaderMode();
     Color player = get_player_color(unit->player_owned);
+    Color unit_type;
+    switch (unit->type) {
+        case UNIT_FIGHTER: unit_type = RED; break;
+        case UNIT_ARCHER: unit_type = YELLOW; break;
+        case UNIT_SUPPORT: unit_type = BLUE; break;
+        case UNIT_SPECIAL: unit_type = PURPLE; break;
+        default: unit_type = DARKBROWN; break;
+    }
 
     DrawCircleV(unit->position, 7.0f, player);
+    DrawCircleV(unit->position, 5.0f, BLACK);
+    DrawCircleV(unit->position, 4.0f, unit_type);
+    const char * label;
+    switch (unit->upgrade) {
+        case 0: label = "1"; break;
+        case 1: label = "2"; break;
+        case 2: label = "3"; break;
+        default: label = "N/A"; break;
+    }
+    DrawText(label, unit->position.x - 1, unit->position.y - 4, 6, BLACK);
+
+    BeginShaderMode(game->resources->outline_shader);
 }
 
 Result animate_loop (ListFrame animation, float time, Rectangle * result) {
@@ -57,7 +78,7 @@ void animate_unit (const GameState * game, const Unit * unit) {
     AnimationSet set = game->resources->animations.sets[unit->faction][unit->type][unit->upgrade];
     if (set.sprite_sheet.format == 0) {
         // we lack sprite sheet, fallback to debug rendering for now
-        render_debug_unit(unit);
+        render_debug_unit(game, unit);
         return;
     }
 
@@ -66,7 +87,7 @@ void animate_unit (const GameState * game, const Unit * unit) {
         case UNIT_STATE_IDLE:
             if (animate_loop(set.idle, unit->state_time, &source)) {
                 TraceLog(LOG_DEBUG, "Failed to animate unit's idle state");
-                render_debug_unit(unit);
+                render_debug_unit(game, unit);
                 return;
             }
             break;
@@ -74,21 +95,21 @@ void animate_unit (const GameState * game, const Unit * unit) {
         case UNIT_STATE_MOVING:
             if (animate_loop(set.walk, unit->state_time, &source)) {
                 TraceLog(LOG_DEBUG, "Failed to animate unit's walk state");
-                render_debug_unit(unit);
+                render_debug_unit(game, unit);
                 return;
             }
             break;
         case UNIT_STATE_FIGHTING:
             if (animate_single(set.attack, unit->state_time, &source)) {
                 TraceLog(LOG_DEBUG, "Failed to animate unit's attack");
-                render_debug_unit(unit);
+                render_debug_unit(game, unit);
                 return;
             }
             break;
         case UNIT_STATE_SUPPORTING:
             if (animate_single(set.cast, unit->state_time, &source)) {
                 TraceLog(LOG_DEBUG, "Failed to animate unit's spellcasting");
-                render_debug_unit(unit);
+                render_debug_unit(game, unit);
                 return;
             }
             break;
