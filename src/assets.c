@@ -189,6 +189,7 @@ char * asset_path (const char * target_folder, const char * file, Alloc alloc) {
 void assets_deinit (Assets * assets) {
     unload_animations(assets);
     for (usize i = 0; i < assets->maps.len; i++) {
+        MemFree(assets->maps.items[i].name);
         map_deinit(&assets->maps.items[i]);
     }
     listMapDeinit(&assets->maps);

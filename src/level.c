@@ -838,7 +838,6 @@ Result map_clone (Map * dest, const Map * src) {
 }
 void map_deinit (Map * map) {
     UnloadModel(map->background);
-    MemFree(map->name);
     for (usize p = 0; p < map->paths.len; p++) {
         TraceLog(LOG_DEBUG, "Deinitializing path %zu", p);
         path_deinit(&map->paths.items[p]);
