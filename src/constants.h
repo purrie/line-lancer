@@ -7,7 +7,7 @@
 #define FPS 60
 
 // TODO ensure map loading takes this into account
-#define PLAYERS_MAX 16
+#define PLAYERS_MAX 6
 
 #define UNIT_SIZE 6.0f
 #define UNIT_MAX_RANGE 6
