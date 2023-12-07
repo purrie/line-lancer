@@ -33,15 +33,13 @@ Result get_local_player_index (const GameState * state, usize * result) {
 }
 Color get_player_color (usize player_id) {
     switch (player_id) {
-        case 0: return LIGHTGRAY;
-        case 1: return RED;
-        case 2: return BLUE;
-        case 3: return YELLOW;
-        case 4: return GREEN;
-        case 5: return LIME;
-        case 6: return BEIGE;
-        case 7: return BLACK;
-        case 8: return DARKPURPLE;
+        case 0: return (Color) { 0x80, 0x80, 0x80, 255 };
+        case 1: return (Color) { 0x9f, 0x40, 0x40, 255 };
+        case 2: return (Color) { 0x50, 0x90, 0xcf, 255 };
+        case 3: return (Color) { 0xaa, 0xff, 0x66, 255 };
+        case 4: return (Color) { 0x5a, 0x32, 0x64, 255 };
+        case 5: return (Color) { 0x30, 0x3f, 0x2f, 255 };
+        case 6: return (Color) { 0x01, 0x08, 0x10, 255 };
         default: return PINK;
     }
 }
