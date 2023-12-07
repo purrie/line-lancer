@@ -430,8 +430,12 @@ void make_purchasing_decision (GameState * state, usize player_index) {
         wanted_building = BUILDING_RESOURCE;
         wanted_upgrade = buildings_unupgraded_spread[BUILDING_RESOURCE] || buildings_first_level_spread[BUILDING_RESOURCE];
         wanted_building_upgrade_level = buildings_unupgraded_spread[BUILDING_RESOURCE] == 0;
+        if (wanted_upgrade == false && buildings_unupgraded_spread[BUILDING_RESOURCE] == 0 && buildings_empty_count == 0) {
+            goto warrior_buildings;
+        }
     }
     else {
+        warrior_buildings:
         if (buildings_total == 0) {
             wanted_building = BUILDING_FIGHTER;
             goto building_chosen;
