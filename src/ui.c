@@ -81,6 +81,12 @@ void draw_building_button (
     }
 }
 
+/* Drawers *******************************************************************/
+void draw_background(Rectangle area, const Theme * theme) {
+    DrawRectangleRec(area, theme->background);
+    DrawRectangleLinesEx(area, theme->frame_thickness, theme->frame);
+}
+
 /* Helper UI *****************************************************************/
 void render_interaction (const GameState * state, Vector2 position, usize player) {
     usize phase = FPS * 2;
@@ -584,15 +590,17 @@ InfoBarAction render_resource_bar (const GameState * state) {
 /* Main Menu *****************************************************************/
 MainMenuLayout main_menu_layout () {
     Rectangle screen = cake_rect(GetScreenWidth(), GetScreenHeight());
-    Rectangle parts[3];
+    Rectangle parts[4];
     cake_split_vertical(screen, 3, parts, 0.0f);
     cake_split_horizontal(parts[1], 3, parts, 0.0f);
-    cake_split_horizontal(parts[1], 3, parts, 0.0f);
+
+    cake_split_horizontal(parts[1], 4, parts, 0.0f);
 
     MainMenuLayout result = {
         .new_game = cake_carve_to(parts[0], 150.0f, 50.0f),
-        .options  = cake_carve_to(parts[1], 150.0f, 50.0f),
-        .quit     = cake_carve_to(parts[2], 150.0f, 50.0f),
+        .tutorial = cake_carve_to(parts[1], 150.0f, 50.0f),
+        .options  = cake_carve_to(parts[2], 150.0f, 50.0f),
+        .quit     = cake_carve_to(parts[3], 150.0f, 50.0f),
     };
     return result;
 }

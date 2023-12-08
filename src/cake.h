@@ -37,7 +37,9 @@ CAKE_RECT cake_margin_all       (CAKE_RECT rect, float all);
 CAKE_RECT cake_carve_to         (CAKE_RECT rect, float width, float height);
 CAKE_RECT cake_carve_width      (CAKE_RECT rect, float width, float pivot);
 
-// TODO make those take ratio first, spacing last
+CAKE_RECT cake_grow_by          (CAKE_RECT rect, float width, float height);
+CAKE_RECT cake_grow_to          (CAKE_RECT rect, float width, float height);
+
 CAKE_RECT cake_cut_horizontal   (CAKE_RECT * rect, float ratio, float spacing);
 CAKE_RECT cake_cut_vertical     (CAKE_RECT * rect, float ratio, float spacing);
 
@@ -121,6 +123,29 @@ CAKE_RECT cake_carve_width (CAKE_RECT rect, float width, float pivot) {
         float diff = result.width - width;
         result.x += diff * pivot;
         result.width -= diff;
+    }
+    return result;
+}
+
+CAKE_RECT cake_grow_by (CAKE_RECT rect, float width, float height) {
+    CAKE_RECT result = rect;
+    result.x -= width;
+    result.y -= height;
+    result.width += width * 2.0f;
+    result.height += height * 2.0f;
+    return result;
+}
+CAKE_RECT cake_grow_to (CAKE_RECT rect, float width, float height) {
+    CAKE_RECT result = rect;
+    if (width > rect.width) {
+        float w_diff = width - result.width;
+        result.x -= w_diff * 0.5f;
+        result.width += w_diff;
+    }
+    if (height > rect.height) {
+        float h_diff = height - result.height;
+        result.y -= h_diff * 0.5f;
+        result.height += h_diff;
     }
     return result;
 }

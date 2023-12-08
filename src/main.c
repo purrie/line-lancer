@@ -12,6 +12,7 @@
 #include "particle.h"
 #include "cake.h"
 #include "audio.h"
+#include "tutorial.h"
 
 const int WINDOW_WIDTH = 1400;
 const int WINDOW_HEIGHT = 1200;
@@ -116,7 +117,6 @@ ExecutionMode level_select (Assets * assets, GameState * game) {
     return next;
 }
 ExecutionMode play_mode (GameState * game) {
-    // TODO make way of exiting to main menu through UI
     usize player;
     if (get_local_player_index(game, &player)) {
         player = 1;
@@ -138,7 +138,9 @@ ExecutionMode play_mode (GameState * game) {
         }
 
         BeginMode2D(game->camera);
-            render_interaction_hints(game);
+            if (play_state == INFO_BAR_ACTION_NONE) {
+                render_interaction_hints(game);
+            }
             render_map_mesh(game);
             render_units(game);
             particles_render(game->particles_in_use.items, game->particles_in_use.len);
@@ -215,15 +217,19 @@ ExecutionMode main_menu (Assets * assets, Settings * settings) {
 
 
             draw_button(layout.new_game, "New Game", cursor, UI_LAYOUT_CENTER, &settings->theme);
+            draw_button(layout.tutorial, "Tutorial", cursor, UI_LAYOUT_CENTER, &settings->theme);
             draw_button(layout.options, "Settings", cursor, UI_LAYOUT_CENTER, &settings->theme);
             draw_button(layout.quit, "Exit", cursor, UI_LAYOUT_CENTER, &settings->theme);
 
-            if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
+            if (IsMouseButtonReleased(MOUSE_BUTTON_LEFT)) {
                 if (CheckCollisionPointRec(cursor, layout.new_game)) {
                     play_sound(assets, SOUND_UI_CLICK);
                     mode = EXE_MODE_SINGLE_PLAYER_MAP_SELECT;
                 }
-
+                if (CheckCollisionPointRec(cursor, layout.tutorial)) {
+                    play_sound(assets, SOUND_UI_CLICK);
+                    mode = EXE_MODE_TUTORIAL;
+                }
                 if (CheckCollisionPointRec(cursor, layout.options)) {
                     play_sound(assets, SOUND_UI_CLICK);
                     options = 1;
@@ -329,8 +335,10 @@ int main(void) {
             case EXE_MODE_SINGLE_PLAYER_MAP_SELECT: {
                 mode = level_select(&game_assets, &game_state);
             } break;
-            case EXE_MODE_EXIT: {
-            };
+            case EXE_MODE_TUTORIAL: {
+                mode = tutorial_mode(&game_assets, &game_state);
+            } break;
+            case EXE_MODE_EXIT: {};
         }
 
         temp_reset();

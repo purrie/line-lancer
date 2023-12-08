@@ -33,6 +33,7 @@ typedef struct {
 
 typedef struct {
     Rectangle new_game;
+    Rectangle tutorial;
     Rectangle options;
     Rectangle quit;
 } MainMenuLayout;
@@ -43,6 +44,8 @@ typedef enum {
     UI_LAYOUT_RIGHT,
 } UiLayout;
 
+/* Drawers *******************************************************************/
+void draw_background(Rectangle area, const Theme * theme);
 
 /* Input *********************************************************************/
 Result ui_building_action_click (const GameState * state, Vector2 cursor, BuildingAction * action);
