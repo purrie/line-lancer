@@ -98,6 +98,12 @@ void state_none (GameState * state) {
     }
 }
 void state_clicked_building (GameState * state) {
+    Vector2 mouse = GetMousePosition();
+    float distance = Vector2Distance(mouse, state->selected_point);
+    if (distance > 1) {
+        state->current_input = INPUT_MOVE_MAP;
+        return;
+    }
     if (IsMouseButtonReleased(MOUSE_BUTTON_LEFT) == false) {
         return;
     }
@@ -114,6 +120,12 @@ void state_clicked_building (GameState * state) {
     state->current_input = INPUT_NONE;
 }
 void state_clicked_path (GameState * state) {
+    Vector2 mouse = GetMousePosition();
+    float distance = Vector2Distance(mouse, state->selected_point);
+    if (distance > 1) {
+        state->current_input = INPUT_MOVE_MAP;
+        return;
+    }
     if (IsMouseButtonReleased(MOUSE_BUTTON_LEFT) == false) {
         return;
     }
