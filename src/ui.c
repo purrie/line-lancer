@@ -453,6 +453,54 @@ void render_upgrade_building_dialog (const GameState * state) {
 
     draw_button(dialog.demolish, "Demolish", cursor, UI_LAYOUT_CENTER, theme);
 }
+void render_winner (const GameState * state, usize winner) {
+    Rectangle screen = cake_rect(GetScreenWidth(), GetScreenHeight());
+    cake_cut_horizontal(&screen, state->settings->theme.info_bar_height, 0);
+
+    Color winner_color = get_player_color(winner);
+    usize base_layers = 20 + (usize)(sinf(GetTime()) * 10);
+    char alpha_step = 255 / base_layers;
+
+    for (usize i = 0; i < base_layers; i++) {
+        DrawRectangleLinesEx(screen, 1.0, winner_color);
+        winner_color.a -= alpha_step;
+        screen = cake_margin_all(screen, 1.0);
+    }
+
+    const Theme * theme = &state->settings->theme;
+
+    char text[256];
+
+    usize player;
+    if (get_local_player_index(state, &player)) {
+        snprintf(text, 256, "Player %zu won the game!", winner);
+    }
+    else {
+        if (player == winner) {
+            snprintf(text, 256, "You won!");
+        }
+        else {
+            snprintf(text, 256, "You lost! Winner is Player %zu!", winner);
+        }
+    }
+    int width = MeasureText(text, theme->font_size);
+
+    screen = cake_cut_horizontal(&screen, 0.5, 0);
+    screen = cake_carve_to(screen, width * 1.5f, theme->font_size * 4.0f);
+    DrawRectangleRec(screen, theme->background);
+    DrawRectangleLinesEx(screen, theme->frame_thickness, theme->frame);
+
+    winner_color.a = 255;
+    base_layers /= 2;
+    for (usize i = 0; i < base_layers; i++) {
+        screen = cake_grow_by(screen, 1, 1);
+        DrawRectangleLinesEx(screen, 1, winner_color);
+        winner_color.a -= alpha_step;
+    }
+    screen = cake_carve_to(screen, width, theme->font_size);
+
+    DrawText(text, screen.x, screen.y, theme->font_size, theme->text);
+}
 InfoBarAction render_resource_bar (const GameState * state) {
     usize player_index;
     if (get_local_player_index(state, &player_index)) {

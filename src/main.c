@@ -124,6 +124,7 @@ ExecutionMode play_mode (GameState * game) {
     Music theme = game->resources->faction_themes[game->players.items[player].faction];
     PlayMusicStream(theme);
     InfoBarAction play_state = INFO_BAR_ACTION_NONE;
+    usize winner = 0;
     while (play_state != INFO_BAR_ACTION_QUIT) {
         if (WindowShouldClose()) {
             break;
@@ -133,6 +134,7 @@ ExecutionMode play_mode (GameState * game) {
         UpdateMusicStream(theme);
         if (play_state == INFO_BAR_ACTION_NONE) {
             game_tick(game);
+            winner = game_winner(game);
         }
 
         BeginMode2D(game->camera);
@@ -149,6 +151,10 @@ ExecutionMode play_mode (GameState * game) {
             else {
                 render_upgrade_building_dialog(game);
             }
+        }
+
+        if (winner) {
+            render_winner(game, winner);
         }
 
         if (play_state == INFO_BAR_ACTION_SETTINGS) {

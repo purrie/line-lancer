@@ -715,3 +715,18 @@ void game_tick (GameState * state) {
     particles_advance(state->particles_in_use.items, state->particles_in_use.len, GetFrameTime());
     particles_clean(state);
 }
+usize game_winner (GameState * game) {
+    usize player = 0;
+    for (usize i = 0; i < game->map.regions.len; i++) {
+        Region * region = &game->map.regions.items[i];
+        if (region->player_id != player) {
+            if (player == 0) {
+                player = region->player_id;
+            }
+            else if (region->player_id != 0) {
+                return 0;
+            }
+        }
+    }
+    return player;
+}

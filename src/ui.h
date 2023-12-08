@@ -63,6 +63,7 @@ void render_player_select           (Rectangle area, GameState * state, int sele
 int  render_map_list                (Rectangle area, ListMap * maps, usize from, usize len, const Theme * theme);
 void draw_button                    (Rectangle area, char * text, Vector2 cursor, UiLayout label_layout, const Theme * theme);
 Test render_settings                (Rectangle area, Settings * settings, const Assets * assets);
+void render_winner                  (const GameState * state, usize winner);
 InfoBarAction render_resource_bar   (const GameState * state);
 void render_upgrade_building_dialog (const GameState * state);
 void render_empty_building_dialog   (const GameState * state);
