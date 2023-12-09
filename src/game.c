@@ -91,7 +91,7 @@ Test spawn_unit (GameState * state, Building * building) {
     listUnitAppend(&state->units, unit);
     return YES;
 }
-void spawn_units (GameState * state, float delta_time) {
+void update_buildings (GameState * state, float delta_time) {
     for (usize r = 0; r < state->map.regions.len; r++) {
         Region * region = &state->map.regions.items[r];
         if (region->player_id == 0)
@@ -573,9 +573,7 @@ void process_effects (GameState * state, float delta_time) {
         }
     }
 }
-void simulate_units (GameState * state) {
-    float dt = GetFrameTime();
-
+void simulate_units (GameState * state, float dt) {
     for (usize i = 0; i < state->units.len; i++) {
         Unit * unit = state->units.items[i];
         if (unit->cooldown > 0)
@@ -588,7 +586,7 @@ void simulate_units (GameState * state) {
             guard->cooldown -= dt;
     }
 
-    spawn_units       (state, dt);
+    update_buildings  (state, dt);
     update_unit_state (state);
     move_units        (state, dt);
     units_support     (state, dt);
@@ -705,14 +703,16 @@ void game_state_deinit (GameState * state) {
     clear_memory(state, sizeof(GameState));
 }
 void game_tick (GameState * state) {
+    float dt = GetFrameTime();
     state->turn ++;
+
     update_input_state(state);
     update_resources(state);
     simulate_ai(state);
-    simulate_units(state);
+    simulate_units(state, dt);
     clean_sounds(state);
 
-    particles_advance(state->particles_in_use.items, state->particles_in_use.len, GetFrameTime());
+    particles_advance(state->particles_in_use.items, state->particles_in_use.len, dt);
     particles_clean(state);
 }
 usize game_winner (GameState * game) {
