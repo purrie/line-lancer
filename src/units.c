@@ -116,15 +116,15 @@ float get_unit_attack_damage (const Unit * unit) {
             switch (unit->faction) {
                 case FACTION_KNIGHTS:
                     switch (unit->upgrade) {
-                        case 0: attack = 45.0f; break;
-                        case 1: attack = 90.0f; break;
-                        case 2: attack = 135.0f; break;
+                        case 0: attack = 32.0f; break;
+                        case 1: attack = 40.0f; break;
+                        case 2: attack = 64.0f; break;
                     } break;
                 case FACTION_MAGES:
                     switch (unit->upgrade) {
-                        case 0: attack = 35.0f; break;
-                        case 1: attack = 70.0f; break;
-                        case 2: attack = 105.0f; break;
+                        case 0: attack = 50.0f; break;
+                        case 1: attack = 60.0f; break;
+                        case 2: attack = 70.0f; break;
                     } break;
             }
         } break;
@@ -132,15 +132,15 @@ float get_unit_attack_damage (const Unit * unit) {
             switch (unit->faction) {
                 case FACTION_KNIGHTS:
                     switch (unit->upgrade) {
-                        case 0: attack = 30.0f; break;
-                        case 1: attack = 60.0f; break;
-                        case 2: attack = 90.0f; break;
+                        case 0: attack = 25.0f; break;
+                        case 1: attack = 30.0f; break;
+                        case 2: attack = 35.0f; break;
                     } break;
                 case FACTION_MAGES:
                     switch (unit->upgrade) {
                         case 0: attack = 35.0f; break;
-                        case 1: attack = 70.0f; break;
-                        case 2: attack = 105.0f; break;
+                        case 1: attack = 40.0f; break;
+                        case 2: attack = 45.0f; break;
                     } break;
             }
         } break;
@@ -148,15 +148,15 @@ float get_unit_attack_damage (const Unit * unit) {
             switch (unit->faction) {
                 case FACTION_KNIGHTS:
                     switch (unit->upgrade) {
-                        case 0: attack = 25.0f; break;
-                        case 1: attack = 50.0f; break;
-                        case 2: attack = 75.0f; break;
+                        case 0: attack = 10.0f; break;
+                        case 1: attack = 20.0f; break;
+                        case 2: attack = 30.0f; break;
                     } break;
                 case FACTION_MAGES:
                     switch (unit->upgrade) {
-                        case 0: attack = 25.0f; break;
-                        case 1: attack = 50.0f; break;
-                        case 2: attack = 75.0f; break;
+                        case 0: attack = 10.0f; break;
+                        case 1: attack = 20.0f; break;
+                        case 2: attack = 30.0f; break;
                     } break;
             }
         } break;
@@ -164,15 +164,15 @@ float get_unit_attack_damage (const Unit * unit) {
             switch (unit->faction) {
                 case FACTION_KNIGHTS:
                     switch (unit->upgrade) {
-                        case 0: attack = 75.0f; break;
-                        case 1: attack = 140.0f; break;
-                        case 2: attack = 280.0f; break;
+                        case 0: attack = 40.0f; break;
+                        case 1: attack = 55.0f; break;
+                        case 2: attack = 70.0f; break;
                     } break;
                 case FACTION_MAGES:
                     switch (unit->upgrade) {
-                        case 0: attack = 80.0f; break;
-                        case 1: attack = 160.0f; break;
-                        case 2: attack = 320.0f; break;
+                        case 0: attack = 10.0f; break;
+                        case 1: attack = 20.0f; break;
+                        case 2: attack = 30.0f; break;
                     } break;
             }
         } break;
@@ -216,10 +216,18 @@ Result get_unit_support_power (const Unit * unit, MagicEffect * effect) {
         case FACTION_MAGES: {
             *effect = (MagicEffect){
                 .type = MAGIC_WEAKNESS,
-                .strength = 0.25f * (unit->upgrade + 1),
+                .strength = 0,
                 .duration = 5.0f * (unit->upgrade + 1),
                 .source_player = unit->player_owned,
             };
+            switch (unit->upgrade) {
+                case 0: effect->strength = 0.15f; break;
+                case 1: effect->strength = 0.3f; break;
+                case 2: effect->strength = 0.5f; break;
+                default:
+                    TraceLog(LOG_ERROR, "Unit's upgrade is out of range");
+                    return FAILURE;
+            }
             return SUCCESS;
         }
     }
@@ -234,14 +242,14 @@ float get_unit_health (UnitType type, FactionType faction, unsigned int upgrades
                 case FACTION_KNIGHTS:
                     switch (upgrades) {
                         case 0: return 105.0f;
-                        case 1: return 210.0f;
-                        case 2: return 315.0f;
+                        case 1: return 135.0f;
+                        case 2: return 165.0f;
                     } break;
                 case FACTION_MAGES:
                     switch (upgrades) {
-                        case 0: return 150.0f;
-                        case 1: return 300.0f;
-                        case 2: return 450.0f;
+                        case 0: return 160.0f;
+                        case 1: return 180.0f;
+                        case 2: return 200.0f;
                     } break;
             } break;
         case UNIT_ARCHER:
@@ -249,14 +257,14 @@ float get_unit_health (UnitType type, FactionType faction, unsigned int upgrades
                 case FACTION_KNIGHTS:
                     switch (upgrades) {
                         case 0: return 80.0f;
-                        case 1: return 160.0f;
-                        case 2: return 320.0f;
+                        case 1: return 100.0f;
+                        case 2: return 120.0f;
                     } break;
                 case FACTION_MAGES:
                     switch (upgrades) {
                         case 0: return 60.0f;
-                        case 1: return 120.0f;
-                        case 2: return 240.0f;
+                        case 1: return 80.0f;
+                        case 2: return 100.0f;
                     } break;
             } break;
         case UNIT_SUPPORT:
@@ -264,29 +272,29 @@ float get_unit_health (UnitType type, FactionType faction, unsigned int upgrades
                 case FACTION_KNIGHTS:
                     switch (upgrades) {
                         case 0: return 50.0f;
-                        case 1: return 100.0f;
-                        case 2: return 150.0f;
+                        case 1: return 60.0f;
+                        case 2: return 70.0f;
                     } break;
                 case FACTION_MAGES:
                     switch (upgrades) {
-                        case 0: return 45.0f;
-                        case 1: return 90.0f;
-                        case 2: return 135.0f;
+                        case 0: return 50.0f;
+                        case 1: return 60.0f;
+                        case 2: return 70.0f;
                     } break;
             } break;
         case UNIT_SPECIAL:
             switch (faction) {
                 case FACTION_KNIGHTS:
                     switch (upgrades) {
-                        case 0: return 160.0f;
-                        case 1: return 320.0f;
-                        case 2: return 480.0f;
+                        case 0: return 110.0f;
+                        case 1: return 150.0f;
+                        case 2: return 170.0f;
                     } break;
                 case FACTION_MAGES:
                     switch (upgrades) {
-                        case 0: return 140.0f;
-                        case 1: return 280.0f;
-                        case 2: return 460.0f;
+                        case 0: return 100.0f;
+                        case 1: return 130.0f;
+                        case 2: return 160.0f;
                     } break;
             } break;
         case UNIT_GUARDIAN:
@@ -308,8 +316,8 @@ float get_unit_cooldown (const Unit * unit) {
         case FACTION_KNIGHTS: {
             switch (unit->type) {
                 case UNIT_FIGHTER:  return 0.4f - (unit->upgrade * 0.1f);
-                case UNIT_ARCHER:   return 1.2f - (unit->upgrade * 0.1f);
-                case UNIT_SUPPORT:  return 1.5f - (unit->upgrade * 0.1f);
+                case UNIT_ARCHER:   return 1.7f - (unit->upgrade * 0.1f);
+                case UNIT_SUPPORT:  return 2.5f - (unit->upgrade * 0.1f);
                 case UNIT_SPECIAL:  return 0.4f - (unit->upgrade * 0.1f);
                 case UNIT_GUARDIAN: return 1.2f;
             }
@@ -317,9 +325,9 @@ float get_unit_cooldown (const Unit * unit) {
         case FACTION_MAGES: {
             switch (unit->type) {
                 case UNIT_FIGHTER:  return 0.5f - (unit->upgrade * 0.1f);
-                case UNIT_ARCHER:   return 1.0f - (unit->upgrade * 0.1f);
-                case UNIT_SUPPORT:  return 0.5f - (unit->upgrade * 0.1f);
-                case UNIT_SPECIAL:  return 0.4f - (unit->upgrade * 0.1f);
+                case UNIT_ARCHER:   return 1.7f - (unit->upgrade * 0.1f);
+                case UNIT_SUPPORT:  return 1.9f - (unit->upgrade * 0.1f);
+                case UNIT_SPECIAL:  return 0.2f - (unit->upgrade * 0.05f);
                 case UNIT_GUARDIAN: return 1.1f;
             }
         } break;
@@ -344,7 +352,7 @@ float get_unit_attack_delay  (const Unit * unit) {
                 case UNIT_FIGHTER:  return 0.4f - (unit->upgrade * 0.1f);
                 case UNIT_ARCHER:   return 0.7f - (unit->upgrade * 0.1f);
                 case UNIT_SUPPORT:  return 0.4f - (unit->upgrade * 0.1f);
-                case UNIT_SPECIAL:  return 0.4f - (unit->upgrade * 0.1f);
+                case UNIT_SPECIAL:  return 0.19f - (unit->upgrade * 0.05f);
                 case UNIT_GUARDIAN: return 1.0f;
             }
         } break;
@@ -406,9 +414,9 @@ float get_unit_speed (const Unit * unit) {
                     }
                 case UNIT_SPECIAL:
                     switch (unit->upgrade) {
-                        case 0: return 20.0f;
-                        case 1: return 25.0f;
-                        case 2: return 30.0f;
+                        case 0: return 25.0f;
+                        case 1: return 30.0f;
+                        case 2: return 35.0f;
                     }
                 case UNIT_GUARDIAN: return 0.0f;
             }

@@ -351,26 +351,26 @@ float building_trigger_interval (const Building * building) {
             break;
         case BUILDING_FIGHTER:
             switch (building->region->faction) {
-                case FACTION_KNIGHTS: return 5.0f - building->upgrades;
-                case FACTION_MAGES:   return 5.0f - building->upgrades;
+                case FACTION_KNIGHTS: return 5.0f;
+                case FACTION_MAGES:   return 5.0f;
             }
             break;
         case BUILDING_ARCHER:
             switch (building->region->faction) {
-                case FACTION_KNIGHTS: return 5.0f - building->upgrades;
-                case FACTION_MAGES:   return 5.0f - building->upgrades;
+                case FACTION_KNIGHTS: return 6.0f;
+                case FACTION_MAGES:   return 6.0f;
             }
             break;
         case BUILDING_SUPPORT:
             switch (building->region->faction) {
-                case FACTION_KNIGHTS: return 5.0f - building->upgrades;
-                case FACTION_MAGES:   return 5.0f - building->upgrades;
+                case FACTION_KNIGHTS: return 7.0f;
+                case FACTION_MAGES:   return 7.0f;
             }
             break;
         case BUILDING_SPECIAL:
             switch (building->region->faction) {
-                case FACTION_KNIGHTS: return 7.0f - building->upgrades;
-                case FACTION_MAGES:   return 7.0f - building->upgrades;
+                case FACTION_KNIGHTS: return 9.0f;
+                case FACTION_MAGES:   return 9.0f;
             }
             break;
     }
