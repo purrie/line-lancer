@@ -498,6 +498,7 @@ void render_winner (const GameState * state, usize winner) {
 
     winner_color.a = 255;
     base_layers /= 2;
+    alpha_step = 255 / base_layers;
     for (usize i = 0; i < base_layers; i++) {
         screen = cake_grow_by(screen, 1, 1);
         DrawRectangleLinesEx(screen, 1, winner_color);
