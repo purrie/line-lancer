@@ -4,6 +4,7 @@
 #include "constants.h"
 #include "particle.h"
 #include "animation.h"
+#include "unit_pool.h"
 #include <raymath.h>
 
 
@@ -527,44 +528,19 @@ Result unit_calculate_path (Unit * unit) {
 
 /* Setup *********************************************************************/
 Unit * unit_init() {
-    Unit * unit = MemAlloc(sizeof(Unit));
+    Unit * unit = unit_alloc();
     if (unit == NULL) {
         TraceLog(LOG_ERROR, "Failed to allocate memory for unit");
         return NULL;
     }
-    clear_memory(unit, sizeof(Unit));
 
-    unit->effects = listMagicEffectInit(MAGIC_TYPE_LAST + 1, perm_allocator());
-    if (unit->effects.items == NULL) {
-        TraceLog(LOG_ERROR, "Failed to allocate effect list");
-        MemFree(unit);
-        return NULL;
-    }
-    unit->incoming_attacks = listAttackInit(4, perm_allocator());
-    if (unit->incoming_attacks.items == NULL) {
-        TraceLog(LOG_ERROR, "Failed to allocate attack list");
-        listMagicEffectDeinit(&unit->effects);
-        MemFree(unit);
-        return NULL;
-    }
-    unit->pathfind = listWayPointInit(64, perm_allocator());
-    if (unit->pathfind.items == NULL) {
-        TraceLog(LOG_ERROR, "Failed to allocate pathfinding list");
-        listMagicEffectDeinit(&unit->effects);
-        listAttackDeinit(&unit->incoming_attacks);
-        MemFree(unit);
-        return NULL;
-    }
     return unit;
 }
 void unit_deinit(Unit * unit) {
     if (is_unit_tied_to_building(unit))
         unit->origin->units_spawned -= 1;
     unit->waypoint->unit = NULL;
-    listMagicEffectDeinit(&unit->effects);
-    listAttackDeinit(&unit->incoming_attacks);
-    listWayPointDeinit(&unit->pathfind);
-    MemFree(unit);
+    unit_release(unit);
 }
 Unit * unit_from_building (const Building * building) {
     if (building->units_spawned >= building_max_units(building))

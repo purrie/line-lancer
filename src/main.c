@@ -13,6 +13,7 @@
 #include "cake.h"
 #include "audio.h"
 #include "tutorial.h"
+#include "unit_pool.h"
 
 const int WINDOW_WIDTH = 1400;
 const int WINDOW_HEIGHT = 1200;
@@ -311,6 +312,7 @@ int main(void) {
     }
 
     apply_sound_settings(&game_assets, &game_settings);
+    unit_pool_init();
 
     SetTargetFPS(FPS);
     PlayMusicStream(game_assets.main_theme);
@@ -345,6 +347,7 @@ int main(void) {
     }
     close:
 
+    unit_pool_deinit();
     assets_deinit(&game_assets);
 
     CloseAudioDevice();
