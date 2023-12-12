@@ -928,9 +928,11 @@ Test render_settings (Rectangle area, Settings * settings, const Assets * assets
                 play_sound(assets, SOUND_UI_CLICK);
                 if (IsWindowState(FLAG_BORDERLESS_WINDOWED_MODE)) {
                     SetWindowState(FLAG_WINDOW_RESIZABLE);
+                    settings->fullscreen = false;
                 }
                 else {
                     ClearWindowState(FLAG_WINDOW_RESIZABLE);
+                    settings->fullscreen = true;
                 }
                 ToggleBorderlessWindowed();
             }

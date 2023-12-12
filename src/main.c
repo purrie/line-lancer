@@ -256,11 +256,10 @@ int main(void) {
     SetRandomSeed(time(0));
 
     InitWindow(WINDOW_WIDTH, WINDOW_HEIGHT, "Hello!");
-    #ifdef DEBUG
     SetWindowState(FLAG_WINDOW_RESIZABLE);
-    #else
+
+    #if !defined(DEBUG)
     SetTraceLogLevel(LOG_ERROR);
-    SetWindowState(FLAG_BORDERLESS_WINDOWED_MODE);
     #endif
 
     InitAudioDevice();
@@ -312,6 +311,10 @@ int main(void) {
     }
 
     apply_sound_settings(&game_assets, &game_settings);
+    if (game_settings.fullscreen) {
+        ClearWindowState(FLAG_WINDOW_RESIZABLE);
+        ToggleBorderlessWindowed();
+    }
     unit_pool_init();
 
     SetTargetFPS(FPS);
@@ -347,6 +350,7 @@ int main(void) {
     }
     close:
 
+    save_settings(&game_settings);
     unit_pool_deinit();
     assets_deinit(&game_assets);
 

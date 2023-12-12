@@ -1,6 +1,12 @@
 #include <raylib.h>
 #include <raymath.h>
 #include <stdio.h>
+#include <stdlib.h>
+
+#if !defined (_WIN32)
+#include <sys/types.h>
+#include <sys/stat.h>
+#endif
 
 #include "mesh.h"
 #include "math.h"
@@ -135,6 +141,41 @@ Result convert_slice_float(StringSlice slice, float * value) {
     if (neg) { *value *= -1.0f; }
     return SUCCESS;
 }
+Result tokenize (char * string, char * match, usize * in_out_cursor, StringSlice * result) {
+    usize start = *in_out_cursor;
+
+    usize i = start;
+    if (string[i] == 0) return FAILURE;
+    {
+        usize m = 0;
+        while (match[m] && string[i]) {
+            if (match[m] == string[i]) {
+                start++;
+                i++;
+                m = 0;
+            }
+            else {
+               m++;
+            }
+        }
+    }
+    while (string[i]) {
+        usize m = 0;
+        while (match[m]) {
+            if (match[m] == string[i]) {
+                goto found;
+            }
+            m++;
+        }
+        i++;
+    }
+    found:
+    if (start == 0 && string[i] == 0) return FAILURE;
+    result->start = (uchar*)&string[start];
+    result->len = i - start;
+    *in_out_cursor = i;
+    return SUCCESS;
+}
 
 /* Asset Management **********************************************************/
 char * file_name_from_path (char * path, Alloc alloc) {
@@ -165,12 +206,38 @@ char * file_name_from_path (char * path, Alloc alloc) {
   return name;
 }
 char * asset_path (const char * target_folder, const char * file, Alloc alloc) {
-    #ifdef RELEASE
-    TODO apply path from OS appropriate place
-    #else
+    #if defined(_WIN32) || defined(DEBUG)
     char * assets_path = "assets/";
     usize assets_len = string_length(assets_path);
+    #else
+    char * assets_path;
+    char * data = getenv("XDG_DATA_HOME");
+    if (NULL == data) {
+        TraceLog(LOG_ERROR, "Failed to find XDG data path");
+        char * home = getenv("HOME");
+        if (NULL == home) TraceLog(LOG_FATAL, "Failed to find HOME path");
+
+        usize len = string_length(home);
+        char * rest = "/.local/share/line-lancer/";
+        usize rest_len = string_length(rest);
+
+        assets_path = temp_alloc(len + rest_len + 1);
+        copy_memory(assets_path, home, len);
+        copy_memory(assets_path + len, rest, rest_len);
+        assets_path[len + rest_len] = 0;
+    }
+    else {
+        usize len = string_length(data);
+        char * rest = "/line-lancer/";
+        usize rest_len = string_length(rest);
+        assets_path = temp_alloc(len + rest_len + 1);
+        copy_memory(assets_path, data, len);
+        copy_memory(assets_path + len, rest, rest_len);
+        assets_path[len + rest_len] = 0;
+    }
+    usize assets_len = string_length(assets_path);
     #endif
+
     usize target_len = string_length(target_folder);
     usize file_len = string_length(file);
 
@@ -184,6 +251,51 @@ char * asset_path (const char * target_folder, const char * file, Alloc alloc) {
     result[assets_len + target_len] = PATH_SEPARATOR;
     copy_memory(&result[assets_len + target_len + 1], file, file_len);
     result[assets_len + target_len + file_len + 1] = 0;
+    return result;
+}
+char * config_path (const char * file, Alloc alloc) {
+    char * prefix;
+    usize prefix_len;
+    #ifdef _WIN32
+    prefix = "./";
+    prefix_len = string_length(prefix);
+    #else
+    char * conf = getenv("XDG_CONFIG_HOME");
+    if (NULL == conf) {
+        TraceLog(LOG_WARNING, "User does not have XDG_CONFIG_HOME set, falling back to default config path");
+        char * home = getenv("HOME");
+        if (NULL == home) TraceLog(LOG_FATAL, "Failed  to find home directory");
+        usize home_len = string_length(home);
+        char * rest = "/.config/line-lancer/";
+        usize rest_len = string_length(rest);
+        prefix = temp_alloc(home_len + rest_len + 1);
+        copy_memory(prefix, home, home_len);
+        copy_memory(prefix + home_len, rest, rest_len);
+        prefix[home_len + rest_len] = 0;
+    }
+    else {
+        usize conf_len = string_length(conf);
+        char * rest = "/line-lancer/";
+        usize rest_len = string_length(rest);
+        prefix = temp_alloc(conf_len + rest_len + 1);
+        copy_memory(prefix, conf, conf_len);
+        copy_memory(prefix + conf_len, rest, rest_len);
+        prefix[conf_len + rest_len] = 0;
+    }
+    prefix_len = string_length(prefix);
+    if (! DirectoryExists(prefix)) {
+        int status = mkdir(prefix, S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
+        if (status != 0) {
+            TraceLog(LOG_ERROR, "Failed to create config directory");
+        }
+    }
+    #endif
+
+    usize file_len = string_length(file);
+    char * result = alloc(file_len + prefix_len + 1);
+    copy_memory(result, prefix, prefix_len);
+    copy_memory(result + prefix_len, file, file_len);
+    result[prefix_len + file_len] = 0;
     return result;
 }
 void assets_deinit (Assets * assets) {
@@ -1526,7 +1638,7 @@ float GetMasterVolume(void);
 
 /* Settings ******************************************************************/
 Result load_settings (Settings * settings) {
-    // TODO load the settings from file
+    // defaults
     #ifdef DEBUG
     settings->volume_master = 0.1;
     settings->volume_music = 0.0;
@@ -1537,12 +1649,98 @@ Result load_settings (Settings * settings) {
     settings->volume_music = 0.5;
     settings->volume_sfx = 0.5;
     settings->volume_ui = 0.5;
+    settings->fullscreen = true;
     #endif
+
+    char * path = config_path("settings.conf", temp_alloc);
+    char * file = LoadFileText(path);
+    if (NULL != file) {
+        StringSlice key;
+        usize cursor = 0;
+        usize expected_lines = 5;
+        while (expected_lines --> 0) {
+            if (tokenize(file, "\n =", &cursor, &key)) {
+                TraceLog(LOG_ERROR, "Failed to find a settings key");
+                goto end;
+            }
+            if (compare_literal(key, "volume-master")) {
+                if (tokenize(file, "\n =", &cursor, &key)) {
+                    log_slice(LOG_ERROR, "failed to get settings value for", key);
+                    goto end;
+                }
+                if (convert_slice_float(key, &settings->volume_master)) {
+                    log_slice(LOG_ERROR, "failed to convert value to master volume:", key);
+                    goto end;
+                }
+            }
+            else if (compare_literal(key, "volume-music")) {
+                if (tokenize(file, "\n =", &cursor, &key)) {
+                    log_slice(LOG_ERROR, "failed to get settings value for", key);
+                    goto end;
+                }
+                if (convert_slice_float(key, &settings->volume_music)) {
+                    log_slice(LOG_ERROR, "failed to convert value to music volume:", key);
+                    goto end;
+                }
+            }
+            else if (compare_literal(key, "volume-sfx")) {
+                if (tokenize(file, "\n =", &cursor, &key)) {
+                    log_slice(LOG_ERROR, "failed to get settings value for", key);
+                    goto end;
+                }
+                if (convert_slice_float(key, &settings->volume_sfx)) {
+                    log_slice(LOG_ERROR, "failed to convert value to sfx volume:", key);
+                    goto end;
+                }
+            }
+            else if (compare_literal(key, "volume-ui")) {
+                if (tokenize(file, "\n =", &cursor, &key)) {
+                    log_slice(LOG_ERROR, "failed to get settings value for", key);
+                    goto end;
+                }
+                if (convert_slice_float(key, &settings->volume_ui)) {
+                    log_slice(LOG_ERROR, "failed to convert value to ui volume:", key);
+                    goto end;
+                }
+            }
+            else if (compare_literal(key, "fullscreen")) {
+                if (tokenize(file, "\n =", &cursor, &key)) {
+                    log_slice(LOG_ERROR, "Failed to get settings value for", key);
+                    goto end;
+                }
+                usize t = 0;
+                if (convert_slice_usize(key, &t)) {
+                    log_slice(LOG_ERROR, "Failed to read value for full screen:", key);
+                    goto end;
+                }
+                settings->fullscreen = t != 0;
+            }
+        }
+        end:
+        UnloadFileText(file);
+    }
     settings->theme = theme_setup();
     return SUCCESS;
 }
 Result save_settings (const Settings * settings) {
     (void)settings;
-    // TODO implement settings saving to file
+    char * path = config_path("settings.conf", &temp_alloc);
+    char data_buffer[1024];
+    int len = snprintf(
+      data_buffer,
+      1024,
+      "volume-master=%.2f\nvolume-music=%.2f\nvolume-sfx=%.2f\nvolume-ui=%.2f\nfullscreen=%d",
+      settings->volume_master, settings->volume_music, settings->volume_sfx, settings->volume_ui,
+      settings->fullscreen
+    );
+    if (len <= 0) {
+        TraceLog(LOG_ERROR, "Failed to create data for settings");
+        return FAILURE;
+    }
+    bool result = SaveFileData(path, data_buffer, len);
+    if (! result) {
+        TraceLog(LOG_ERROR, "Failed to save settings");
+        return FAILURE;
+    }
     return SUCCESS;
 }

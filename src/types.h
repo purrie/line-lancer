@@ -493,6 +493,7 @@ struct Settings {
     float volume_music;
     float volume_sfx;
     float volume_ui;
+    bool fullscreen;
 
     Theme theme;
 };
