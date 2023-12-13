@@ -637,13 +637,6 @@ Result setup_unit_guardian (Region * region) {
 
     return SUCCESS;
 }
-void clear_unit_list (ListUnit * list) {
-    for(usize i = 0; i < list->len; i++) {
-        Unit * unit = list->items[i];
-        unit_deinit(unit);
-    }
-    list->len = 0;
-}
 
 /* Visuals *******************************************************************/
 void render_unit_health (const Unit * unit) {

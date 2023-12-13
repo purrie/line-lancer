@@ -1,13 +1,15 @@
 #include "unit_pool.h"
 #include "std.h"
 
-#define MAX_UNITS 1000
 Unit pool[MAX_UNITS];
+Unit * unused_pool[MAX_UNITS];
+Unit * used_pool[MAX_UNITS];
 ListUnit unused;
+ListUnit used;
 
 void unit_pool_init () {
-    clear_memory(pool, sizeof(Unit) * MAX_UNITS);
-    unused = listUnitInit(MAX_UNITS, perm_allocator());
+    unused = (ListUnit) { .items = unused_pool, .cap = MAX_UNITS };
+    used = (ListUnit) { .items = used_pool, .cap = MAX_UNITS };
     for (usize i = 0; i < MAX_UNITS; i++) {
         pool[i].pathfind = listWayPointInit(10, perm_allocator());
         pool[i].incoming_attacks = listAttackInit(10, perm_allocator());
@@ -21,7 +23,19 @@ void unit_pool_deinit () {
         listAttackDeinit(&pool[i].incoming_attacks);
         listMagicEffectDeinit(&pool[i].effects);
     }
-    listUnitDeinit(&unused);
+}
+void unit_pool_reset () {
+    used.len = 0;
+    unused.len = 0;
+    for (usize i = 0; i < MAX_UNITS; i++) {
+        listUnitAppend(&unused, &pool[i]);
+    }
+}
+ListUnit unit_pool_get_new () {
+    if (unused.len != MAX_UNITS) {
+        TraceLog(LOG_WARNING, "Provided new pool without resetting the old one!");
+    }
+    return used;
 }
 Unit * unit_alloc () {
     if (unused.len == 0) return NULL;

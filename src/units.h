@@ -17,7 +17,6 @@ Unit * unit_from_building  (const Building * building);
 Result setup_unit_guardian (Region * region);
 
 /* Despawning ****************************************************************/
-void clear_unit_list (ListUnit * list);
 void unit_deinit     (Unit * unit);
 
 /* Movement ******************************************************************/

@@ -3,8 +3,13 @@
 
 #include "types.h"
 
+#define MAX_UNITS 1000
+
 void unit_pool_init ();
 void unit_pool_deinit ();
+
+void     unit_pool_reset ();
+ListUnit unit_pool_get_new ();
 
 void   unit_release (Unit * unit);
 Unit * unit_alloc ();

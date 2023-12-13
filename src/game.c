@@ -9,6 +9,7 @@
 #include "particle.h"
 #include "alloc.h"
 #include "audio.h"
+#include "unit_pool.h"
 #include <raymath.h>
 
 /* Information ***************************************************************/
@@ -662,7 +663,7 @@ Result game_state_prepare (GameState * result, const Map * prefab) {
 
     result->active_sounds = listSFXInit(40, perm_allocator());
     result->disabled_sounds = listSFXInit(40, perm_allocator());
-    result->units  = listUnitInit(120, perm_allocator());
+    result->units  = unit_pool_get_new();
 
     result->particles_available = listParticleInit(PARTICLES_MAX, perm_allocator());
     result->particles_in_use    = listParticleInit(PARTICLES_MAX, perm_allocator());
@@ -685,8 +686,7 @@ Result game_state_prepare (GameState * result, const Map * prefab) {
     return SUCCESS;
 }
 void game_state_deinit (GameState * state) {
-    clear_unit_list(&state->units);
-    listUnitDeinit(&state->units);
+    unit_pool_reset();
     for (usize p = 0; p < state->players.len; p++) {
         if (state->players.items[p].type == PLAYER_AI) {
             ai_deinit(&state->players.items[p]);
