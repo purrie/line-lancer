@@ -376,8 +376,6 @@ void particles_render_effects (const GameState * state, Unit * unit) {
                 Rectangle source = (Rectangle){0, 0, sprite.width, sprite.height};
                 DrawTexturePro(sprite, source, target, (Vector2){half_size, half_size}, 0.0f, WHITE);
             } break;
-            default: break;
-            // TODO others not implemented yet until they're in the game
         }
 
     }

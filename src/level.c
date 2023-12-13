@@ -283,14 +283,11 @@ Test area_line_intersects (const Area * area, Line line) {
 /* Building Functions ******************************************************/
 void place_building (Building * building, BuildingType type) {
     building->type = type;
-    // TODO make proper building modification
-    // update texture and whatnot
 }
 void upgrade_building (Building * building) {
     if (building->upgrades >= BUILDING_MAX_UPGRADES) return;
 
     building->upgrades ++;
-    // TODO make proper building modification
 }
 void demolish_building (Building * building) {
     building->type = BUILDING_EMPTY;
