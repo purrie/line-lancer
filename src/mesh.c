@@ -28,7 +28,7 @@ Test is_area_clockwise(const Area * area) {
 }
 
 /* Generators ****************************************************************/
-Model generate_line_mesh(const ListLine lines, float thickness, ushort cap_resolution, const float layer) {
+Result generate_line_mesh(const ListLine lines, float thickness, ushort cap_resolution, const float layer, Model * result) {
   Mesh mesh = {0};
 
   const float thickness_half = thickness * 0.5f;
@@ -40,6 +40,8 @@ Model generate_line_mesh(const ListLine lines, float thickness, ushort cap_resol
     mesh.vertexCount = points * 2;
     mesh.vertices  = MemAlloc(sizeof(float) * 3 * mesh.vertexCount);
     mesh.texcoords = MemAlloc(sizeof(float) * 2 * mesh.vertexCount);
+    if (NULL == mesh.vertices || NULL == mesh.texcoords)
+      return FAILURE;
 
     TraceLog(LOG_INFO, "  Generating verticle positions");
     for (usize i = 0; i < points; i++) {
@@ -215,6 +217,7 @@ Model generate_line_mesh(const ListLine lines, float thickness, ushort cap_resol
     TraceLog(LOG_INFO, "  Generating indices");
     mesh.triangleCount = lines.len * 2 + cap_resolution * 4;
     mesh.indices = MemAlloc(sizeof(ushort) * 3 * mesh.triangleCount);
+    if (NULL == mesh.indices) return FAILURE;
 
     usize quads = mesh.triangleCount / 2;
     for (usize i = 0; i < quads; i++) {
@@ -231,9 +234,10 @@ Model generate_line_mesh(const ListLine lines, float thickness, ushort cap_resol
   }
 
   UploadMesh(&mesh, false);
-  return LoadModelFromMesh(mesh);
+  *result = LoadModelFromMesh(mesh);
+  return SUCCESS;
 }
-Model generate_area_mesh(const Area * area, const float layer) {
+Result generate_area_mesh (const Area * area, const float layer, Model * result) {
   temp_reset();
   Mesh mesh = {0};
   const ListLine lines = area->lines;
@@ -292,8 +296,7 @@ Model generate_area_mesh(const Area * area, const float layer) {
           listUshortDeinit(&indices);
           listUsizeDeinit(&points);
           MemFree(mesh.vertices);
-          // TODO do proper error handling
-          return (Model){0};
+          return FAILURE;
         }
         counter ++;
         index = index_m;
@@ -319,9 +322,10 @@ Model generate_area_mesh(const Area * area, const float layer) {
   }
 
   UploadMesh(&mesh, false);
-  return LoadModelFromMesh(mesh);
+  *result = LoadModelFromMesh(mesh);
+  return SUCCESS;
 }
-void generate_background_mesh (Map * map) {
+Result generate_background_mesh (Map * map) {
     TraceLog(LOG_INFO, "  Building background [%zu, %zu]", map->width, map->height);
     Mesh mesh = {0};
 
@@ -332,6 +336,7 @@ void generate_background_mesh (Map * map) {
 
     mesh.vertexCount = 4;
     mesh.vertices    = MemAlloc(sizeof(float) * 3 * mesh.vertexCount);
+    if (NULL == mesh.vertices) return FAILURE;
 
     mesh.vertices[0] = left;
     mesh.vertices[1] = top;
@@ -355,6 +360,7 @@ void generate_background_mesh (Map * map) {
     right  = map->width * 0.01;
 
     mesh.texcoords    = MemAlloc(sizeof(float) * 2 * mesh.vertexCount);
+    if (NULL == mesh.texcoords) return FAILURE;
 
     mesh.texcoords[0] = left;
     mesh.texcoords[1] = top;
@@ -370,6 +376,7 @@ void generate_background_mesh (Map * map) {
 
     mesh.triangleCount = 2;
     mesh.indices = MemAlloc(sizeof(ushort) * 3 * mesh.triangleCount);
+    if (NULL == mesh.indices) return FAILURE;
     mesh.indices[0] = 0;
     mesh.indices[1] = 1;
     mesh.indices[2] = 2;
@@ -379,20 +386,19 @@ void generate_background_mesh (Map * map) {
 
     UploadMesh(&mesh, false);
     map->background = LoadModelFromMesh(mesh);
+    return SUCCESS;
 }
 
 /* Handlers ******************************************************************/
 Result generate_map_mesh(Map * map) {
   TraceLog(LOG_INFO, "Generating meshes");
-  generate_background_mesh(map);
-  if (map->background.meshCount == 0) {
+  if (generate_background_mesh(map)) {
     TraceLog(LOG_ERROR, "Failed to generate background");
     return FAILURE;
   }
   for (usize p = 0; p < map->paths.len; p++) {
     TraceLog(LOG_INFO, "  Generating path mesh #%d", p);
-    map->paths.items[p].model = generate_line_mesh(map->paths.items[p].lines, PATH_THICKNESS, 0, LAYER_PATH);
-    if (map->paths.items[p].model.meshCount == 0) {
+    if (generate_line_mesh(map->paths.items[p].lines, PATH_THICKNESS, 0, LAYER_PATH, &map->paths.items[p].model)) {
       TraceLog(LOG_ERROR, "Failed to generate mesh for path %zu", p);
       return FAILURE;
     }
@@ -401,13 +407,11 @@ Result generate_map_mesh(Map * map) {
     Region * region = &map->regions.items[r];
     TraceLog(LOG_INFO, "Generating region #%d, id: %zu", r, region->region_id);
     TraceLog(LOG_INFO, "  Generating region mesh");
-    region->area.model = generate_area_mesh(&region->area, LAYER_MAP);
-    if (region->area.model.meshCount == 0) {
+    if (generate_area_mesh(&region->area, LAYER_MAP, &region->area.model)) {
       TraceLog(LOG_ERROR, "Failed to generate mesh for region %zu, id: %zu", r, region->region_id);
       return FAILURE;
     }
-    region->area.outline = generate_line_mesh(region->area.lines, PATH_THICKNESS * 0.1f, 3, LAYER_MAP_OUTLINE);
-    if (region->area.outline.meshCount == 0) {
+    if (generate_line_mesh(region->area.lines, PATH_THICKNESS * 0.1f, 3, LAYER_MAP_OUTLINE, &region->area.outline)) {
       TraceLog(LOG_ERROR, "Failed to generate outline for region %zu, id: %zu", r, region->region_id);
       return FAILURE;
     }
