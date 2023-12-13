@@ -315,18 +315,18 @@ float get_unit_cooldown (const Unit * unit) {
     switch (unit->faction) {
         case FACTION_KNIGHTS: {
             switch (unit->type) {
-                case UNIT_FIGHTER:  return 0.4f - (unit->upgrade * 0.1f);
-                case UNIT_ARCHER:   return 1.7f - (unit->upgrade * 0.1f);
-                case UNIT_SUPPORT:  return 2.5f - (unit->upgrade * 0.1f);
-                case UNIT_SPECIAL:  return 0.4f - (unit->upgrade * 0.1f);
+                case UNIT_FIGHTER:  return 0.4f;
+                case UNIT_ARCHER:   return 1.7f;
+                case UNIT_SUPPORT:  return 2.5f;
+                case UNIT_SPECIAL:  return 0.4f;
                 case UNIT_GUARDIAN: return 1.2f;
             }
         } break;
         case FACTION_MAGES: {
             switch (unit->type) {
-                case UNIT_FIGHTER:  return 0.5f - (unit->upgrade * 0.1f);
-                case UNIT_ARCHER:   return 1.7f - (unit->upgrade * 0.1f);
-                case UNIT_SUPPORT:  return 1.9f - (unit->upgrade * 0.1f);
+                case UNIT_FIGHTER:  return 0.5f;
+                case UNIT_ARCHER:   return 1.7f;
+                case UNIT_SUPPORT:  return 1.9f;
                 case UNIT_SPECIAL:  return 0.2f - (unit->upgrade * 0.05f);
                 case UNIT_GUARDIAN: return 1.1f;
             }
@@ -340,18 +340,18 @@ float get_unit_attack_delay  (const Unit * unit) {
     switch (unit->faction) {
         case FACTION_KNIGHTS: {
             switch (unit->type) {
-                case UNIT_FIGHTER:  return 0.3f - (unit->upgrade * 0.1f);
-                case UNIT_ARCHER:   return 1.0f - (unit->upgrade * 0.1f);
-                case UNIT_SUPPORT:  return 1.0f - (unit->upgrade * 0.1f);
-                case UNIT_SPECIAL:  return 0.4f - (unit->upgrade * 0.1f);
+                case UNIT_FIGHTER:  return 0.3f;
+                case UNIT_ARCHER:   return 1.0f;
+                case UNIT_SUPPORT:  return 1.0f;
+                case UNIT_SPECIAL:  return 0.4f;
                 case UNIT_GUARDIAN: return 1.0f;
             }
         } break;
         case FACTION_MAGES: {
             switch (unit->type) {
-                case UNIT_FIGHTER:  return 0.4f - (unit->upgrade * 0.1f);
-                case UNIT_ARCHER:   return 0.7f - (unit->upgrade * 0.1f);
-                case UNIT_SUPPORT:  return 0.4f - (unit->upgrade * 0.1f);
+                case UNIT_FIGHTER:  return 0.4f;
+                case UNIT_ARCHER:   return 0.7f;
+                case UNIT_SUPPORT:  return 0.4f;
                 case UNIT_SPECIAL:  return 0.19f - (unit->upgrade * 0.05f);
                 case UNIT_GUARDIAN: return 1.0f;
             }
