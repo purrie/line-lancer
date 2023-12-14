@@ -34,8 +34,8 @@
 #define LAYER_BUILDING -0.1f
 #define MAP_BEVEL 5
 
-/* #define RENDER_NAV_GRID */
 #define RENDER_PATHS
+/* #define RENDER_NAV_GRID */
 /* #define RENDER_PATHS_DEBUG */
 
 #ifdef _WIN32
