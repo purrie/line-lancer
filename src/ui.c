@@ -641,6 +641,7 @@ void render_simple_map_preview (Rectangle area, Map * map, const Theme * theme) 
         Vector2 point = Vector2Multiply(region->castle.position, (Vector2){ scale_w, scale_h });
         point = Vector2Add(point, (Vector2){ area.x, area.y });
         Color col = get_player_color(region->player_id);
+        DrawCircleV(point, theme->frame_thickness * 3.0f + 1.0f, theme->frame_light);
         DrawCircleV(point, theme->frame_thickness * 3.0f, col);
     }
 }
