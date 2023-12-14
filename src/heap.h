@@ -1,4 +1,5 @@
 #include "alloc.h"
+#include <stddef.h>
 
 #ifndef HEAP_TYPE
 #define HEAP_TYPE int
@@ -42,7 +43,7 @@ int heap_fun(Init)(unsigned long cap, HEAP_TYPE_NAME * result, Allocator mem, HE
 void heap_fun(Deinit)(HEAP_TYPE_NAME * heap);
 int heap_fun(Append)(HEAP_TYPE_NAME * heap, HEAP_TYPE item);
 int heap_fun(Pop)(HEAP_TYPE_NAME * heap, HEAP_TYPE * item);
-int heap_fun(Find)(HEAP_TYPE_NAME * heap, HEAP_TYPE comparable, unsigned long * index_found, HEAP_TYPE * item_found);
+int heap_fun(Find)(HEAP_TYPE_NAME * heap, HEAP_TYPE comparable, size_t * index_found, HEAP_TYPE * item_found);
 int heap_fun(Update)(HEAP_TYPE_NAME * heap, unsigned long index, HEAP_TYPE item);
 
 #undef HEAP_DECLARATION
@@ -150,7 +151,7 @@ int heap_fun(Pop)(HEAP_TYPE_NAME * heap, HEAP_TYPE * item) {
     return 0;
 }
 
-int heap_fun(Find)(HEAP_TYPE_NAME * heap, HEAP_TYPE comparable, unsigned long * index_found, HEAP_TYPE * item_found) {
+int heap_fun(Find)(HEAP_TYPE_NAME * heap, HEAP_TYPE comparable, size_t * index_found, HEAP_TYPE * item_found) {
     for (unsigned long i = 0; i < heap->len; i++) {
         if (heap->equals(heap->items[i], comparable)) {
             if (index_found)
