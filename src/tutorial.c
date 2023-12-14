@@ -354,6 +354,7 @@ bool draw_tutorial_window (GameState * game) {
         case TUTORIAL_RESOURCES:    draw_tutorial_resources (game); return false;
         case TUTORIAL_OUTRO:        draw_tutorial_outro     (game);
             return tutorial_stage == TUTORIAL_DONE;
+        default:
         case TUTORIAL_DONE: return true;
     }
 }

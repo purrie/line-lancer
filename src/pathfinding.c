@@ -302,6 +302,7 @@ Result nav_range_search (WayPoint * start, NavRangeSearchContext * context) {
                     case NAV_CONTEXT_HOSTILE: {
                         found = point->unit->player_owned != context->player_id;
                     } break;
+                    default: TraceLog(LOG_FATAL, "Invalid context type for pathfinding"); return FAILURE;
                 }
                 if (found) {
                     switch (context->amount) {
@@ -439,6 +440,7 @@ Result nav_find_path (WayPoint * start, NavTarget target, ListWayPoint * result)
         case NAV_TARGET_WAYPOINT: {
             target_position = target.waypoint->world_position;
         } break;
+        default: TraceLog(LOG_FATAL, "Invalid navigation target"); return FAILURE;
     }
     usize start_x = start->nav_world_pos_x;
     usize start_y = start->nav_world_pos_y;
@@ -545,6 +547,7 @@ Result nav_find_path (WayPoint * start, NavTarget target, ListWayPoint * result)
                     switch (target.type) {
                         case NAV_TARGET_REGION: other = target.region; break;
                         case NAV_TARGET_WAYPOINT: other = target.waypoint->graph->region; break;
+                        default: TraceLog(LOG_FATAL, "Invalid nav target type"); return FAILURE;
                     }
                     // test if the region is either one where we started from or intend to end up at
                     if (start->graph->region != region && other != region) {

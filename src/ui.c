@@ -532,6 +532,7 @@ InfoBarAction render_resource_bar (const GameState * state) {
     switch (player->faction) {
         case FACTION_KNIGHTS: fmt = "Gold: %zu"; break;
         case FACTION_MAGES:   fmt = "Mana: %zu"; break;
+        default: TraceLog(LOG_FATAL, "Invalid player faction"); return 0;
     }
     char * label;
     if (snprintf(buffer, buffer_size, fmt, player->resource_gold) <= 0) {

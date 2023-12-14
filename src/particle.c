@@ -175,6 +175,7 @@ void particles_magic (GameState * state, Unit * caster, Unit * target) {
     switch (caster->faction) {
         case FACTION_KNIGHTS: amount = GetRandomValue(3, 5); break;
         case FACTION_MAGES: amount = GetRandomValue(3, 5); break;
+        default: TraceLog(LOG_FATAL, "Invalid caster faction"); return;
     }
 
     // magic effect particle on the target
@@ -282,8 +283,8 @@ void particles_render_attacks (const GameState * state, Unit * attacked) {
 
         Vector2 attack_position;
         Vector2 origin;
-        float attack_rotation;
-        ParticleType attack_type;
+        float attack_rotation = 0;
+        ParticleType attack_type = 0;
 
         switch (attack->attacker_faction) {
             case FACTION_KNIGHTS: {

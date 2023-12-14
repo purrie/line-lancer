@@ -630,9 +630,9 @@ usize load_region_properties(
     StringSlice s = make_slice_u(data, tokens[name].start, tokens[name].end);
     if (compare_literal(s, "player_id")) {
       StringSlice v = make_slice_u(data, tokens[value_index].start, tokens[value_index].end);
-      usize value;
+      usize value = 0;
       if (convert_slice_usize(v, &value)) {
-        value = 0;
+        log_slice(LOG_WARNING, "We found player_id in a region but it contains invalid value:", v);
       }
       region->player_id = value;
     }
@@ -923,7 +923,7 @@ Result load_level(Map * result, char * path) {
     if (compare_literal(map_key, "height") || compare_literal(map_key, "tileheight")) {
       cursor ++;
       StringSlice num = make_slice_u(data, tokens[cursor].start, tokens[cursor].end);
-      usize value;
+      usize value = 0;
       if (convert_slice_usize(num, &value)) {
         TraceLog(LOG_ERROR, "Failed to parse map height");
         goto fail;
@@ -940,7 +940,7 @@ Result load_level(Map * result, char * path) {
     else if (compare_literal(map_key, "width") || compare_literal(map_key, "tilewidth")) {
       cursor ++;
       StringSlice num = make_slice_u(data, tokens[cursor].start, tokens[cursor].end);
-      usize value;
+      usize value = 0;
       if (convert_slice_usize(num, &value)) {
         TraceLog(LOG_ERROR, "Failed to parse map width");
         goto fail;
@@ -981,7 +981,7 @@ Result load_level(Map * result, char * path) {
         StringSlice property_type = make_slice_u(data, tokens[name].start, tokens[name].end);
         if (compare_literal(property_type, "player_count")) {
           StringSlice num = make_slice_u(data, tokens[value_index].start, tokens[value_index].end);
-          usize value;
+          usize value = 0;
           if (convert_slice_usize(num, &value)) {
             log_slice(LOG_ERROR, "Couldn't parse player count:", num);
             goto fail;
@@ -1287,7 +1287,7 @@ Result load_animations (Assets * assets) {
             TraceLog(LOG_ERROR, "Couldn't find unit level identifier in %s", data.paths[i]);
             goto next_file;
         }
-        usize level;
+        usize level = 0;
         if (convert_slice_usize(identifier, &level)) {
             TraceLog(LOG_ERROR, "Expected a number to be last part of unit animation path in %s", data.paths[i]);
             log_slice(LOG_ERROR, "  Instead found", identifier);
@@ -1391,9 +1391,9 @@ Result load_animations (Assets * assets) {
 
             cursor++;
             int frame_object_index = cursor;
-            AnimationType type;
-            Rectangle rect;
-            usize duration;
+            AnimationType type = 0;
+            Rectangle rect = {0};
+            usize duration = 0;
             cursor++;
 
             while (cursor < token_count && tokens[cursor].parent != end) {

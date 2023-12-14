@@ -418,32 +418,38 @@ const char * building_name (BuildingType building, FactionType faction, usize up
                         case 0: return "Militia Barracks";
                         case 1: return "Fighters Guild";
                         case 2: return "Veteran Company";
+                        default: return "ERROR: INDEX OUT OF BOUNDS";
                     }
                 case BUILDING_ARCHER:
                     switch (upgrade) {
                         case 0: return "Archery Targets";
                         case 1: return "Shooting Range";
                         case 2: return "Bowmen School";
+                        default: return "ERROR: INDEX OUT OF BOUNDS";
                     }
                 case BUILDING_SUPPORT:
                     switch (upgrade) {
                         case 0: return "Shrine";
                         case 1: return "Temple";
                         case 2: return "Cathedral";
+                        default: return "ERROR: INDEX OUT OF BOUNDS";
                     }
                 case BUILDING_SPECIAL:
                     switch (upgrade) {
                         case 0: return "Horse Trainers";
                         case 1: return "Rider School";
                         case 2: return "Knight Mansion";
+                        default: return "ERROR: INDEX OUT OF BOUNDS";
                     }
                 case BUILDING_RESOURCE:
                     switch (upgrade) {
                         case 0: return "Farms";
                         case 1: return "Ranch";
                         case 2: return "Village";
+                        default: return "ERROR: INDEX OUT OF BOUNDS";
                     }
                 case BUILDING_EMPTY: return "";
+                default: return "ERROR: UNKNOWN BUILDING";
             }
         case FACTION_MAGES:
             switch (building) {
@@ -452,33 +458,40 @@ const char * building_name (BuildingType building, FactionType faction, usize up
                         case 0: return "Golem Mines";
                         case 1: return "Golem Workshop";
                         case 2: return "Golem Factoria";
+                        default: return "ERROR: INDEX OUT OF BOUNDS";
                     }
                 case BUILDING_ARCHER:
                     switch (upgrade) {
                         case 0: return "Mage's Study";
                         case 1: return "Magic School";
                         case 2: return "Magic University";
+                        default: return "ERROR: INDEX OUT OF BOUNDS";
                     }
                 case BUILDING_SUPPORT:
                     switch (upgrade) {
                         case 0: return "Summoning Circle";
                         case 1: return "Ritual Grounds";
                         case 2: return "Tempest Shrine";
+                        default: return "ERROR: INDEX OUT OF BOUNDS";
                     }
                 case BUILDING_SPECIAL:
                     switch (upgrade) {
                         case 0: return "Genie Tomb";
                         case 1: return "Genie Temple";
                         case 2: return "Genie Citadel";
+                        default: return "ERROR: INDEX OUT OF BOUNDS";
                     }
                 case BUILDING_RESOURCE:
                     switch (upgrade) {
                         case 0: return "Mana Crystal";
                         case 1: return "Mana Array";
                         case 2: return "Mana Cluster";
+                        default: return "ERROR: INDEX OUT OF BOUNDS";
                     }
                 case BUILDING_EMPTY: return "";
+                default: return "ERROR: UNKNOWN BUILDING";
             }
+        default: return "ERROR: UNKNOWN FACTION";
     }
 }
 Texture2D building_image (const Assets * assets, FactionType faction, BuildingType building, usize level) {
@@ -486,6 +499,7 @@ Texture2D building_image (const Assets * assets, FactionType faction, BuildingTy
         return (Texture2D){0};
     const BuildingSpriteSet * set = &assets->buildings[faction];
     switch (building) {
+        default:
         case BUILDING_EMPTY: return (Texture2D) {0};
         case BUILDING_FIGHTER: return set->fighter[level];
         case BUILDING_ARCHER: return set->archer[level];

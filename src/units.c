@@ -119,13 +119,16 @@ float get_unit_attack_damage (const Unit * unit) {
                         case 0: attack = 32.0f; break;
                         case 1: attack = 40.0f; break;
                         case 2: attack = 64.0f; break;
+                        default: goto invalid;
                     } break;
                 case FACTION_MAGES:
                     switch (unit->upgrade) {
                         case 0: attack = 50.0f; break;
                         case 1: attack = 60.0f; break;
                         case 2: attack = 70.0f; break;
+                        default: goto invalid;
                     } break;
+                default: goto invalid;
             }
         } break;
         case UNIT_ARCHER: {
@@ -135,13 +138,16 @@ float get_unit_attack_damage (const Unit * unit) {
                         case 0: attack = 25.0f; break;
                         case 1: attack = 30.0f; break;
                         case 2: attack = 35.0f; break;
+                        default: goto invalid;
                     } break;
                 case FACTION_MAGES:
                     switch (unit->upgrade) {
                         case 0: attack = 35.0f; break;
                         case 1: attack = 40.0f; break;
                         case 2: attack = 45.0f; break;
+                        default: goto invalid;
                     } break;
+                default: goto invalid;
             }
         } break;
         case UNIT_SUPPORT: {
@@ -151,13 +157,16 @@ float get_unit_attack_damage (const Unit * unit) {
                         case 0: attack = 10.0f; break;
                         case 1: attack = 20.0f; break;
                         case 2: attack = 30.0f; break;
+                        default: goto invalid;
                     } break;
                 case FACTION_MAGES:
                     switch (unit->upgrade) {
                         case 0: attack = 10.0f; break;
                         case 1: attack = 20.0f; break;
                         case 2: attack = 30.0f; break;
+                        default: goto invalid;
                     } break;
+                default: goto invalid;
             }
         } break;
         case UNIT_SPECIAL: {
@@ -167,22 +176,27 @@ float get_unit_attack_damage (const Unit * unit) {
                         case 0: attack = 40.0f; break;
                         case 1: attack = 55.0f; break;
                         case 2: attack = 70.0f; break;
+                        default: goto invalid;
                     } break;
                 case FACTION_MAGES:
                     switch (unit->upgrade) {
                         case 0: attack = 10.0f; break;
                         case 1: attack = 20.0f; break;
                         case 2: attack = 30.0f; break;
+                        default: goto invalid;
                     } break;
+                default: goto invalid;
             }
         } break;
         case UNIT_GUARDIAN: {
             switch (unit->faction) {
                 case FACTION_KNIGHTS: attack = 20.0f; break;
                 case FACTION_MAGES:   attack = 20.0f; break;
+                default: goto invalid;
             }
         } break;
         default: {
+            invalid:
             TraceLog(LOG_ERROR, "Requested attack for unit with no valid type");
             return 1.0f;
         } break;
@@ -362,7 +376,7 @@ float get_unit_attack_delay  (const Unit * unit) {
 }
 float get_unit_speed (const Unit * unit) {
     // @balance
-    float speed;
+    float speed = 0;
     switch (unit->faction) {
         case FACTION_KNIGHTS:
             switch (unit->type) {
@@ -371,26 +385,31 @@ float get_unit_speed (const Unit * unit) {
                         case 0: return 20.0f;
                         case 1: return 25.0f;
                         case 2: return 30.0f;
+                        default: TraceLog(LOG_FATAL, "Unit has invalid level"); return 0;
                     }
                 case UNIT_ARCHER:
                     switch (unit->upgrade) {
                         case 0: return 20.0f;
                         case 1: return 25.0f;
                         case 2: return 30.0f;
+                        default: TraceLog(LOG_FATAL, "Unit has invalid level"); return 0;
                     }
                 case UNIT_SUPPORT:
                     switch (unit->upgrade) {
                         case 0: return 15.0f;
                         case 1: return 18.0f;
                         case 2: return 22.0f;
+                        default: TraceLog(LOG_FATAL, "Unit has invalid level"); return 0;
                     }
                 case UNIT_SPECIAL:
                     switch (unit->upgrade) {
                         case 0: return 30.0f;
                         case 1: return 35.0f;
                         case 2: return 40.0f;
+                        default: TraceLog(LOG_FATAL, "Unit has invalid level"); return 0;
                     }
                 case UNIT_GUARDIAN: return 0.0f;
+                default: TraceLog(LOG_FATAL, "Unit has invalid type"); return 0;
             }
         case FACTION_MAGES:
             switch (unit->type) {
@@ -399,27 +418,33 @@ float get_unit_speed (const Unit * unit) {
                         case 0: return 15.0f;
                         case 1: return 20.0f;
                         case 2: return 25.0f;
+                        default: TraceLog(LOG_FATAL, "Unit has invalid level"); return 0;
                     }
                 case UNIT_ARCHER:
                     switch (unit->upgrade) {
                         case 0: return 15.0f;
                         case 1: return 18.0f;
                         case 2: return 22.0f;
+                        default: TraceLog(LOG_FATAL, "Unit has invalid level"); return 0;
                     }
                 case UNIT_SUPPORT:
                     switch (unit->upgrade) {
                         case 0: return 25.0f;
                         case 1: return 30.0f;
                         case 2: return 35.0f;
+                        default: TraceLog(LOG_FATAL, "Unit has invalid level"); return 0;
                     }
                 case UNIT_SPECIAL:
                     switch (unit->upgrade) {
                         case 0: return 25.0f;
                         case 1: return 30.0f;
                         case 2: return 35.0f;
+                        default: TraceLog(LOG_FATAL, "Unit has invalid level"); return 0;
                     }
                 case UNIT_GUARDIAN: return 0.0f;
+                default: TraceLog(LOG_FATAL, "Unit has invalid type"); return 0;
             }
+        default: TraceLog(LOG_FATAL, "Unit has invalid faction"); return 0;
     }
     return speed;
 }
