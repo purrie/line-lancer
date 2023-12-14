@@ -1,5 +1,6 @@
 #include "alloc.h"
 #include <raylib.h>
+#include <stddef.h>
 
 #ifndef MAX_ARENA_SIZE
 #define MAX_ARENA_SIZE 32 * 1024
@@ -68,8 +69,8 @@ void * temp_realloc ( void * ptr, unsigned int new_size ) {
     Arena * arena = &global_arena;
     while (arena) {
         if (arena->last_alloc == ptr) {
-            unsigned long position = (unsigned long) ptr;
-            position -= (unsigned long) &arena->mem[0];
+            size_t position = (size_t) ptr;
+            position -= (size_t) &arena->mem[0];
             if (position + new_size >= MAX_ARENA_SIZE) {
                 return (void*)0;
             }
@@ -84,8 +85,8 @@ void temp_free(void * ptr) {
     Arena * arena = &global_arena;
     while (arena) {
         if (arena->last_alloc == ptr) {
-            unsigned long position = (unsigned long) ptr;
-            position -= (unsigned long) &arena->mem[0];
+            size_t position = (size_t) ptr;
+            position -= (size_t) &arena->mem[0];
             arena->cursor = position;
             return;
         }

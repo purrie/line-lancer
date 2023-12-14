@@ -2,6 +2,7 @@
 #define TYPES_H_
 
 #include <raylib.h>
+#include <stddef.h>
 #include "array.h"
 #include "constants.h"
 
@@ -45,7 +46,7 @@ typedef enum GraphType GraphType;
 
 typedef unsigned char uchar;
 typedef unsigned int uint;
-typedef unsigned long usize;
+typedef size_t usize;
 typedef long isize;
 typedef unsigned short ushort;
 
