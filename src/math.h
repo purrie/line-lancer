@@ -3,6 +3,8 @@
 
 #include <raylib.h>
 
+float floorf(float);
+float powf(float, float);
 Vector2 Vector2Perp(Vector2 vec);
 Vector2 Vector2PerpCounter(Vector2 vec);
 Vector2 Vector2Slerp(Vector2 v1, Vector2 v2, Vector2 pivot, float t);
