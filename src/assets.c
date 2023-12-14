@@ -207,7 +207,7 @@ char * file_name_from_path (char * path, Alloc alloc) {
 }
 char * asset_path (const char * target_folder, const char * file, Alloc alloc) {
     #if defined(_WIN32) || defined(DEBUG)
-    char * assets_path = "assets/";
+    char * assets_path = "assets" PATH_SEPARATOR_STR;
     usize assets_len = string_length(assets_path);
     #else
     char * assets_path;
