@@ -1,0 +1,16 @@
+#!/usr/bin/env bash
+
+set -xe
+
+if [ -z "$XDG_DATA_HOME" ]; then
+    DATA_PATH="$XDG_DATA_HOME/line-lancer"
+else
+    DATA_PATH="$HOME/.local/share/line-lancer"
+fi
+
+BIN_PATH="$HOME/.local/bin/line-lancer"
+DESKTOP_PATH="$HOME/.local/share/applications/line-lancer.desktop"
+
+[ -d "$DATA_PATH" ] && rm -rf "$DATA_PATH"
+[ -e "$BIN_PATH" ] && rm "$BIN_PATH"
+[ -e "$DESKTOP_PATH" ] && rm "$DESKTOP_PATH"

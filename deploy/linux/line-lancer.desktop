@@ -1,0 +1,7 @@
+[Desktop Entry]
+Type=Application
+Name=Line Lancer
+Comment=Video Game
+Exec=line-lancer
+Terminal=false
+Categories=Game;

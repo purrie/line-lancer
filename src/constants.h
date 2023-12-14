@@ -1,8 +1,10 @@
 #ifndef CONSTANTS_H_
 #define CONSTANTS_H_
 
+#ifndef RELEASE
 #define DEBUG
 /* #define DEBUG_AI */
+#endif
 
 #define FPS 60
 
