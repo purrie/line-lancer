@@ -45,7 +45,6 @@ typedef enum Test Test;
 typedef enum GraphType GraphType;
 
 typedef unsigned char uchar;
-typedef unsigned int uint;
 typedef size_t usize;
 typedef long isize;
 typedef unsigned short ushort;

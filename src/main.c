@@ -10,13 +10,19 @@
 #include "units.h"
 #include "level.h"
 #include "particle.h"
+#define CAKE_RECT Rectangle
 #include "cake.h"
 #include "audio.h"
 #include "tutorial.h"
 #include "unit_pool.h"
 
+#if defined(ANDROID)
+const int WINDOW_WIDTH = 0;
+const int WINDOW_HEIGHT = 0;
+#else
 const int WINDOW_WIDTH = 1400;
 const int WINDOW_HEIGHT = 1200;
+#endif
 
 const Color black = (Color) {18, 18, 18, 255};
 const Color bg_color = DARKBLUE;
@@ -256,13 +262,11 @@ int main(void) {
     SetRandomSeed(time(0));
 
     InitWindow(WINDOW_WIDTH, WINDOW_HEIGHT, "Hello!");
-    SetWindowState(FLAG_WINDOW_RESIZABLE);
+    InitAudioDevice();
 
     #if !defined(DEBUG)
     SetTraceLogLevel(LOG_ERROR);
     #endif
-
-    InitAudioDevice();
 
     {
         BeginDrawing();
@@ -311,10 +315,15 @@ int main(void) {
     }
 
     apply_sound_settings(&game_assets, &game_settings);
+    #if !defined(ANDROID)
     if (game_settings.fullscreen) {
         ClearWindowState(FLAG_WINDOW_RESIZABLE);
         ToggleBorderlessWindowed();
     }
+    else {
+        SetWindowState(FLAG_WINDOW_RESIZABLE);
+    }
+    #endif
     unit_pool_init();
 
     SetTargetFPS(FPS);
@@ -348,13 +357,14 @@ int main(void) {
 
         temp_reset();
     }
+
+    CloseAudioDevice();
     close:
 
     save_settings(&game_settings);
     unit_pool_deinit();
     assets_deinit(&game_assets);
 
-    CloseAudioDevice();
     CloseWindow();
     return result;
 }

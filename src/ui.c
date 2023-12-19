@@ -4,6 +4,7 @@
 #include "constants.h"
 #include "level.h"
 #define CAKE_LAYOUT_IMPLEMENTATION
+#define CAKE_RECT Rectangle
 #include "cake.h"
 #include <stdio.h>
 #include <raymath.h>

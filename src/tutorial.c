@@ -7,6 +7,7 @@
 #include "audio.h"
 #include "level.h"
 #include "units.h"
+#define CAKE_RECT Rectangle
 #include "cake.h"
 #include "particle.h"
 

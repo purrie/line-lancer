@@ -8,6 +8,10 @@
 #include <sys/stat.h>
 #endif
 
+#if defined (EMBEDED_ASSETS)
+#include "packed_assets.h"
+#endif
+
 #include "mesh.h"
 #include "math.h"
 #include "assets.h"
@@ -34,9 +38,9 @@ void log_slice(TraceLogLevel log_level, char * text, StringSlice slice) {
     s[slice.len] = '\0';
     TraceLog(log_level, "%s %s", text, s);
 }
-StringSlice make_slice_u(uchar * from, usize start, usize end) {
+StringSlice make_slice_u(const uchar * from, usize start, usize end) {
     StringSlice s;
-    s.start = from + start;
+    s.start = (uchar*) from + start;
     s.len = end - start;
     return s;
 }
@@ -206,9 +210,8 @@ char * file_name_from_path (char * path, Alloc alloc) {
   return name;
 }
 char * asset_path (const char * target_folder, const char * file, Alloc alloc) {
-    #if defined(_WIN32) || defined(DEBUG)
+    #if defined(_WIN32) || defined(DEBUG) || defined(ANDROID)
     char * assets_path = "assets" PATH_SEPARATOR_STR;
-    usize assets_len = string_length(assets_path);
     #else
     char * assets_path;
     char * data = getenv("XDG_DATA_HOME");
@@ -235,13 +238,14 @@ char * asset_path (const char * target_folder, const char * file, Alloc alloc) {
         copy_memory(assets_path + len, rest, rest_len);
         assets_path[len + rest_len] = 0;
     }
-    usize assets_len = string_length(assets_path);
     #endif
+    usize assets_len = string_length(assets_path);
 
     usize target_len = string_length(target_folder);
     usize file_len = string_length(file);
+    usize extra = 2;
 
-    char * result = alloc(sizeof(char) * (assets_len + target_len + file_len + 2));
+    char * result = alloc(sizeof(char) * (assets_len + target_len + file_len + extra));
     if (NULL == result) {
         return NULL;
     }
@@ -322,6 +326,78 @@ void assets_deinit (Assets * assets) {
     UnloadShader(assets->water_shader);
     UnloadShader(assets->outline_shader);
 }
+const unsigned char * load_asset (const char * path, int * len) {
+  #if defined(EMBEDED_ASSETS)
+  return load_data_from_path(path, len);
+  #else
+  return LoadFileData(path, len);
+  #endif
+}
+void unload_asset (const unsigned char * data) {
+  #if defined(EMBEDED_ASSETS)
+  (void)data;
+  #else
+  UnloadFileData((unsigned char *)data);
+  #endif
+}
+FilePathList load_map_paths () {
+    #if defined(EMBEDED_ASSETS)
+    return load_map_path_list();
+    #else
+    const char * path = asset_path("maps", "", &temp_alloc);
+    return LoadDirectoryFiles(path);
+    #endif
+}
+FilePathList load_unit_meta_paths () {
+    #if defined(EMBEDED_ASSETS)
+    return load_unit_meta_file_paths();
+    #else
+    const char * path = asset_path("units", "", &temp_alloc);
+    return LoadDirectoryFilesEx(path, ".json", false);
+    #endif
+}
+Texture load_texture (const char * path) {
+  #if defined(EMBEDED_ASSETS)
+  int len = 0;
+  const unsigned char * data = load_asset(path, &len);
+  if (NULL == data) return (Texture) {0};
+  Image i = LoadImageFromMemory(GetFileExtension(path), data, len);
+  Texture t = LoadTextureFromImage(i);
+  UnloadImage(i);
+  return t;
+  #else
+  return LoadTexture(path);
+  #endif
+}
+Shader load_shader (const char * fs_path) {
+  #if defined(EMBEDED_ASSETS)
+  int len = 0;
+  const char * data = (const char *) load_asset(fs_path, &len);
+  return LoadShaderFromMemory(0, data);
+  #else
+  return LoadShader(0, fs_path);
+  #endif
+}
+Sound load_sound (const char * path) {
+    #if defined(EMBEDED_ASSETS)
+    int len = 0;
+    const unsigned char * data = load_asset(path, &len);
+    if (NULL == data) return (Sound) {0};
+    Wave w = LoadWaveFromMemory(GetFileExtension(path), data, len);
+    Sound s = LoadSoundFromWave(w);
+    UnloadWave(w);
+    return s;
+    #else
+    return LoadSound(path);
+    #endif
+}
+void unload_file_paths (FilePathList list) {
+    #if defined(EMBEDED_ASSETS)
+    (void)list;
+    #else
+    UnloadDirectoryFiles(list);
+    #endif
+}
 
 /* Json Handling *************************************************************/
 usize skip_tokens(jsmntok_t *tokens, usize from) {
@@ -334,11 +410,11 @@ usize skip_tokens(jsmntok_t *tokens, usize from) {
 
 /* Map Loading ***************************************************************/
 bool load_paths(
-  Map        * map,
-  uchar      * data,
-  jsmntok_t  * tokens,
-  usize        path_pos,
-  Vector2      layer_offset
+  Map         * map,
+  const uchar * data,
+  jsmntok_t   * tokens,
+  usize         path_pos,
+  Vector2       layer_offset
 ) {
   if (tokens[path_pos].type != JSMN_ARRAY) {
     StringSlice s = make_slice_u(data, tokens[path_pos].start, tokens[path_pos].end);
@@ -462,16 +538,16 @@ bool load_paths(
 }
 
 usize load_region_objects(
-  Region    * region,
-  uchar     * data,
-  jsmntok_t * tokens,
-  usize       object_pos
+  Region      * region,
+  const uchar * data,
+  jsmntok_t   * tokens,
+  usize         object_pos
 ) {
   if (tokens[object_pos].type != JSMN_ARRAY) {
     TraceLog(LOG_ERROR, "Region object list isn't a list");
     return 0;
   }
-  TraceLog(LOG_INFO, "Loading region objects");
+  TraceLog(LOG_DEBUG, "Loading region objects");
 
   usize cursor = object_pos + 1;
   usize children = tokens[object_pos].size;
@@ -522,7 +598,7 @@ usize load_region_objects(
 
     StringSlice region_object_type = make_slice_u(data, tokens[type].start, tokens[type].end);
     if (compare_literal(region_object_type, "region")) {
-      TraceLog(LOG_INFO, "Saving region");
+      TraceLog(LOG_DEBUG, "Saving region");
       usize number_of_points = tokens[polygon].size;
       ListLine area = listLineInit(number_of_points, perm_allocator());
 
@@ -575,12 +651,12 @@ usize load_region_objects(
     }
 
     else if (compare_literal(region_object_type, "guard")) {
-      TraceLog(LOG_INFO, "Saving guardian at [%.3f, %.3f]", offset.x, offset.y);
+      TraceLog(LOG_DEBUG, "Saving guardian at [%.3f, %.3f]", offset.x, offset.y);
       region->castle.position = offset;
     }
 
     else if (compare_literal(region_object_type, "node")) {
-      TraceLog(LOG_INFO, "Saving building");
+      TraceLog(LOG_DEBUG, "Saving building");
       Building b = {0};
       b.position = offset;
       listBuildingAppend(&region->buildings, b);
@@ -597,16 +673,16 @@ usize load_region_objects(
 }
 
 usize load_region_properties(
-  Region    * region,
-  uchar     * data,
-  jsmntok_t * tokens,
-  usize       properties_index
+  Region      * region,
+  const uchar * data,
+  jsmntok_t   * tokens,
+  usize        properties_index
 ) {
   if (tokens[properties_index].type != JSMN_ARRAY) {
     TraceLog(LOG_ERROR, "Tried to read token properties from non-array");
     return 0;
   }
-  TraceLog(LOG_INFO, "Loading region properties");
+  TraceLog(LOG_DEBUG, "Loading region properties");
 
   usize children = tokens[properties_index].size;
   usize cursor = properties_index + 1;
@@ -646,17 +722,17 @@ usize load_region_properties(
 }
 
 usize load_region(
-  Map       * map,
-  uchar     * data,
-  jsmntok_t * tokens,
-  usize       region_pos,
-  Vector2     offset
+  Map         * map,
+  const uchar * data,
+  jsmntok_t   * tokens,
+  usize         region_pos,
+  Vector2       offset
 ) {
   if (tokens[region_pos].type != JSMN_OBJECT) {
     TraceLog(LOG_ERROR, "Expected object to read region from");
     return 0;
   }
-  TraceLog(LOG_INFO, "Loading region");
+  TraceLog(LOG_DEBUG, "Loading region");
 
   Region region = {0};
   region.buildings = listBuildingInit(5, perm_allocator());
@@ -742,11 +818,11 @@ usize load_region(
 }
 
 bool load_regions(
-  Map        * map,
-  uchar      * data,
-  jsmntok_t  * tokens,
-  usize        regions_list,
-  Vector2      layer_offset
+  Map         * map,
+  const uchar * data,
+  jsmntok_t   * tokens,
+  usize         regions_list,
+  Vector2       layer_offset
 ) {
   if (tokens[regions_list].type != JSMN_ARRAY) {
     TraceLog(LOG_ERROR, "Non array has been passed to load regions");
@@ -769,16 +845,16 @@ bool load_regions(
 }
 
 usize load_map_layers(
-  Map       * map,
-  uchar     * data,
-  jsmntok_t * tokens,
-  usize       current_token
+  Map         * map,
+  const uchar * data,
+  jsmntok_t   * tokens,
+  usize         current_token
 ) {
   if (tokens[current_token].type != JSMN_ARRAY) {
     TraceLog(LOG_ERROR, "Tried to load map layers from no-array");
     return 0;
   }
-  TraceLog(LOG_INFO, "Loading map layers");
+  TraceLog(LOG_DEBUG, "Loading map layers");
 
   usize cursor = current_token + 1;
   usize layer_count = tokens[current_token].size;
@@ -799,19 +875,19 @@ usize load_map_layers(
       StringSlice s = make_slice_u(data, tokens[cursor].start, tokens[cursor].end);
 
       if (compare_literal(s, "layers") || compare_literal(s, "objects")) {
-        log_slice(LOG_INFO, "Found :", s);
+        log_slice(LOG_DEBUG, "Found :", s);
         collection = ++cursor;
         cursor = skip_tokens(tokens, cursor);
       }
 
       else if (compare_literal(s, "name")) {
-        TraceLog(LOG_INFO, "Found type");
+        TraceLog(LOG_DEBUG, "Found type");
         type = ++cursor;
         cursor++;
       }
 
       else if (compare_literal(s, "x")) {
-        TraceLog(LOG_INFO, "Found x offset");
+        TraceLog(LOG_DEBUG, "Found x offset");
         cursor++;
         StringSlice num =
           make_slice_u(data, tokens[cursor].start, tokens[cursor].end);
@@ -827,7 +903,7 @@ usize load_map_layers(
       }
 
       else if (compare_literal(s, "y")) {
-        TraceLog(LOG_INFO, "Found y offset");
+        TraceLog(LOG_DEBUG, "Found y offset");
         cursor++;
         StringSlice num =
           make_slice_u(data, tokens[cursor].start, tokens[cursor].end);
@@ -881,8 +957,8 @@ Result load_level(Map * result, char * path) {
   TraceLog(LOG_INFO, "Loading map: %s", path);
 
   int     len;
-  uchar * data;
-  data = LoadFileData(path, &len);
+  const uchar * data;
+  data = load_asset(path, &len);
   if (len <= 0) {
     TraceLog(LOG_ERROR, "Failed to open map file %s", path);
     return FAILURE;
@@ -906,7 +982,7 @@ Result load_level(Map * result, char * path) {
 
   usize cursor = 1;
 
-  TraceLog(LOG_INFO, "Starting loading");
+  TraceLog(LOG_DEBUG, "Starting loading");
 
   while (cursor < token_len) {
     if (tokens[cursor].type != JSMN_STRING) {
@@ -1015,20 +1091,20 @@ Result load_level(Map * result, char * path) {
     }
   }
 
+
   MemFree(tokens);
-  UnloadFileData(data);
+  unload_asset(data);
 
   return SUCCESS;
 
 fail:
   MemFree(tokens);
-  UnloadFileData(data);
+  unload_asset(data);
   map_deinit(result);
   return FAILURE;
 }
 Result load_levels (ListMap * maps) {
-    FilePathList list;
-    list = LoadDirectoryFiles("./assets/maps");
+    FilePathList list = load_map_paths();
 
     if (list.count == 0) {
         TraceLog(LOG_FATAL, "No maps present in assets folder");
@@ -1061,11 +1137,11 @@ Result load_levels (ListMap * maps) {
         goto abort;
     }
 
-    UnloadDirectoryFiles(list);
+    unload_file_paths(list);
     return SUCCESS;
 
     abort:
-    UnloadDirectoryFiles(list);
+    unload_file_paths(list);
     return FAILURE;
 }
 
@@ -1089,9 +1165,9 @@ Result load_particles (Texture2D * array) {
             TraceLog(LOG_ERROR, "Temp allocator ran out of memory for joining paths");
             return FAILURE;
         }
-        array[i] = LoadTexture(path);
+        array[i] = load_texture(path);
         if (0 == array[i].format) {
-            TraceLog(LOG_ERROR, "Failed to load particle %s", paths[i]);
+            TraceLog(LOG_ERROR, "Failed to load particle %s", path);
             return FAILURE;
         }
         temp_free(path);
@@ -1116,7 +1192,7 @@ Result load_buildings (Assets * assets) {
             TraceLog(LOG_ERROR, "Temp allocator ran out of memory for joining paths");
             return FAILURE;
         }
-        assets->neutral_castle = LoadTexture(path);
+        assets->neutral_castle = load_texture(path);
         if (0 == assets->neutral_castle.format) {
             TraceLog(LOG_ERROR, "Failed to load neutral castle texture");
             return FAILURE;
@@ -1132,7 +1208,7 @@ Result load_buildings (Assets * assets) {
             TraceLog(LOG_ERROR, "Failed to allocate path for %s", name);
             return FAILURE;
         }
-        assets->buildings[fac].castle = LoadTexture(path);
+        assets->buildings[fac].castle = load_texture(path);
         if (0 == assets->buildings[fac].castle.format) {
             TraceLog(LOG_ERROR, "Failed to load %s", path);
             return FAILURE;
@@ -1149,7 +1225,7 @@ Result load_buildings (Assets * assets) {
                     TraceLog(LOG_ERROR, "Failed to allocate path for %s", name);
                     return FAILURE;
                 }
-                buildable[index] = LoadTexture(path);
+                buildable[index] = load_texture(path);
                 if (0 == buildable[index].format) {
                     TraceLog(LOG_ERROR, "Failed to load texture: %s", path);
                     return FAILURE;
@@ -1163,7 +1239,7 @@ Result load_buildings (Assets * assets) {
         TraceLog(LOG_ERROR, "Failed to allocate memory for flag path");
         return FAILURE;
     }
-    assets->flag = LoadTexture(path);
+    assets->flag = load_texture(path);
     if (0 == assets->flag.format) {
         TraceLog(LOG_ERROR, "Failed to load flag texture");
         return FAILURE;
@@ -1176,7 +1252,7 @@ Result load_backgrounds (Assets * assets) {
         TraceLog(LOG_ERROR, "Temp allocator failed to allocate path for backgrounds");
         return FAILURE;
     }
-    assets->ground_texture = LoadTexture(path);
+    assets->ground_texture = load_texture(path);
     if (0 == assets->ground_texture.format) {
         TraceLog(LOG_ERROR, "Failed to load background");
         return FAILURE;
@@ -1186,7 +1262,7 @@ Result load_backgrounds (Assets * assets) {
         TraceLog(LOG_ERROR, "Failed to allocate path for bridge");
         return FAILURE;
     }
-    assets->bridge_texture = LoadTexture(path);
+    assets->bridge_texture = load_texture(path);
     if (0 == assets->bridge_texture.format) {
         TraceLog(LOG_ERROR, "Failed to load bridge texture");
         return FAILURE;
@@ -1196,7 +1272,7 @@ Result load_backgrounds (Assets * assets) {
         TraceLog(LOG_ERROR, "Temp allocator failed to allocate path for building ground");
         return FAILURE;
     }
-    assets->empty_building = LoadTexture(path);
+    assets->empty_building = load_texture(path);
     if (0 == assets->empty_building.format) {
         TraceLog(LOG_ERROR, "Failed to load empty building texture");
         return FAILURE;
@@ -1206,7 +1282,7 @@ Result load_backgrounds (Assets * assets) {
         TraceLog(LOG_ERROR, "Temp allocator failed to allocate path for water");
         return FAILURE;
     }
-    assets->water_texture = LoadTexture(path);
+    assets->water_texture = load_texture(path);
     if (0 == assets->water_texture.format) {
         TraceLog(LOG_ERROR, "Failed to load water");
         return FAILURE;
@@ -1271,12 +1347,12 @@ Result load_animations (Assets * assets) {
         return FAILURE;
     }
     temp_reset();
-    FilePathList data = LoadDirectoryFilesEx("assets" PATH_SEPARATOR_STR "units", ".json", false);
+    FilePathList data = load_unit_meta_paths();
     for (usize i = 0; i < data.count; i++) {
         TraceLog(LOG_INFO, "Loading Animation from %s", data.paths[i]);
 
         int data_len;
-        uchar * text = LoadFileData(data.paths[i], &data_len);
+        const uchar * text = load_asset(data.paths[i], &data_len);
 
         usize counter = string_length(data.paths[i]);
         StringSlice path = { (uchar*)data.paths[i], counter };
@@ -1347,7 +1423,7 @@ Result load_animations (Assets * assets) {
         copy_memory(texture_path, data.paths[i], path_len - 4);
         copy_memory(texture_path + path_len - 4, "png", 3);
         texture_path[path_len - 1] = 0;
-        animations->sprite_sheet = LoadTexture(texture_path);
+        animations->sprite_sheet = load_texture(texture_path);
         if (animations->sprite_sheet.format == 0) {
             TraceLog(LOG_ERROR, "Missing sprite sheet at %s", texture_path);
             goto next_file;
@@ -1509,10 +1585,10 @@ Result load_animations (Assets * assets) {
         }
 
         next_file:
-        UnloadFileData((unsigned char*)text);
+        unload_asset(text);
         temp_reset();
     }
-    UnloadDirectoryFiles(data);
+    unload_file_paths(data);
     return SUCCESS;
 }
 void unload_animation_set (AnimationSet * set) {
@@ -1547,7 +1623,15 @@ Result load_music (Assets * assets) {
             TraceLog(LOG_ERROR, "Temp allocator ran out of memory for joining music paths");
             return FAILURE;
         }
+
+        #if defined(EMBEDED_ASSETS)
+        int len = 0;
+        const unsigned char * data = load_asset(path, &len);
+        assets->faction_themes[i] = LoadMusicStreamFromMemory(".xm", data, len);
+        #else
         assets->faction_themes[i] = LoadMusicStream(path);
+        #endif
+
         if (assets->faction_themes[i].frameCount == 0) {
             TraceLog(LOG_ERROR, "Failed to load music from %s", path);
             return FAILURE;
@@ -1561,7 +1645,15 @@ Result load_music (Assets * assets) {
         TraceLog(LOG_ERROR, "Temp allocator ran out of memory for joining title music path");
         return FAILURE;
     }
+
+    #if defined(EMBEDED_ASSETS)
+    int len = 0;
+    const unsigned char * data = load_asset(path, &len);
+    assets->main_theme = LoadMusicStreamFromMemory(".xm", data, len);
+    #else
     assets->main_theme = LoadMusicStream(path);
+    #endif
+
     if (assets->main_theme.frameCount == 0) {
         TraceLog(LOG_ERROR, "Failed to load main theme");
         return FAILURE;
@@ -1618,7 +1710,7 @@ Result load_sound_effects (Assets * assets) {
     usize i = 0;
     while (loader[i].name != NULL) {
         char * path = asset_path("sfx", loader[i].name, &temp_alloc);
-        Sound s = LoadSound(path);
+        Sound s = load_sound(path);
         if (s.frameCount == 0) {
             TraceLog(LOG_ERROR, "Failed to load sound");
             i ++;
@@ -1652,6 +1744,7 @@ Result load_settings (Settings * settings) {
     settings->fullscreen = true;
     #endif
 
+    #if !defined(ANDROID)
     char * path = config_path("settings.conf", temp_alloc);
     char * file = LoadFileText(path);
     if (NULL != file) {
@@ -1719,11 +1812,14 @@ Result load_settings (Settings * settings) {
         end:
         UnloadFileText(file);
     }
+    #endif
     settings->theme = theme_setup();
     return SUCCESS;
 }
 Result save_settings (const Settings * settings) {
+    #if defined(ANDROID)
     (void)settings;
+    #else
     char * path = config_path("settings.conf", &temp_alloc);
     char data_buffer[1024];
     int len = snprintf(
@@ -1742,5 +1838,6 @@ Result save_settings (const Settings * settings) {
         TraceLog(LOG_ERROR, "Failed to save settings");
         return FAILURE;
     }
+    #endif
     return SUCCESS;
 }
