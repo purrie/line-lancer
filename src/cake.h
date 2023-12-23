@@ -36,6 +36,7 @@ CAKE_RECT cake_margin           (CAKE_RECT rect, float top, float bottom, float 
 CAKE_RECT cake_margin_all       (CAKE_RECT rect, float all);
 CAKE_RECT cake_carve_to         (CAKE_RECT rect, float width, float height);
 CAKE_RECT cake_carve_width      (CAKE_RECT rect, float width, float pivot);
+CAKE_RECT cake_carve_height     (CAKE_RECT rect, float height, float pivot);
 
 CAKE_RECT cake_grow_by          (CAKE_RECT rect, float width, float height);
 CAKE_RECT cake_grow_to          (CAKE_RECT rect, float width, float height);
@@ -123,6 +124,15 @@ CAKE_RECT cake_carve_width (CAKE_RECT rect, float width, float pivot) {
         float diff = result.width - width;
         result.x += diff * pivot;
         result.width -= diff;
+    }
+    return result;
+}
+CAKE_RECT cake_carve_height (CAKE_RECT rect, float height, float pivot) {
+    CAKE_RECT result = rect;
+    if (result.height > height) {
+        float diff = result.height - height;
+        result.y += diff * pivot;
+        result.height -= diff;
     }
     return result;
 }
