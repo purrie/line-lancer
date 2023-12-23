@@ -32,6 +32,12 @@ typedef struct {
 } BuildingDialog;
 
 typedef struct {
+    Rectangle joystick;
+    Rectangle zoom_in;
+    Rectangle zoom_out;
+} CameraJoystick;
+
+typedef struct {
     Rectangle new_game;
     Rectangle tutorial;
     Rectangle options;
@@ -48,13 +54,18 @@ typedef enum {
 void draw_background(Rectangle area, const Theme * theme);
 
 /* Input *********************************************************************/
-Result ui_building_action_click (const GameState * state, Vector2 cursor, BuildingAction * action);
-Result ui_building_buy_click    (const GameState * state, Vector2 cursor, BuildingType * result);
+Result ui_building_action_click (BuildingDialog dialog, Vector2 cursor, BuildingAction * action);
+Result ui_building_buy_click    (EmptyDialog dialog, Vector2 cursor, BuildingType * result);
 
 /* Layout ********************************************************************/
 MainMenuLayout main_menu_layout ();
 void theme_update (Theme * theme);
 Theme theme_setup ();
+EmptyDialog    empty_dialog         (Vector2 position, const Theme * theme);
+BuildingDialog building_dialog      (Vector2 position, const Theme * theme);
+Rectangle      flag_button_position ();
+CameraJoystick android_camera_control (const Theme * theme);
+Range          map_zoom_range       (const GameState * state);
 
 /* Rendering *****************************************************************/
 void          render_interaction_hints (const GameState * state);
@@ -70,5 +81,7 @@ void render_winner                  (const GameState * state, usize winner);
 InfoBarAction render_resource_bar   (const GameState * state);
 void render_upgrade_building_dialog (const GameState * state);
 void render_empty_building_dialog   (const GameState * state);
+void render_path_button             (const GameState * state);
+void render_camera_controls         (const GameState * state);
 
 #endif // UI_H_

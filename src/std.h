@@ -22,4 +22,5 @@ char * convert_float_to_ascii (float number, unsigned int dot_count, Alloc alloc
 
 usize string_length (const char * string);
 
+float get_time ();
 #endif // STD_H_

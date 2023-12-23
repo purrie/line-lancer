@@ -1,9 +1,7 @@
-#version 100
-
 precision mediump float;
 
-in vec2 fragTexCoord;
-in vec4 fragColor;
+varying vec2 fragTexCoord;
+varying vec4 fragColor;
 
 uniform sampler2D texture0;
 uniform vec4 colDiffuse;

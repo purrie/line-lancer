@@ -1292,7 +1292,7 @@ Result load_backgrounds (Assets * assets) {
         TraceLog(LOG_ERROR, "Temp allocator failed to allocate path for water shader");
         return FAILURE;
     }
-    assets->water_shader = LoadShader(0, path);
+    assets->water_shader = load_shader(path);
     if (NULL == assets->water_shader.locs) {
         TraceLog(LOG_ERROR, "Failed to load water shader");
         return FAILURE;
@@ -1302,7 +1302,7 @@ Result load_backgrounds (Assets * assets) {
         TraceLog(LOG_ERROR, "Temp allocator failed to allocate path for outline shader");
         return FAILURE;
     }
-    assets->outline_shader = LoadShader(0, path);
+    assets->outline_shader = load_shader(path);
     if (NULL == assets->outline_shader.locs) {
         TraceLog(LOG_ERROR, "Failed to load outline shader");
         return FAILURE;

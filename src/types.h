@@ -329,6 +329,11 @@ struct Line {
     Vector2 b;
 };
 
+typedef struct {
+    float min;
+    float max;
+} Range;
+
 enum BuildingType {
     BUILDING_EMPTY = 0,
     BUILDING_FIGHTER,

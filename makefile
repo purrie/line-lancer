@@ -177,8 +177,6 @@ pack-windows:
 	cp -fur assets/* pack/windows/Line-Lancer/assets/
 	cd pack/windows && if [ -e "Line-Lancer.zip" ]; then rm Line-Lancer.zip; fi && zip -r Line-Lancer Line-Lancer
 
-build-assets: $(SOURCE_FOLDER)/packed_assets.h
-
 pack-android: pack/linelancer.apk
 
 pack/linelancer.apk: $(LIBS_PATH_AND)/line-lancer.keystore $(SOURCE_FOLDER)/packed_assets.h lib/arm64-v8a/lib$(LIB).so lib/armeabi-v7a/lib$(LIB).so lib/x86/lib$(LIB).so lib/x86_64/lib$(LIB).so

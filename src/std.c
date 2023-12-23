@@ -144,3 +144,14 @@ usize string_length (const char * string) {
 
     return len;
 }
+
+float get_time () {
+    static float start_time = 0.0f;
+    static int started = 0;
+    if (started) {
+        return GetTime() - start_time;
+    }
+    start_time = GetTime();
+    started = 1;
+    return start_time;
+}

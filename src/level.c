@@ -374,32 +374,18 @@ float building_trigger_interval (const Building * building) {
     TraceLog(LOG_WARNING, "Attempted to obtain trigger interval from unhandled building: T: %s, F:%s", building_type_to_string(building->type), faction_to_string(building->region->faction));
     return 0.0f;
 }
-float building_size () {
-    return 10.0f;
-}
 usize building_max_units (const Building * building) {
     // @balance
     if (building->type == BUILDING_EMPTY || building->type == BUILDING_RESOURCE)
         return 0;
     return 5 * (building->upgrades + 1);
 }
-Rectangle building_bounds (const Building * building) {
-    Rectangle bounds = {0};
-    float b_size       = building_size();
-    bounds.x         = building->position.x - b_size * 0.5f;
-    bounds.y         = building->position.y - b_size * 0.5f;
-    bounds.width     = b_size;
-    bounds.height    = b_size;
-    return bounds;
-}
-Building * get_building_by_position (const Map * map, Vector2 position) {
+Building * get_building_by_position (const Map * map, Vector2 position, float range) {
     for (usize r = 0; r < map->regions.len; r++) {
         ListBuilding * buildings = &map->regions.items[r].buildings;
 
         for (usize b = 0; b < buildings->len; b++) {
-            Rectangle aabb = building_bounds(&buildings->items[b]);
-
-            if (CheckCollisionPointRec(position, aabb)) {
+            if (CheckCollisionPointCircle(position, buildings->items[b].position, range)) {
                 return &buildings->items[b];
             }
         }
@@ -717,7 +703,7 @@ void render_map (Map * map) {
 void render_map_mesh (const GameState * state) {
     Shader shader = state->map.background.materials[0].shader;
     int time_loc = GetShaderLocation(shader, "time");
-    float time = GetTime();
+    float time = get_time();
     SetShaderValue(shader, time_loc, &time, SHADER_UNIFORM_FLOAT);
 
     DrawModel(state->map.background, Vector3Zero(), 1.0f, WHITE);
@@ -1004,9 +990,10 @@ void map_apply_textures (const Assets * assets, Map * map) {
         SetMaterialTexture(mat, MATERIAL_MAP_DIFFUSE, assets->bridge_texture);
     }
     Shader shader = assets->water_shader;
+    int loc = GetShaderLocation(shader, "size");
     float size[2] = { assets->water_texture.width, assets->water_texture.height };
-    SetShaderValue(shader, GetShaderLocation(shader, "size"), &size, SHADER_ATTRIB_VEC2);
-    map->background.materials[0].shader = assets->water_shader;
+    SetShaderValue(shader, loc, size, SHADER_ATTRIB_VEC2);
+    map->background.materials[0].shader = shader;
     SetMaterialTexture(&map->background.materials[0], MATERIAL_MAP_DIFFUSE, assets->water_texture);
 }
 Result map_prepare_to_play (const Assets * assets, Map * map) {

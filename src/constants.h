@@ -6,10 +6,15 @@
 /* #define DEBUG_AI */
 #endif
 
+#if defined(ANDROID)
+#define FPS 30
+#else
 #define FPS 60
+#endif
 
 // this includes neutral player
 #define PLAYERS_MAX 7
+#define PLAYER_SELECTION_RADIUS (NAV_GRID_SIZE * 2)
 
 #define UNIT_SIZE 6.0f
 #define UNIT_MAX_RANGE 6

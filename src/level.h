@@ -32,9 +32,7 @@ float     building_trigger_interval (const Building * building);
 usize     building_max_units        (const Building * building);
 Texture2D building_image            (const Assets * assets, FactionType faction, BuildingType building, usize level);
 
-float        building_size            ();
-Rectangle    building_bounds          (const Building * building);
-Building   * get_building_by_position (const Map * map, Vector2 position);
+Building   * get_building_by_position (const Map * map, Vector2 position, float range);
 const char * building_name            (BuildingType building, FactionType faction, usize upgrade);
 
 /* Path Functions ************************************************************/

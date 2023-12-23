@@ -1,4 +1,5 @@
 #include "ui.h"
+#include "input.h"
 #include "std.h"
 #include "alloc.h"
 #include "constants.h"
@@ -100,24 +101,35 @@ void render_interaction (const GameState * state, Vector2 position, usize player
     col.a = leftover + frame;
     Color col2 = (Color){ 255, 255, 255, 0 };
 
-    DrawCircleGradient(position.x, position.y, NAV_GRID_SIZE * 3, col, col2);
+    DrawCircleGradient(position.x, position.y, PLAYER_SELECTION_RADIUS, col, col2);
 }
 void render_interaction_hints (const GameState * state) {
     usize player;
     if (get_local_player_index(state, &player)) return;
 
-    Vector2 mouse = GetMousePosition();
-    mouse = GetScreenToWorld2D(mouse, state->camera);
-    Building * b = get_building_by_position(&state->map, mouse);
-    if (b && b->region->player_id == player) {
-        render_interaction(state, b->position, player);
-    }
-
+    Vector2 mouse = mouse_position_inworld(state->camera);
     Region * region;
     if (region_by_position(&state->map, mouse, &region)) {
         return;
     }
-    if (region->player_id != player) return;
+    if (region->player_id != player) {
+        #ifdef DEBUG
+        if (IsKeyUp(KEY_LEFT_SHIFT)) {
+            return;
+        }
+        #else
+        return;
+        #endif
+    }
+
+    for (usize i = 0; i < region->buildings.len; i++) {
+        Building * b = &region->buildings.items[i];
+        if (CheckCollisionPointCircle(mouse, b->position, PLAYER_SELECTION_RADIUS)) {
+            render_interaction(state, b->position, player);
+            break;
+        }
+    }
+
     for (usize i = 0; i < region->paths.len; i++) {
         Path * path = region->paths.items[i];
         Vector2 point;
@@ -127,7 +139,7 @@ void render_interaction_hints (const GameState * state) {
         else {
             point = path->lines.items[path->lines.len - 1].b;
         }
-        if (CheckCollisionPointCircle(mouse, point, PATH_THICKNESS)) {
+        if (CheckCollisionPointCircle(mouse, point, PLAYER_SELECTION_RADIUS)) {
             render_interaction(state, point, player);
             return;
         }
@@ -135,6 +147,20 @@ void render_interaction_hints (const GameState * state) {
 }
 void theme_update (Theme * theme) {
     // TODO make those scale with resolution when necessary
+    #if defined(ANDROID)
+    theme->font_size = 30;
+    theme->margin = 10;
+    theme->spacing = 8;
+    theme->frame_thickness = 2;
+
+    theme->info_bar_field_width = 200;
+    theme->info_bar_height = 50;
+
+    theme->dialog_build_width = 550;
+    theme->dialog_build_height = 450;
+    theme->dialog_upgrade_width = 450;
+    theme->dialog_upgrade_height = 450;
+    #else
     theme->font_size = 20;
     theme->margin = 5;
     theme->spacing = 4;
@@ -147,6 +173,7 @@ void theme_update (Theme * theme) {
     theme->dialog_build_height = 350;
     theme->dialog_upgrade_width = 350;
     theme->dialog_upgrade_height = 350;
+    #endif
 }
 Theme theme_setup () {
     Theme theme = {0};
@@ -169,9 +196,14 @@ EmptyDialog empty_dialog (Vector2 position, const Theme * theme) {
     EmptyDialog result;
 
     Rectangle screen = cake_rect(GetScreenWidth(), GetScreenHeight());
+    #if defined(ANDROID)
+    position = (Vector2) { screen.width  - theme->dialog_build_width  * 0.5f - theme->info_bar_height,
+                           screen.height - theme->dialog_build_height * 0.5f - theme->info_bar_height };
+    #endif
     cake_cut_horizontal(&screen, theme->info_bar_height, 0);
 
-    result.area = cake_rect(theme->dialog_build_width + theme->spacing * 2.0f + theme->margin * 2.0f, theme->dialog_build_height + theme->margin * 2.0f + theme->spacing);
+    result.area = cake_rect(theme->dialog_build_width + theme->spacing * 2.0f + theme->margin * 2.0f,
+                            theme->dialog_build_height + theme->margin * 2.0f + theme->spacing);
     result.area = cake_center_rect(result.area, position.x, position.y);
     cake_clamp_inside(&result.area, screen);
 
@@ -191,9 +223,14 @@ BuildingDialog building_dialog (Vector2 position, const Theme * theme) {
     BuildingDialog result;
 
     Rectangle screen = cake_rect(GetScreenWidth(), GetScreenHeight());
+    #if defined(ANDROID)
+    position = (Vector2) { screen.width  - theme->dialog_upgrade_width  * 0.5f - theme->info_bar_height,
+                           screen.height - theme->dialog_upgrade_height * 0.5f - theme->info_bar_height };
+    #endif
     cake_cut_horizontal(&screen, theme->info_bar_height, 0);
 
-    result.area = cake_rect(theme->dialog_upgrade_width + theme->margin * 2.0f, theme->dialog_upgrade_height + theme->margin * 2.0f + theme->spacing * 2.0f);
+    result.area = cake_rect(theme->dialog_upgrade_width  + theme->margin * 2.0f,
+                            theme->dialog_upgrade_height + theme->margin * 2.0f + theme->spacing * 2.0f);
     result.area = cake_center_rect(result.area, position.x, position.y);
     cake_clamp_inside(&result.area, screen);
 
@@ -207,10 +244,58 @@ BuildingDialog building_dialog (Vector2 position, const Theme * theme) {
 
     return result;
 }
+Range map_zoom_range (const GameState * state) {
+    float screen_width = GetScreenWidth();
+    float screen_height = GetScreenHeight();
+    Vector2 map_size;
+    map_size.x = (screen_width  - 20.0f) / (float)state->map.width;
+    map_size.y = (screen_height - 20.0f - state->settings->theme.info_bar_height) / (float)state->map.height;
+    map_size.x = (map_size.x < map_size.y) ? map_size.x : map_size.y;
+    map_size.y = 10.0f;
+    return (Range) { map_size.x, map_size.y };
+}
+Rectangle flag_button_position () {
+    Rectangle result = cake_rect(250, 250);
+    result.x = GetScreenWidth() - result.width * 1.2f;
+    result.y = GetScreenHeight() - result.height * 1.2f;
+    return result;
+}
+CameraJoystick android_camera_control (const Theme * theme) {
+    float width = GetScreenWidth();
+    float height = GetScreenHeight() - theme->info_bar_height;
 
-Result ui_building_action_click (const GameState * state, Vector2 cursor, BuildingAction * action) {
-    Vector2 building_pos = GetWorldToScreen2D(state->selected_building->position, state->camera);
-    BuildingDialog dialog = building_dialog(building_pos, &state->settings->theme);
+    float widget_size = (width > height) ? height : width;
+    widget_size = widget_size * 0.3f;
+
+    Rectangle joystick = {
+        .x = theme->info_bar_height,
+        .y = height - widget_size,
+        .width = widget_size,
+        .height = widget_size
+    };
+
+    Rectangle zoom_in = {
+        .x = joystick.x + joystick.width * 0.25f,
+        .y = joystick.y - widget_size * 0.5f,
+        .width = widget_size * 0.5f,
+        .height = widget_size * 0.5f,
+    };
+
+    Rectangle zoom_out = {
+        .x = joystick.x + joystick.width,
+        .y = joystick.y + widget_size * 0.25f,
+        .width = zoom_in.width,
+        .height = zoom_in.height,
+    };
+
+    return (CameraJoystick) {
+        .joystick = joystick,
+        .zoom_in = zoom_in,
+        .zoom_out = zoom_out,
+    };
+}
+
+Result ui_building_action_click (BuildingDialog dialog, Vector2 cursor, BuildingAction * action) {
     if (CheckCollisionPointRec(cursor, dialog.demolish)) {
         *action = BUILDING_ACTION_DEMOLISH;
     }
@@ -223,13 +308,7 @@ Result ui_building_action_click (const GameState * state, Vector2 cursor, Buildi
     }
     return SUCCESS;
 }
-Result ui_building_buy_click (const GameState * state, Vector2 cursor, BuildingType * result) {
-    if (state->selected_building->type != BUILDING_EMPTY) {
-        return FAILURE;
-    }
-
-    Vector2 ui_box = GetWorldToScreen2D(state->selected_building->position, state->camera);
-    EmptyDialog dialog = empty_dialog(ui_box, &state->settings->theme);
+Result ui_building_buy_click (EmptyDialog dialog, Vector2 cursor, BuildingType * result) {
     if (! CheckCollisionPointRec(cursor, dialog.area)) {
         return FAILURE;
     }
@@ -257,14 +336,17 @@ Result ui_building_buy_click (const GameState * state, Vector2 cursor, BuildingT
 }
 
 void render_empty_building_dialog (const GameState * state) {
-    Vector2 cursor = GetMousePosition();
+    const Theme * theme = &state->settings->theme;
     Vector2 ui_box = GetWorldToScreen2D(state->selected_building->position, state->camera);
     EmptyDialog dialog = empty_dialog(ui_box, &state->settings->theme);
-    const Theme * theme = &state->settings->theme;
 
     usize player_id;
     if (get_local_player_index(state, &player_id)) {
+        #if defined(RELEASE)
+        return;
+        #else
         player_id = 1;
+        #endif
     }
     PlayerData * player = &state->players.items[player_id];
     FactionType faction = player->faction;
@@ -314,6 +396,8 @@ void render_empty_building_dialog (const GameState * state) {
     snprintf(cost_label_support  , buffer_size, "Cost: %zu", cost_support);
     snprintf(cost_label_special  , buffer_size, "Cost: %zu", cost_special);
     snprintf(cost_label_resource , buffer_size, "Cost: %zu", cost_resource);
+
+    Vector2 cursor = GetMousePosition();
 
     draw_building_button(
         dialog.fighter,
@@ -367,8 +451,8 @@ void render_empty_building_dialog (const GameState * state) {
     );
 }
 void render_upgrade_building_dialog (const GameState * state) {
-    Vector2 cursor = GetMousePosition();
     Vector2 building_pos = GetWorldToScreen2D(state->selected_building->position, state->camera);
+
     const Theme * theme = &state->settings->theme;
     BuildingDialog dialog = building_dialog(building_pos, theme);
     usize player_id;
@@ -416,6 +500,8 @@ void render_upgrade_building_dialog (const GameState * state) {
     DrawText(lvl, r_level.x, r_level.y, theme->font_size, theme->text);
     DrawText(counter, r_units.x, r_units.y, theme->font_size, theme->text);
 
+    Vector2 cursor = GetMousePosition();
+
     if (building->upgrades < BUILDING_MAX_UPGRADES) {
         const char * u_label = building_name(building->type, faction, building->upgrades + 1);
         usize cost = building_upgrade_cost(building);
@@ -460,12 +546,65 @@ void render_upgrade_building_dialog (const GameState * state) {
 
     draw_button(dialog.demolish, "Demolish", cursor, UI_LAYOUT_CENTER, theme);
 }
+void render_path_button (const GameState * state) {
+    Rectangle area = flag_button_position();
+
+    DrawRectangleRec(area, state->settings->theme.button);
+    DrawRectangleLinesEx(area, state->settings->theme.frame_thickness, state->settings->theme.button_frame);
+    usize player;
+    if (get_local_player_index(state, &player)) {
+        player = 1;
+    }
+    Texture2D flag = state->resources->flag;
+    DrawTexturePro(flag, (Rectangle) { 0, 0, flag.width, flag.height }, area, Vector2Zero(), 0, get_player_color(player));
+}
+void render_camera_controls (const GameState * state) {
+    const Theme * theme = &state->settings->theme;
+
+    CameraJoystick joy = android_camera_control(theme);
+
+    Vector2 joy_center = { joy.joystick.x + joy.joystick.width  * 0.5f,
+                           joy.joystick.y + joy.joystick.height * 0.5f };
+
+    Vector2 plus_center = { joy.zoom_in.x + joy.zoom_in.width * 0.5f,
+                            joy.zoom_in.y + joy.zoom_in.height * 0.5f };
+
+    Vector2 minus_center = { joy.zoom_out.x + joy.zoom_out.width * 0.5f,
+                             joy.zoom_out.y + joy.zoom_out.height * 0.5f };
+
+    joy.joystick.width *= 0.5f;
+    joy.joystick.height *= 0.5f;
+    joy.zoom_in.width *= 0.5f;
+    joy.zoom_in.height *= 0.5f;
+    joy.zoom_out.width *= 0.5f;
+    joy.zoom_out.height *= 0.5f;
+
+    DrawCircleV(joy_center, joy.joystick.width, theme->button);
+    DrawCircleLinesV(joy_center, joy.joystick.width, theme->button_frame);
+
+    DrawCircleV(minus_center, joy.zoom_out.width, theme->button);
+    DrawCircleLinesV(minus_center, joy.zoom_out.width, theme->button_frame);
+    DrawCircleV(plus_center, joy.zoom_in.width, theme->button);
+    DrawCircleLinesV(plus_center, joy.zoom_in.width, theme->button_frame);
+
+    Vector2 plus_left = { plus_center.x - joy.zoom_in.width * 0.5f, plus_center.y };
+    Vector2 plus_rigt = { plus_center.x + joy.zoom_in.width * 0.5f, plus_center.y };
+    Vector2 plus_top = { plus_center.x, plus_center.y - joy.zoom_in.height * 0.5f };
+    Vector2 plus_bot = { plus_center.x, plus_center.y + joy.zoom_in.height * 0.5f };
+
+    Vector2 minus_left = { minus_center.x - joy.zoom_out.width * 0.5f, minus_center.y };
+    Vector2 minus_rigt = { minus_center.x + joy.zoom_out.width * 0.5f, minus_center.y };
+
+    DrawLineEx(plus_left  , plus_rigt  , theme->frame_thickness, theme->text);
+    DrawLineEx(plus_top   , plus_bot   , theme->frame_thickness, theme->text);
+    DrawLineEx(minus_left , minus_rigt , theme->frame_thickness, theme->text);
+}
 void render_winner (const GameState * state, usize winner) {
     Rectangle screen = cake_rect(GetScreenWidth(), GetScreenHeight());
     cake_cut_horizontal(&screen, state->settings->theme.info_bar_height, 0);
 
     Color winner_color = get_player_color(winner);
-    usize base_layers = 20 + (usize)(sinf(GetTime()) * 10);
+    usize base_layers = 20 + (usize)(sinf(get_time()) * 10);
     char alpha_step = 255 / base_layers;
 
     for (usize i = 0; i < base_layers; i++) {
@@ -600,10 +739,10 @@ MainMenuLayout main_menu_layout () {
     cake_split_horizontal(parts[1], 4, parts, 0.0f);
 
     MainMenuLayout result = {
-        .new_game = cake_carve_to(parts[0], 150.0f, 50.0f),
-        .tutorial = cake_carve_to(parts[1], 150.0f, 50.0f),
-        .options  = cake_carve_to(parts[2], 150.0f, 50.0f),
-        .quit     = cake_carve_to(parts[3], 150.0f, 50.0f),
+        .new_game = cake_carve_to(parts[0], 250.0f, 50.0f),
+        .tutorial = cake_carve_to(parts[1], 250.0f, 50.0f),
+        .options  = cake_carve_to(parts[2], 250.0f, 50.0f),
+        .quit     = cake_carve_to(parts[3], 250.0f, 50.0f),
     };
     return result;
 }

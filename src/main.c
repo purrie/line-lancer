@@ -15,6 +15,7 @@
 #include "audio.h"
 #include "tutorial.h"
 #include "unit_pool.h"
+#include "input.h"
 
 #if defined(ANDROID)
 const int WINDOW_WIDTH = 0;
@@ -128,6 +129,11 @@ ExecutionMode play_mode (GameState * game) {
     if (get_local_player_index(game, &player)) {
         player = 1;
     }
+
+    #if defined(ANDROID)
+    Color player_color = get_player_color(player);
+    #endif
+
     Music theme = game->resources->faction_themes[game->players.items[player].faction];
     PlayMusicStream(theme);
     InfoBarAction play_state = INFO_BAR_ACTION_NONE;
@@ -153,6 +159,35 @@ ExecutionMode play_mode (GameState * game) {
             particles_render(game->particles_in_use.items, game->particles_in_use.len);
         EndMode2D();
 
+        #if defined(ANDROID)
+        if (play_state == INFO_BAR_ACTION_NONE) {
+            if (game->current_input != INPUT_MOVE_MAP) {
+
+                if (game->current_input == INPUT_CLICKED_PATH) {
+                    render_path_button(game);
+                }
+                else if (game->current_input == INPUT_CLICKED_BUILDING) {
+                    if (game->selected_building->type == BUILDING_EMPTY) {
+                        render_empty_building_dialog(game);
+                    }
+                    else {
+                        render_upgrade_building_dialog(game);
+                    }
+                }
+
+                render_camera_controls(game);
+            }
+            Vector2 cursor = mouse_position_pointer();
+            const Theme * ui_theme = &game->settings->theme;
+            Vector2 top_left  = { cursor.x - ui_theme->info_bar_height, cursor.y - ui_theme->info_bar_height };
+            Vector2 top_right = { cursor.x + ui_theme->info_bar_height, cursor.y - ui_theme->info_bar_height };
+            Vector2 bot_left  = { cursor.x - ui_theme->info_bar_height, cursor.y + ui_theme->info_bar_height };
+            Vector2 bot_right = { cursor.x + ui_theme->info_bar_height, cursor.y + ui_theme->info_bar_height };
+
+            DrawLineEx(top_left, bot_right, ui_theme->frame_thickness, player_color);
+            DrawLineEx(bot_left, top_right, ui_theme->frame_thickness, player_color);
+        }
+        #else
         if (play_state == INFO_BAR_ACTION_NONE && game->current_input == INPUT_OPEN_BUILDING) {
             if (game->selected_building->type == BUILDING_EMPTY) {
                 render_empty_building_dialog(game);
@@ -161,6 +196,7 @@ ExecutionMode play_mode (GameState * game) {
                 render_upgrade_building_dialog(game);
             }
         }
+        #endif
 
         if (winner) {
             render_winner(game, winner);
@@ -221,7 +257,6 @@ ExecutionMode main_menu (Assets * assets, Settings * settings) {
         else {
             MainMenuLayout layout = main_menu_layout();
             Vector2 cursor = GetMousePosition();
-
 
             draw_button(layout.new_game, "New Game", cursor, UI_LAYOUT_CENTER, &settings->theme);
             draw_button(layout.tutorial, "Tutorial", cursor, UI_LAYOUT_CENTER, &settings->theme);
@@ -358,9 +393,8 @@ int main(void) {
         temp_reset();
     }
 
-    CloseAudioDevice();
     close:
-
+    CloseAudioDevice();
     save_settings(&game_settings);
     unit_pool_deinit();
     assets_deinit(&game_assets);
