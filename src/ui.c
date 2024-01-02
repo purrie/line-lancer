@@ -148,18 +148,19 @@ void render_interaction_hints (const GameState * state) {
 void theme_update (Theme * theme) {
     // TODO make those scale with resolution when necessary
     #if defined(ANDROID)
-    theme->font_size = 30;
-    theme->margin = 10;
-    theme->spacing = 8;
+    int height = GetScreenHeight();
+    theme->font_size = height * 0.03f;
+    theme->margin = theme->font_size * 0.5f;
+    theme->spacing = theme->margin * 0.8f;
     theme->frame_thickness = 2;
 
-    theme->info_bar_field_width = 200;
-    theme->info_bar_height = 50;
+    theme->info_bar_field_width = GetScreenWidth() * 0.1f;
+    theme->info_bar_height = theme->font_size + theme->margin * 2.0f;
 
-    theme->dialog_build_width = 550;
-    theme->dialog_build_height = 450;
-    theme->dialog_upgrade_width = 450;
-    theme->dialog_upgrade_height = 450;
+    theme->dialog_build_width = theme->font_size * 20.0f;
+    theme->dialog_build_height = theme->font_size * 15.0f;
+    theme->dialog_upgrade_width = theme->font_size * 15.0f;
+    theme->dialog_upgrade_height = theme->font_size * 15.0f;
     #else
     theme->font_size = 20;
     theme->margin = 5;
@@ -1013,14 +1014,18 @@ Test render_settings (Rectangle area, Settings * settings, const Assets * assets
     Rectangle music_volume_slider  = cake_cut_horizontal(&center, theme->font_size, theme->font_size);
     Rectangle sfx_volume_slider    = cake_cut_horizontal(&center, theme->font_size, theme->font_size);
     Rectangle ui_volume_slider     = cake_cut_horizontal(&center, theme->font_size, theme->font_size);
+    #ifndef ANDROID
     Rectangle fullscreen_check     = cake_cut_horizontal(&center, theme->font_size, theme->font_size);
+    #endif
 
     char * top_label_text = "Settings";
     char * master_label = "Global Volume: ";
     char * music_label = "Music Volume: ";
     char * sfx_label = "SFX Volume: ";
     char * ui_label = "UI Volume: ";
+    #ifndef ANDROID
     char * fullscreen = "Fullscreen ";
+    #endif
 
     top_label = cake_carve_width(top_label, MeasureText(top_label_text, theme->font_size), 0.5f);
 
@@ -1034,7 +1039,9 @@ Test render_settings (Rectangle area, Settings * settings, const Assets * assets
         UPDATE_WIDTH(music_label)
         UPDATE_WIDTH(sfx_label)
         UPDATE_WIDTH(ui_label)
+        #ifndef ANDROID
         UPDATE_WIDTH(fullscreen)
+        #endif
         #undef UPDATE_WIDTH
     }
 
@@ -1042,8 +1049,10 @@ Test render_settings (Rectangle area, Settings * settings, const Assets * assets
     Rectangle music_volume_label  = cake_cut_vertical(&music_volume_slider  , labels_width, theme->spacing);
     Rectangle sfx_volume_label    = cake_cut_vertical(&sfx_volume_slider    , labels_width, theme->spacing);
     Rectangle ui_volume_label     = cake_cut_vertical(&ui_volume_slider     , labels_width, theme->spacing);
+    #ifndef ANDROID
     Rectangle fullscreen_label    = cake_cut_vertical(&fullscreen_check     , labels_width, theme->spacing);
     fullscreen_check.width = fullscreen_check.height;
+    #endif
 
     float GetMasterVolume();
     float master_volume = GetMasterVolume();
@@ -1066,6 +1075,7 @@ Test render_settings (Rectangle area, Settings * settings, const Assets * assets
     }
     else {
         if (IsMouseButtonReleased(MOUSE_BUTTON_LEFT)) {
+            #ifndef ANDROID
             if (CheckCollisionPointRec(cursor, fullscreen_check)) {
                 play_sound(assets, SOUND_UI_CLICK);
                 if (IsWindowState(FLAG_BORDERLESS_WINDOWED_MODE)) {
@@ -1078,6 +1088,7 @@ Test render_settings (Rectangle area, Settings * settings, const Assets * assets
                 }
                 ToggleBorderlessWindowed();
             }
+            #endif
             if (CheckCollisionPointRec(cursor, close)) {
                 play_sound(assets, SOUND_UI_CLICK);
                 input_enabled = false;
@@ -1137,7 +1148,9 @@ Test render_settings (Rectangle area, Settings * settings, const Assets * assets
     DrawText(music_label, music_volume_label.x, music_volume_label.y, theme->font_size, theme->text);
     DrawText(sfx_label, sfx_volume_label.x, sfx_volume_label.y, theme->font_size, theme->text);
     DrawText(ui_label, ui_volume_label.x, ui_volume_label.y, theme->font_size, theme->text);
+    #ifndef ANDROID
     DrawText(fullscreen, fullscreen_label.x, fullscreen_label.y, theme->font_size, theme->text);
+    #endif
 
     // This code could be abstracted into slider function but unless it's needed elsewhere I'm not going to do it.
     DrawRectangleRec(master_volume_slider, theme->background_light);
@@ -1160,7 +1173,9 @@ Test render_settings (Rectangle area, Settings * settings, const Assets * assets
     DrawRectangleLinesEx(sfx_dot    , theme->frame_thickness, theme->button_frame);
     DrawRectangleLinesEx(ui_dot     , theme->frame_thickness, theme->button_frame);
 
+    #ifndef ANDROID
     draw_button(fullscreen_check, IsWindowState(FLAG_BORDERLESS_WINDOWED_MODE) ? "X" : "", cursor, UI_LAYOUT_CENTER, theme);
+    #endif
     draw_button(close, "X", cursor, UI_LAYOUT_CENTER, theme);
     return NO;
 }

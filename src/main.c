@@ -263,7 +263,7 @@ ExecutionMode main_menu (Assets * assets, Settings * settings) {
             draw_button(layout.options, "Settings", cursor, UI_LAYOUT_CENTER, &settings->theme);
             draw_button(layout.quit, "Exit", cursor, UI_LAYOUT_CENTER, &settings->theme);
 
-            if (IsMouseButtonReleased(MOUSE_BUTTON_LEFT)) {
+            if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
                 if (CheckCollisionPointRec(cursor, layout.new_game)) {
                     play_sound(assets, SOUND_UI_CLICK);
                     mode = EXE_MODE_SINGLE_PLAYER_MAP_SELECT;
