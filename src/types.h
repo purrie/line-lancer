@@ -35,31 +35,21 @@ typedef struct AnimationFrame AnimationFrame;
 typedef struct AnimationSet AnimationSet;
 typedef struct Animations Animations;
 
-typedef enum BuildingType BuildingType;
-typedef enum PlayerState PlayerState;
-typedef enum MagicType MagicType;
-typedef enum UnitType UnitType;
-typedef enum UnitActiveType UnitActiveType;
-typedef enum UnitState UnitState;
-typedef enum Result Result;
-typedef enum Test Test;
-typedef enum GraphType GraphType;
-
 typedef unsigned char uchar;
 typedef size_t usize;
 typedef long isize;
 typedef unsigned short ushort;
 
-enum Result {
+typedef enum {
     SUCCESS = 0,
     FAILURE,
     FATAL,
-};
+} Result;
 
-enum Test {
+typedef enum {
     NO = 0,
     YES,
-};
+} Test;
 
 #ifndef NULL
 #define NULL ((void *)0)
@@ -109,45 +99,45 @@ typedef enum FactionType {
 
 #define FACTION_COUNT (FACTION_LAST + 1)
 
-enum UnitType {
+typedef enum {
     UNIT_FIGHTER,
     UNIT_ARCHER,
     UNIT_SUPPORT,
     UNIT_SPECIAL,
     UNIT_GUARDIAN,
-};
+} UnitType ;
 
-enum UnitActiveType {
+typedef enum {
    UNIT_TYPE_FIGHTER = UNIT_FIGHTER,
    UNIT_TYPE_ARCHER = UNIT_ARCHER,
    UNIT_TYPE_SUPPORT = UNIT_SUPPORT,
    UNIT_TYPE_SPECIAL = UNIT_SPECIAL,
-};
+} UnitActiveType;
 
 #define UNIT_TYPE_COUNT (UNIT_TYPE_SPECIAL + 1)
 
-enum UnitState {
+typedef enum {
     UNIT_STATE_IDLE = 0,
     UNIT_STATE_MOVING,
     UNIT_STATE_CHASING,
     UNIT_STATE_FIGHTING,
     UNIT_STATE_SUPPORTING,
     UNIT_STATE_GUARDING,
-};
+} UnitState;
 
-enum MagicType {
+typedef enum {
     MAGIC_HEALING = 0,
     /* MAGIC_CURSE, */
     MAGIC_WEAKNESS,
     /* MAGIC_STRENGTH, */
     /* MAGIC_HELLFIRE, */
     MAGIC_TYPE_LAST = MAGIC_WEAKNESS,
-};
+} MagicType;
 
-enum GraphType {
+typedef enum {
     GRAPH_REGION,
     GRAPH_PATH,
-};
+} GraphType;
 
 typedef enum {
     PARTICLE_ARROW = 0,
@@ -344,7 +334,7 @@ typedef struct {
     float max;
 } Range;
 
-enum BuildingType {
+typedef enum {
     BUILDING_EMPTY = 0,
     BUILDING_FIGHTER,
     BUILDING_ARCHER,
@@ -352,7 +342,7 @@ enum BuildingType {
     BUILDING_SPECIAL,
     BUILDING_RESOURCE,
     BUILDING_TYPE_LAST = BUILDING_RESOURCE,
-};
+} BuildingType;
 
 struct Building {
     Vector2        position;
@@ -513,13 +503,13 @@ struct Settings {
     Theme theme;
 };
 
-enum PlayerState {
+typedef enum {
     INPUT_NONE = 0,
     INPUT_CLICKED_BUILDING,
     INPUT_CLICKED_PATH,
     INPUT_OPEN_BUILDING,
     INPUT_MOVE_MAP,
-};
+} PlayerState;
 
 struct GameState {
     PlayerState      current_input;

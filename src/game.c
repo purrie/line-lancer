@@ -540,7 +540,7 @@ void units_damage(GameState * state, float delta_time) {
 
             listAttackRemove(&guardian->incoming_attacks, attacks);
         }
-        next_guard:{}
+    next_guard:{}
     }
 }
 void guardian_fight (GameState * state, float delta_time) {
