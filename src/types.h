@@ -3,6 +3,7 @@
 
 #include <raylib.h>
 #include <stddef.h>
+#include <stdint.h>
 #include "array.h"
 #include "constants.h"
 
@@ -303,6 +304,7 @@ struct Unit {
 
     ListMagicEffect effects;
     ListAttack incoming_attacks;
+    bool attacked;
 
     Building * origin;
 };
@@ -314,10 +316,18 @@ struct AnimationFrame {
 
 struct AnimationSet {
     Texture2D sprite_sheet;
-    ListFrame idle;
-    ListFrame walk;
-    ListFrame attack;
-    ListFrame cast;
+    ListFrame frames;
+
+    float idle_duration;
+    float walk_duration;
+    float attack_duration;
+    float cast_duration;
+
+    uint8_t idle_start;
+    uint8_t walk_start;
+    uint8_t attack_start;
+    uint8_t cast_start;
+    uint8_t attack_trigger;
 };
 
 struct Animations {

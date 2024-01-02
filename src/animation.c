@@ -30,46 +30,6 @@ void render_debug_unit (const GameState * game, const Unit * unit) {
     BeginShaderMode(game->resources->outline_shader);
 }
 
-Result animate_loop (ListFrame animation, float time, Rectangle * result) {
-    if (animation.len == 0) {
-        return FAILURE;
-    }
-    float animation_length = 0;
-    for (usize i = 0; i < animation.len; i++) {
-        animation_length += animation.items[i].duration;
-    }
-    float animation_time = time;
-    while (animation_time > animation_length) animation_time -= animation_length;
-
-    float counter = 0;
-    for (usize i = 0; i < animation.len; i++) {
-        counter += animation.items[i].duration;
-        if (counter >= animation_time) {
-            *result = animation.items[i].source;
-            return SUCCESS;
-        }
-    }
-    TraceLog(LOG_ERROR, "Couldn't loop animation correctly");
-    return FAILURE;
-}
-Result animate_single (ListFrame animation, float time, Rectangle * result) {
-    if (animation.len == 0) {
-        return FAILURE;
-    }
-    float animation_time = time;
-
-    float counter = 0;
-    for (usize i = 0; i < animation.len; i++) {
-        counter += animation.items[i].duration;
-        if (counter >= animation_time) {
-            *result = animation.items[i].source;
-            return SUCCESS;
-        }
-    }
-    *result = animation.items[animation.len - 1].source;
-    return SUCCESS;
-}
-
 void animate_unit (const GameState * game, const Unit * unit) {
     if (unit->type >= UNIT_TYPE_COUNT) {
         TraceLog(LOG_ERROR, "Tried to animate units that can't be animated");
@@ -82,41 +42,47 @@ void animate_unit (const GameState * game, const Unit * unit) {
         return;
     }
 
-    Rectangle source;
+    float time_left = unit->state_time;
+    uint8_t index;
     switch (unit->state) {
-        case UNIT_STATE_IDLE:
-            if (animate_loop(set.idle, unit->state_time, &source)) {
-                TraceLog(LOG_DEBUG, "Failed to animate unit's idle state");
-                render_debug_unit(game, unit);
-                return;
-            }
-            break;
+        case UNIT_STATE_IDLE: {
+            index = set.idle_start;
+            while (time_left > set.idle_duration) time_left -= set.idle_duration;
+        } break;
         case UNIT_STATE_CHASING:
-        case UNIT_STATE_MOVING:
-            if (animate_loop(set.walk, unit->state_time, &source)) {
-                TraceLog(LOG_DEBUG, "Failed to animate unit's walk state");
-                render_debug_unit(game, unit);
-                return;
+        case UNIT_STATE_MOVING: {
+            index = set.walk_start;
+            while (time_left > set.walk_duration) time_left -= set.walk_duration;
+        } break;
+        case UNIT_STATE_FIGHTING: {
+            if (time_left >= set.attack_duration) {
+                index = set.idle_start;
+                time_left -= set.attack_duration;
+                while (time_left > set.idle_duration) time_left -= set.idle_duration;
             }
-            break;
-        case UNIT_STATE_FIGHTING:
-            if (animate_single(set.attack, unit->state_time, &source)) {
-                TraceLog(LOG_DEBUG, "Failed to animate unit's attack");
-                render_debug_unit(game, unit);
-                return;
+            else {
+                index = set.attack_start;
             }
-            break;
-        case UNIT_STATE_SUPPORTING:
-            if (animate_single(set.cast, unit->state_time, &source)) {
-                TraceLog(LOG_DEBUG, "Failed to animate unit's spellcasting");
-                render_debug_unit(game, unit);
-                return;
+        } break;
+        case UNIT_STATE_SUPPORTING: {
+            if (time_left >= set.cast_duration) {
+                index = set.idle_start;
+                time_left -= set.cast_duration;
+                while (time_left > set.idle_duration) time_left -= set.idle_duration;
             }
-            break;
+            else {
+                index = set.cast_start;
+            }
+        } break;
         case UNIT_STATE_GUARDING:
             TraceLog(LOG_ERROR, "Can't animate guardians");
             return;
     }
+    while (time_left > set.frames.items[index].duration) {
+        time_left -= set.frames.items[index].duration;
+        index++;
+    }
+    Rectangle source = set.frames.items[index].source;
 
     Rectangle target = {
         .x = unit->position.x,
@@ -127,11 +93,10 @@ void animate_unit (const GameState * game, const Unit * unit) {
     Vector2 origin = { target.width * 0.5f, target.height * 0.5f };
 
     float angle = Vector2AngleHorizon(unit->facing_direction) * RAD2DEG;
-    if (angle < 0) angle = -angle;
-    if (angle > 90) {
-        source.x += source.width;
-        source.width = -source.width;
-    }
+
+    if (angle < 0)  angle = -angle;
+    if (angle > 90) source.width = -source.width;
+
     Color outline = get_player_color(unit->player_owned);
 
     DrawTexturePro(set.sprite_sheet, source, target, origin, 0, outline);

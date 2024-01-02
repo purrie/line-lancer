@@ -1319,23 +1319,13 @@ Result load_graphics (Assets * assets) {
 }
 
 /* Units *********************************************************************/
-Result initialize_animation_set (AnimationSet * set) {
-    set->attack = listFrameInit(10, perm_allocator());
-    set->idle = listFrameInit(10, perm_allocator());
-    set->walk = listFrameInit(10, perm_allocator());
-    set->cast = listFrameInit(10, perm_allocator());
-
-    if (NULL == set->attack.items) return FAILURE;
-    if (NULL == set->idle.items) return FAILURE;
-    if (NULL == set->walk.items) return FAILURE;
-    if (NULL == set->cast.items) return FAILURE;
-    return SUCCESS;
-}
 Result initialize_animation_data (Assets * assets) {
     for (usize f = 0; f <= FACTION_LAST; f++) {
         for (usize l = 0; l < UNIT_LEVELS; l++) {
             for (usize t = 0; t < UNIT_TYPE_COUNT; t++) {
-                initialize_animation_set(&assets->animations.sets[f][t][l]);
+                ListFrame frame = listFrameInit(15, perm_allocator());
+                if (NULL == frame.items) return FAILURE;
+                assets->animations.sets[f][t][l].frames = frame;
             }
         }
     }
@@ -1417,6 +1407,7 @@ Result load_animations (Assets * assets) {
         }
 
         AnimationSet * animations = &assets->animations.sets[faction][unit_type][level - 1];
+        ListFrame * frames = &animations->frames;
 
         usize path_len = string_length(data.paths[i]);
         char * texture_path = temp_alloc(path_len);
@@ -1467,41 +1458,19 @@ Result load_animations (Assets * assets) {
 
             cursor++;
             int frame_object_index = cursor;
-            AnimationType type = 0;
             Rectangle rect = {0};
             usize duration = 0;
             cursor++;
 
+            // loading frames
             while (cursor < token_count && tokens[cursor].parent != end) {
                 if (cursor >= token_count || tokens[cursor].parent != frame_object_index) {
                     // finished loading frame data, save it into the array
-                    ListFrame * frames;
-                    switch (type) {
-                        case ANIMATION_IDLE:
-                            frames = &animations->idle; break;
-                        case ANIMATION_ATTACK:
-                            frames = &animations->attack; break;
-                        case ANIMATION_WALK:
-                            frames = &animations->walk; break;
-                        case ANIMATION_CAST:
-                            frames = &animations->cast; break;
-                    }
-
-                    bool the_same = false;
-                    if (frames->len > 0 && RectangleEquals(rect, frames->items[frames->len - 1].source)) {
-                        the_same = true;
-                    }
-
-                    if (the_same) {
-                        frames->items[frames->len - 1].duration += duration * 0.001f;
-                    }
-                    else {
-                        AnimationFrame new = {
-                            .duration = duration * 0.0001f,
-                            .source = rect,
-                        };
-                        listFrameAppend(frames, new);
-                    }
+                    AnimationFrame new = {
+                        .duration = duration * 0.001f,
+                        .source = rect,
+                    };
+                    listFrameAppend(frames, new);
 
                     // continue to next object frame or break if there is no more objects
                     if (tokens[cursor].type == JSMN_OBJECT) {
@@ -1521,28 +1490,7 @@ Result load_animations (Assets * assets) {
                     goto next_file;
                 }
 
-                if (compare_literal(key, "filename")) {
-                    cursor++;
-                    StringSlice value = make_slice_u(text, tokens[cursor].start, tokens[cursor].end);
-                    if (compare_literal(value, "idle")) {
-                        type = ANIMATION_IDLE;
-                    }
-                    else if (compare_literal(value, "walk")) {
-                        type = ANIMATION_WALK;
-                    }
-                    else if (compare_literal(value, "attack")) {
-                        type = ANIMATION_ATTACK;
-                    }
-                    else if (compare_literal(value, "cast")) {
-                        type = ANIMATION_CAST;
-                    }
-                    else {
-                        log_slice(LOG_ERROR, "Invalid animation type:", value);
-                        goto next_file;
-                    }
-                    cursor++;
-                }
-                else if (compare_literal(key, "frame")) {
+                if (compare_literal(key, "frame")) {
                     cursor += 3;
                     StringSlice value = make_slice_u(text, tokens[cursor].start, tokens[cursor].end);
                     if (convert_slice_float(value, &rect.x)) {
@@ -1581,7 +1529,93 @@ Result load_animations (Assets * assets) {
                 else {
                     cursor = skip_tokens(tokens, cursor);
                 }
+            } // loading frames
+
+            // skipping to tags
+            StringSlice key = make_slice_u(text, tokens[cursor].start, tokens[cursor].end);
+            while (! compare_literal(key, "meta")) {
+                if (cursor >= token_count) {
+                    TraceLog(LOG_ERROR, "Couldn't find sprite sheet meta data");
+                    goto next_file;
+                }
+                cursor ++;
+                key = make_slice_u(text, tokens[cursor].start, tokens[cursor].end);
             }
+            cursor += 2;
+            key = make_slice_u(text, tokens[cursor].start, tokens[cursor].end);
+            while (! compare_literal(key, "frameTags")) {
+                if (cursor >= token_count) {
+                    TraceLog(LOG_ERROR, "Couldn't find sprite sheet frame tag data");
+                    goto next_file;
+                }
+                cursor = skip_tokens(tokens, cursor);
+                key = make_slice_u(text, tokens[cursor].start, tokens[cursor].end);
+            }
+
+            // loading tags
+            cursor += 2;
+            while (cursor < token_count) {
+                if (tokens[cursor].type == JSMN_OBJECT) {
+                    cursor += 1;
+                    continue;
+                }
+                key = make_slice_u(text, tokens[cursor].start, tokens[cursor].end);
+                if (compare_literal(key, "name")) {
+                    cursor ++;
+                    unsigned char tag_type = text[tokens[cursor].start];
+                    usize from;
+                    usize to;
+                    cursor += 2;
+                    StringSlice value = make_slice_u(text, tokens[cursor].start, tokens[cursor].end);
+                    if (convert_slice_usize(value, &from)) {
+                        log_slice(LOG_ERROR, "Failed to load tag start", value);
+                        goto next_file;
+                    }
+                    cursor += 2;
+                    value = make_slice_u(text, tokens[cursor].start, tokens[cursor].end);
+                    if (convert_slice_usize(value, &to)) {
+                        log_slice(LOG_ERROR, "Failed to load tag end", value);
+                        goto next_file;
+                    }
+                    switch (tag_type) {
+                        case 'i': {
+                            animations->idle_start = from;
+                            for (usize tt = from; tt <= to; tt++) {
+                                animations->idle_duration += animations->frames.items[tt].duration;
+                            }
+                        } break;
+                        case 'a': {
+                            animations->attack_start = from;
+                            for (usize tt = from; tt <= to; tt++) {
+                                animations->attack_duration += animations->frames.items[tt].duration;
+                            }
+                        } break;
+                        case 's': {
+                            animations->attack_trigger = from;
+                        } break;
+                        case 'm': {
+                            animations->walk_start = from;
+                            for (usize tt = from; tt <= to; tt++) {
+                                animations->walk_duration += animations->frames.items[tt].duration;
+                            }
+                        } break;
+                        case 'c': {
+                            animations->cast_start = from;
+                            for (usize tt = from; tt <= to; tt++) {
+                                animations->cast_duration += animations->frames.items[tt].duration;
+                            }
+                        } break;
+                        default: {
+                            value = make_slice_u(text, tokens[cursor - 4].start, tokens[cursor - 4].end);
+                            log_slice(LOG_ERROR, "Received unrecognized tag:", value);
+                        } goto next_file;
+                    }
+                    cursor ++;
+                }
+                else {
+                  cursor = skip_tokens(tokens, cursor);
+                }
+            } // loading tags
         }
 
         next_file:
@@ -1592,10 +1626,7 @@ Result load_animations (Assets * assets) {
     return SUCCESS;
 }
 void unload_animation_set (AnimationSet * set) {
-    listFrameDeinit(&set->idle);
-    listFrameDeinit(&set->walk);
-    listFrameDeinit(&set->attack);
-    listFrameDeinit(&set->cast);
+    listFrameDeinit(&set->frames);
     UnloadTexture(set->sprite_sheet);
 }
 void unload_animations (Assets * assets) {

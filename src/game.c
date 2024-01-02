@@ -225,12 +225,14 @@ void update_unit_state (GameState * state) {
                     if (support_can_support(unit, &buffer)) {
                         unit->state_time = 0;
                         unit->state = UNIT_STATE_SUPPORTING;
+                        unit->attacked = false;
                         continue;
                     }
                 }
                 if (get_enemy_in_range(unit) == NULL) {
                     unit->state_time = 0;
                     unit->state = UNIT_STATE_IDLE;
+                    unit->attacked = false;
                 }
             } break;
         }
@@ -443,6 +445,24 @@ void units_fight (GameState * state, float delta_time) {
         if (unit->cooldown > 0)
             continue;
 
+        const AnimationSet * animations =
+            &state->resources->animations.sets[unit->faction][unit->type][unit->upgrade];
+        float attack_len = animations->attack_duration;
+        if (unit->state_time >= attack_len) {
+            unit->state_time = 0;
+            unit->attacked = false;
+        }
+
+        if (unit->attacked) continue;
+
+        float attack_time = unit->state_time;
+        uint8_t attack_frame = animations->attack_start;
+        while (attack_time > animations->frames.items[attack_frame].duration) {
+            attack_time -= animations->frames.items[attack_frame].duration;
+            attack_frame ++;
+        }
+        if (attack_frame < animations->attack_trigger) continue;
+
         Unit * target = get_enemy_in_range(unit);
         if (target) {
             Attack attack = {
@@ -456,7 +476,7 @@ void units_fight (GameState * state, float delta_time) {
             };
             listAttackAppend(&target->incoming_attacks, attack);
             unit->cooldown = get_unit_cooldown(unit);
-            unit->state_time = 0;
+            unit->attacked = true;
             unit->facing_direction = Vector2Normalize(Vector2Subtract(target->position, unit->position));
             play_unit_attack_sound(state, unit);
         }
