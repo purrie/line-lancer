@@ -683,23 +683,20 @@ void render_unit_health (const Unit * unit) {
 }
 void render_units (const GameState * state) {
     const ListUnit * units = &state->units;
-    BeginShaderMode(state->resources->outline_shader);
-    for (usize i = 0; i < units->len; i ++) {
-        Unit * unit = units->items[i];
-
-        animate_unit(state, unit);
-    }
-    EndShaderMode();
-    for (usize i = 0; i < units->len; i ++) {
-        Unit * unit = units->items[i];
-
-        particles_render_attacks(state, unit);
-        particles_render_effects(state, unit);
-        render_unit_health(unit);
-    }
+    Vector2 top_left = GetScreenToWorld2D((Vector2) { -NAV_GRID_SIZE, -NAV_GRID_SIZE}, state->camera);
+    Vector2 bot_righ = GetScreenToWorld2D((Vector2) { GetScreenWidth() + NAV_GRID_SIZE, GetScreenHeight() + NAV_GRID_SIZE}, state->camera);
+    Rectangle screen = {
+        .x = top_left.x,
+        .y = top_left.y,
+        .width = bot_righ.x - top_left.x,
+        .height = bot_righ.y - top_left.y
+    };
 
     for (usize i = 0; i < state->map.regions.len; i++) {
         Region * region = &state->map.regions.items[i];
+        if (! CheckCollisionPointRec(region->castle.position, screen)) {
+            continue;
+        }
         Texture2D sprite;
         if (region->player_id) {
             sprite = state->resources->buildings[region->faction].castle;
@@ -720,5 +717,24 @@ void render_units (const GameState * state) {
         particles_render_attacks(state, &region->castle);
         particles_render_effects(state, &region->castle);
         render_unit_health(&region->castle);
+    }
+
+    BeginShaderMode(state->resources->outline_shader);
+    for (usize i = 0; i < units->len; i ++) {
+        Unit * unit = units->items[i];
+
+        if (CheckCollisionPointRec(unit->position, screen)) {
+            animate_unit(state, unit);
+        }
+    }
+    EndShaderMode();
+    for (usize i = 0; i < units->len; i ++) {
+        Unit * unit = units->items[i];
+
+        if (CheckCollisionPointRec(unit->position, screen)) {
+            particles_render_attacks(state, unit);
+            particles_render_effects(state, unit);
+            render_unit_health(unit);
+        }
     }
 }
