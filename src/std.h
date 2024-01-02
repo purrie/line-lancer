@@ -1,6 +1,7 @@
 #ifndef STD_H_
 #define STD_H_
 
+#include <string.h>
 #include "types.h"
 
 /// Copies memory from source to dest starting from end of the array
@@ -15,7 +16,7 @@ void * copy_memory(void * dest, const void * source, usize bytes);
 void * set_memory(void * ptr, uchar val, usize bytes);
 
 /// Zero initializes memory space
-void * clear_memory(void * ptr, usize bytes);
+#define clear_memory(ptr, bytes) memset(ptr, 0, bytes)
 
 char * convert_int_to_ascii (int number, Alloc alloc);
 char * convert_float_to_ascii (float number, unsigned int dot_count, Alloc alloc);

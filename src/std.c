@@ -8,7 +8,6 @@ void * copy_memory_backward(void * dest, void * source, usize bytes) {
     }
     return dest;
 }
-
 void * copy_memory(void * dest, const void * source, usize bytes) {
     uchar * d = (uchar *) dest;
     uchar * s = (uchar *) source;
@@ -21,14 +20,6 @@ void * set_memory(void * ptr, uchar val, usize bytes) {
     uchar * mem = (uchar *) ptr;
     while (bytes --> 0) {
         mem[bytes] = val;
-    }
-    return ptr;
-}
-
-void * clear_memory(void * ptr, usize bytes) {
-    uchar * mem = (uchar *) ptr;
-    while (bytes --> 0) {
-        mem[bytes] = 0;
     }
     return ptr;
 }
