@@ -269,21 +269,21 @@ CameraJoystick android_camera_control (const Theme * theme) {
     widget_size = widget_size * 0.3f;
 
     Rectangle joystick = {
-        .x = theme->info_bar_height,
-        .y = height - widget_size,
+        .x = theme->info_bar_height * 1.5f,
+        .y = height - widget_size - theme->info_bar_height * 0.5f,
         .width = widget_size,
         .height = widget_size
     };
 
     Rectangle zoom_in = {
         .x = joystick.x + joystick.width * 0.25f,
-        .y = joystick.y - widget_size * 0.5f,
+        .y = joystick.y - widget_size * 0.75f,
         .width = widget_size * 0.5f,
         .height = widget_size * 0.5f,
     };
 
     Rectangle zoom_out = {
-        .x = joystick.x + joystick.width,
+        .x = joystick.x + joystick.width * 1.25f,
         .y = joystick.y + widget_size * 0.25f,
         .width = zoom_in.width,
         .height = zoom_in.height,
@@ -599,6 +599,33 @@ void render_camera_controls (const GameState * state) {
     DrawLineEx(plus_left  , plus_rigt  , theme->frame_thickness, theme->text);
     DrawLineEx(plus_top   , plus_bot   , theme->frame_thickness, theme->text);
     DrawLineEx(minus_left , minus_rigt , theme->frame_thickness, theme->text);
+
+    Vector2 arrow_left = { joy_center.x - joy.joystick.width * 0.75f, joy_center.y };
+    Vector2 arrow_rigt = { joy_center.x + joy.joystick.width * 0.75f, joy_center.y };
+    Vector2 arrow_top = { joy_center.x, joy_center.y - joy.joystick.height * 0.75f };
+    Vector2 arrow_bot = { joy_center.x, joy_center.y + joy.joystick.height * 0.75f };
+
+    Vector2 arrow_top_l = { arrow_top.x - joy.joystick.width * 0.15f, arrow_top.y + joy.joystick.height * 0.15f };
+    Vector2 arrow_top_r = { arrow_top.x + joy.joystick.width * 0.15f, arrow_top.y + joy.joystick.height * 0.15f };
+    Vector2 arrow_bot_l = { arrow_bot.x - joy.joystick.width * 0.15f, arrow_bot.y - joy.joystick.height * 0.15f };
+    Vector2 arrow_bot_r = { arrow_bot.x + joy.joystick.width * 0.15f, arrow_bot.y - joy.joystick.height * 0.15f };
+    Vector2 arrow_left_t = { arrow_left.x + joy.joystick.width * 0.15f, arrow_left.y - joy.joystick.height * 0.15f };
+    Vector2 arrow_left_b = { arrow_left.x + joy.joystick.width * 0.15f, arrow_left.y + joy.joystick.height * 0.15f };
+    Vector2 arrow_rigt_t = { arrow_rigt.x - joy.joystick.width * 0.15f, arrow_rigt.y - joy.joystick.height * 0.15f };
+    Vector2 arrow_rigt_b = { arrow_rigt.x - joy.joystick.width * 0.15f, arrow_rigt.y + joy.joystick.height * 0.15f };
+
+    DrawLineEx(arrow_left, arrow_rigt, theme->frame_thickness, theme->text);
+    DrawLineEx(arrow_top, arrow_bot, theme->frame_thickness, theme->text);
+
+    DrawLineEx(arrow_top, arrow_top_l, theme->frame_thickness, theme->text);
+    DrawLineEx(arrow_top, arrow_top_r, theme->frame_thickness, theme->text);
+    DrawLineEx(arrow_bot, arrow_bot_l, theme->frame_thickness, theme->text);
+    DrawLineEx(arrow_bot, arrow_bot_r, theme->frame_thickness, theme->text);
+
+    DrawLineEx(arrow_left, arrow_left_t, theme->frame_thickness, theme->text);
+    DrawLineEx(arrow_left, arrow_left_b, theme->frame_thickness, theme->text);
+    DrawLineEx(arrow_rigt, arrow_rigt_t, theme->frame_thickness, theme->text);
+    DrawLineEx(arrow_rigt, arrow_rigt_b, theme->frame_thickness, theme->text);
 }
 void render_winner (const GameState * state, usize winner) {
     Rectangle screen = cake_rect(GetScreenWidth(), GetScreenHeight());
