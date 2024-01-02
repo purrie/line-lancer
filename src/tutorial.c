@@ -204,10 +204,10 @@ void draw_tutorial_buildings (GameState * game) {
 
     {
         Vector2 spot = {0};
-        usize idx = (usize)( GetTime() * 0.5f) % starting_region->buildings.len;
+        usize idx = (usize)( get_time() * 0.5f) % starting_region->buildings.len;
         spot = starting_region->buildings.items[idx].position;
         spot = GetWorldToScreen2D(spot, game->camera);
-        spot.y -= 10.0f + sinf(GetTime() * 5.0f) * 5.0f;
+        spot.y -= 10.0f + sinf(get_time() * 5.0f) * 5.0f;
         Color color = theme->frame_light;
         DrawLineEx(spot, Vector2Subtract(spot, (Vector2){ 0.0f, 60.0f }), 10.0f,  color);
         DrawLineEx(spot, Vector2Subtract(spot, (Vector2){ 20.0f, 30.0f }), 8.0f, color);
