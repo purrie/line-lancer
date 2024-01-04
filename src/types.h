@@ -436,6 +436,7 @@ typedef enum {
     EXE_MODE_SINGLE_PLAYER_MAP_SELECT,
     EXE_MODE_IN_GAME,
     EXE_MODE_TUTORIAL,
+    EXE_MODE_MANUAL,
     EXE_MODE_EXIT,
 } ExecutionMode;
 

@@ -14,7 +14,7 @@
 
 void draw_button (
     Rectangle     area,
-    char        * text,
+    const char  * text,
     Vector2       cursor,
     UiLayout      label_layout,
     const Theme * theme
@@ -175,6 +175,7 @@ void theme_update (Theme * theme) {
     theme->dialog_upgrade_width = 350;
     theme->dialog_upgrade_height = 350;
     #endif
+    SetTextLineSpacing(theme->font_size * 1.15f);
 }
 Theme theme_setup () {
     Theme theme = {0};
@@ -760,17 +761,19 @@ InfoBarAction render_resource_bar (const GameState * state) {
 /* Main Menu *****************************************************************/
 MainMenuLayout main_menu_layout () {
     Rectangle screen = cake_rect(GetScreenWidth(), GetScreenHeight());
-    Rectangle parts[4];
+    const uint8_t parts_count = 5;
+    Rectangle parts[parts_count];
     cake_split_vertical(screen, 3, parts, 0.0f);
     cake_split_horizontal(parts[1], 3, parts, 0.0f);
 
-    cake_split_horizontal(parts[1], 4, parts, 0.0f);
+    cake_split_horizontal(parts[1], parts_count, parts, 0.0f);
 
     MainMenuLayout result = {
         .new_game = cake_carve_to(parts[0], 250.0f, 50.0f),
         .tutorial = cake_carve_to(parts[1], 250.0f, 50.0f),
-        .options  = cake_carve_to(parts[2], 250.0f, 50.0f),
-        .quit     = cake_carve_to(parts[3], 250.0f, 50.0f),
+        .manual   = cake_carve_to(parts[2], 250.0f, 50.0f),
+        .options  = cake_carve_to(parts[3], 250.0f, 50.0f),
+        .quit     = cake_carve_to(parts[4], 250.0f, 50.0f),
     };
     return result;
 }

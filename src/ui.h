@@ -40,6 +40,7 @@ typedef struct {
 typedef struct {
     Rectangle new_game;
     Rectangle tutorial;
+    Rectangle manual;
     Rectangle options;
     Rectangle quit;
 } MainMenuLayout;
@@ -75,7 +76,7 @@ ExecutionMode render_main_menu         ();
 void render_simple_map_preview      (Rectangle area, Map * map, const Theme * theme);
 void render_player_select           (Rectangle area, GameState * state, int selected_map);
 int  render_map_list                (Rectangle area, ListMap * maps, usize from, usize len, const Theme * theme);
-void draw_button                    (Rectangle area, char * text, Vector2 cursor, UiLayout label_layout, const Theme * theme);
+void draw_button                    (Rectangle area, const char * text, Vector2 cursor, UiLayout label_layout, const Theme * theme);
 Test render_settings                (Rectangle area, Settings * settings, const Assets * assets);
 void render_winner                  (const GameState * state, usize winner);
 InfoBarAction render_resource_bar   (const GameState * state);

@@ -16,6 +16,7 @@
 #include "tutorial.h"
 #include "unit_pool.h"
 #include "input.h"
+#include "manual.h"
 
 #if defined(ANDROID)
 const int WINDOW_WIDTH = 0;
@@ -260,6 +261,7 @@ ExecutionMode main_menu (Assets * assets, Settings * settings) {
 
             draw_button(layout.new_game, "New Game", cursor, UI_LAYOUT_CENTER, &settings->theme);
             draw_button(layout.tutorial, "Tutorial", cursor, UI_LAYOUT_CENTER, &settings->theme);
+            draw_button(layout.manual, "Manual", cursor, UI_LAYOUT_CENTER, &settings->theme);
             draw_button(layout.options, "Settings", cursor, UI_LAYOUT_CENTER, &settings->theme);
             draw_button(layout.quit, "Exit", cursor, UI_LAYOUT_CENTER, &settings->theme);
 
@@ -271,6 +273,10 @@ ExecutionMode main_menu (Assets * assets, Settings * settings) {
                 if (CheckCollisionPointRec(cursor, layout.tutorial)) {
                     play_sound(assets, SOUND_UI_CLICK);
                     mode = EXE_MODE_TUTORIAL;
+                }
+                if (CheckCollisionPointRec(cursor, layout.manual)) {
+                    play_sound(assets, SOUND_UI_CLICK);
+                    mode = EXE_MODE_MANUAL;
                 }
                 if (CheckCollisionPointRec(cursor, layout.options)) {
                     play_sound(assets, SOUND_UI_CLICK);
@@ -298,6 +304,7 @@ int main(void) {
 
     InitWindow(WINDOW_WIDTH, WINDOW_HEIGHT, "Hello!");
     InitAudioDevice();
+    SetWindowMinSize(1200, 720);
 
     #if !defined(DEBUG)
     SetTraceLogLevel(LOG_ERROR);
@@ -380,6 +387,9 @@ int main(void) {
             } break;
             case EXE_MODE_MAIN_MENU: {
                 mode = main_menu(&game_assets, &game_settings);
+            } break;
+            case EXE_MODE_MANUAL: {
+                mode = manual_mode(&game_assets, &game_settings.theme);
             } break;
             case EXE_MODE_SINGLE_PLAYER_MAP_SELECT: {
                 mode = level_select(&game_assets, &game_state);
