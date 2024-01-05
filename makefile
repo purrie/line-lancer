@@ -35,7 +35,7 @@ FLAGS_WIN    ?= -Wall -Wextra -Warray-bounds -Wshadow -Wunused -Wdeprecated
 FLAGS_AND    ?= -Wall -Wextra -Warray-bounds -Wshadow -Wunused -Wdeprecated \
 				-ffunction-sections -funwind-tables -fstack-protector-strong \
 				-fPIC -Wformat -Werror=format-security -no-canonical-prefixes \
-				-DANDROID -DPLATFORM_ANDROID -D__ANDROID_API__=$(ANDROID_VERSION) -DRELEASE -DEMBEDED_ASSETS
+				-DANDROID -DPLATFORM_ANDROID -D__ANDROID_API__=$(ANDROID_VERSION) -DRELEASE -DEMBEDED_ASSETS -O3
 FLAGS_AND_LD ?= -shared --exclude-libs libatomic.a --build-id \
 		 		-z noexecstack -z relro -z now \
 				--warn-shared-textrel --fatal-warnings -u ANativeActivity_onCreate \
