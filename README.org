@@ -1,0 +1,49 @@
+#+title: Line Lancer
+
+Minimalistic strategy game with goal of capturing islands. Direct your army to conquer opponent's territory until you're the last one on the map.
+
+* Game Mechanics
+The game is played with just the mouse by selecting which regions your army will move towards. Your focus is to choose which type of units to build and where to direct them. Your warriors will act and fight your opponents and capture land on their own.
+
+* Installation
+** Windows
+The game can be run as is with no installation steps. Unpack the archive and play.
+
+** Linux
+Game build comes with install script which will put the game in appropriate directories according to XDG specification.
+
+** Android
+Apk file can be compied over to a phone and installed manually with no extra steps.
+
+* Building
+The game has no external dependencies aside from Raylib and its dependencies. You can preview those here: [[https://github.com/raysan5/raylib/wiki/Working-on-GNU-Linux][Working on GNU Linux]].
+
+The project uses make for build system. Recipes are only tested on GNU/Linux system and may not be suitable for usage on other systems.
+
+To build the game, enter project's root directory and run
+#+BEGIN_SRC sh
+make build
+#+END_SRC
+The following command will also automatically execute the game.
+#+BEGIN_SRC sh
+make run
+#+END_SRC
+
+Following commands will go through building and packing the game for all supported systems
+#+BEGIN_SRC sh
+make pack-windows
+make pack-linux
+make pack-android
+#+END_SRC
+Resulting archives will be inside "pack" directory.
+
+* Contributions
+The project doesn't accept any contributions aside from bug reports and monetary donations at [[https://www.buymeacoffee.com/purrie][Link]].
+
+* Copyright
+Project has been made in collaboration between Purrie Brightstar and Rewalt Muchaczowicz.
+
+Unless otherwise stated, all code is released under GNU [[https://www.gnu.org/licenses/old-licenses/gpl-2.0.en.html][GPLv2]] license, while the art, music and other assets are under [[https://creativecommons.org/licenses/by-nc-sa/4.0/legalcode.en][CC-BY-NC-SAv4]] license.
+
+Project uses [[https://github.com/raysan5/raylib][Raylib]] which is licensed under zlib license.
+Project uses [[https://github.com/zserge/jsmn][JSMN]] which is licensed under MIT license.
