@@ -1373,7 +1373,7 @@ Result load_animations (Assets * assets) {
         if (compare_literal(identifier, "melee")) {
             unit_type = UNIT_TYPE_FIGHTER;
         }
-        else if (compare_literal(identifier, "archer")) {
+        else if (compare_literal(identifier, "range")) {
             unit_type = UNIT_TYPE_ARCHER;
         }
         else if (compare_literal(identifier, "support")) {
