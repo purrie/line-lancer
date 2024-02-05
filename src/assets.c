@@ -1593,6 +1593,9 @@ Result load_animations (Assets * assets) {
                         case 's': {
                             animations->attack_trigger = from;
                         } break;
+                        case 'b': {
+                            animations->cast_trigger = from;
+                        } break;
                         case 'm': {
                             animations->walk_start = from;
                             for (usize tt = from; tt <= to; tt++) {

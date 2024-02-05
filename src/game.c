@@ -210,12 +210,12 @@ void update_unit_state (GameState * state) {
                     unit->state_time = 0;
                     unit->state = UNIT_STATE_IDLE;
                 }
-
             } break;
             case UNIT_STATE_SUPPORTING: {
                 if (support_can_support(unit, &buffer) == NO) {
                     unit->state_time = 0;
                     unit->state = UNIT_STATE_IDLE;
+                    unit->attacked = false;
                 }
             } break;
             // do nothing, guardians are always in this state, regular units never enter this state
@@ -367,6 +367,16 @@ void units_support (GameState * state, float delta_time) {
         if (unit->cooldown > 0)
             continue;
 
+        const AnimationSet * animations =
+            &state->resources->animations.sets[unit->faction][unit->type][unit->upgrade];
+
+        float cast_len = animations->cast_duration;
+        if (unit->state_time >= cast_len) {
+            unit->state_time = 0;
+            unit->attacked = false;
+        }
+        if (unit->attacked) continue;
+
         switch (unit->faction) {
             case FACTION_KNIGHTS: {
                 if (get_allies_in_range(unit, &buffer)) {
@@ -398,7 +408,7 @@ void units_support (GameState * state, float delta_time) {
                     continue;
                 }
                 unit->cooldown = get_unit_cooldown(unit);
-                unit->state_time = 0;
+                unit->attacked = true;
                 unit->facing_direction = Vector2Normalize(Vector2Subtract(most_hurt->position, unit->position));
                 listMagicEffectAppend(&most_hurt->effects, magic);
                 particles_magic(state, unit, most_hurt);
@@ -423,7 +433,7 @@ void units_support (GameState * state, float delta_time) {
                         goto next;
                     }
                     unit->cooldown = get_unit_cooldown(unit);
-                    unit->state_time = 0;
+                    unit->attacked = true;
                     unit->facing_direction = Vector2Normalize(Vector2Subtract(target->position, unit->position));
                     listMagicEffectAppend(&target->effects, magic);
                     particles_magic(state, unit, target);
@@ -447,6 +457,7 @@ void units_fight (GameState * state, float delta_time) {
 
         const AnimationSet * animations =
             &state->resources->animations.sets[unit->faction][unit->type][unit->upgrade];
+
         float attack_len = animations->attack_duration;
         if (unit->state_time >= attack_len) {
             unit->state_time = 0;

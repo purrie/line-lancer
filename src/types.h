@@ -318,6 +318,7 @@ struct AnimationSet {
     uint8_t attack_start;
     uint8_t cast_start;
     uint8_t attack_trigger;
+    uint8_t cast_trigger;
 };
 
 struct Animations {
