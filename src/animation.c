@@ -30,6 +30,21 @@ void render_debug_unit (const GameState * game, const Unit * unit) {
     BeginShaderMode(game->resources->outline_shader);
 }
 
+float unit_scale[FACTION_COUNT][UNIT_TYPE_COUNT][UNIT_LEVELS] = {
+    [FACTION_KNIGHTS] = {
+        [UNIT_TYPE_FIGHTER] = { 1.0f, 1.0f, 1.0f },
+        [UNIT_TYPE_ARCHER]  = { 1.0f, 1.0f, 1.0f },
+        [UNIT_TYPE_SUPPORT] = { 1.0f, 1.0f, 1.0f },
+        [UNIT_TYPE_SPECIAL] = { 1.5f, 1.5f, 1.5f },
+    },
+    [FACTION_MAGES] = {
+        [UNIT_TYPE_FIGHTER] = { 1.0f, 1.0f, 1.0f },
+        [UNIT_TYPE_ARCHER]  = { 1.0f, 1.0f, 1.0f },
+        [UNIT_TYPE_SUPPORT] = { 1.0f, 1.0f, 1.0f },
+        [UNIT_TYPE_SPECIAL] = { 1.0f, 1.0f, 1.0f },
+    }
+};
+
 void animate_unit (const GameState * game, const Unit * unit) {
     if (unit->type >= UNIT_TYPE_COUNT) {
         TraceLog(LOG_ERROR, "Tried to animate units that can't be animated");
@@ -84,11 +99,13 @@ void animate_unit (const GameState * game, const Unit * unit) {
     }
     Rectangle source = set.frames.items[index].source;
 
+    float scale = unit_scale[unit->faction][unit->type][unit->upgrade];
+
     Rectangle target = {
         .x = unit->position.x,
         .y = unit->position.y,
-        .width = NAV_GRID_SIZE,
-        .height = NAV_GRID_SIZE,
+        .width = NAV_GRID_SIZE * scale,
+        .height = NAV_GRID_SIZE * scale,
     };
     Vector2 origin = { target.width * 0.5f, target.height * 0.5f };
 

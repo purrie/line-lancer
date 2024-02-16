@@ -8,7 +8,7 @@ uniform vec4 colDiffuse;
 
 void main () {
     vec4 my_color = texture2D(texture0, fragTexCoord);
-    float size = 64.0;
+    float size = 128.0;
     float scale = 0.2 / size;
 
     vec2 corner1 = fragTexCoord + vec2(scale);
