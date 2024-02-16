@@ -82,125 +82,125 @@ Test unit_should_repath (const Unit * unit) {
     return NO;
 }
 
+/* Balance *******************************************************************/
+// @balance
+// @volitile=faction
+// @volitile=unit
+usize unit_range[FACTION_COUNT][UNIT_TYPE_ALL_COUNT][UNIT_LEVELS] = {
+    [FACTION_KNIGHTS] = {
+        [UNIT_FIGHTER]  = { 1, 1, 1 },
+        [UNIT_ARCHER]   = { 3, 4, 5 },
+        [UNIT_SUPPORT]  = { 4, 5, 6 },
+        [UNIT_SPECIAL]  = { 2, 2, 2 },
+        [UNIT_GUARDIAN] = { 8, 8, 8 },
+    },
+    [FACTION_MAGES] = {
+        [UNIT_FIGHTER]  = { 1, 1, 1 },
+        [UNIT_ARCHER]   = { 3, 4, 5 },
+        [UNIT_SUPPORT]  = { 4, 5, 6 },
+        [UNIT_SPECIAL]  = { 2, 2, 2 },
+        [UNIT_GUARDIAN] = { 8, 8, 8 },
+    },
+};
+float unit_damage[FACTION_COUNT][UNIT_TYPE_ALL_COUNT][UNIT_LEVELS] = {
+    [FACTION_KNIGHTS] = {
+        [UNIT_FIGHTER]  = { 25, 28, 30 },
+        [UNIT_ARCHER]   = { 25, 25, 35 },
+        [UNIT_SUPPORT]  = { 20, 20, 20 },
+        [UNIT_SPECIAL]  = { 25, 28, 30 },
+        [UNIT_GUARDIAN] = { 15 },
+    },
+    [FACTION_MAGES] = {
+        [UNIT_FIGHTER]  = { 50, 60, 70 },
+        [UNIT_ARCHER]   = { 35, 40, 45 },
+        [UNIT_SUPPORT]  = { 10, 20, 30 },
+        [UNIT_SPECIAL]  = { 10, 20, 30 },
+        [UNIT_GUARDIAN] = { 20, 20, 20 },
+    },
+};
+float unit_health_max[FACTION_COUNT][UNIT_TYPE_ALL_COUNT][UNIT_LEVELS] = {
+    [FACTION_KNIGHTS] = {
+        [UNIT_FIGHTER]  = { 125, 135, 145 },
+        [UNIT_ARCHER]   = { 110, 115, 120 },
+        [UNIT_SUPPORT]  = { 110, 115, 120 },
+        [UNIT_SPECIAL]  = { 125, 135, 145 },
+        [UNIT_GUARDIAN] = { 4000 },
+    },
+    [FACTION_MAGES] = {
+        [UNIT_FIGHTER]  = { 105, 105, 105 },
+        [UNIT_ARCHER]   = { 100, 100, 100 },
+        [UNIT_SUPPORT]  = { 100, 100, 100 },
+        [UNIT_SPECIAL]  = { 105, 105, 105 },
+        [UNIT_GUARDIAN] = { 4000, 4000, 4000 },
+    },
+};
+float unit_attack_cooldown[FACTION_COUNT][UNIT_TYPE_ALL_COUNT][UNIT_LEVELS] = {
+    [FACTION_KNIGHTS] = {
+        [UNIT_FIGHTER]  = { 0.4f, 0.38f, 0.36f },
+        [UNIT_ARCHER]   = { 0.7f, 0.7f, 1.2f },
+        [UNIT_SUPPORT]  = { 1.0f, 1.0f, 1.0f },
+        [UNIT_SPECIAL]  = { 0.4f, 0.38f, 0.36f },
+        [UNIT_GUARDIAN] = { 1.0f },
+    },
+    [FACTION_MAGES] = {
+        [UNIT_FIGHTER]  = { 0.5f, 0.5f, 0.5f },
+        [UNIT_ARCHER]   = { 1.7f, 1.7f, 1.7f },
+        [UNIT_SUPPORT]  = { 1.9f, 1.9f, 1.9f },
+        [UNIT_SPECIAL]  = { 0.2f, 0.15f, 0.1f },
+        [UNIT_GUARDIAN] = { 1.1f, 1.1f, 1.1f },
+    },
+};
+float unit_projectile_hit_delay[FACTION_COUNT][UNIT_TYPE_ALL_COUNT][UNIT_LEVELS] = {
+    [FACTION_KNIGHTS] = {
+        [UNIT_FIGHTER]  = { 0.2f, 0.2f, 0.2f },
+        [UNIT_ARCHER]   = { 1.0f, 1.0f, 0.6f },
+        [UNIT_SUPPORT]  = { 1.0f, 1.0f, 1.0f },
+        [UNIT_SPECIAL]  = { 0.2f, 0.2f, 0.2f },
+        [UNIT_GUARDIAN] = { 1.0f },
+    },
+    [FACTION_MAGES] = {
+        [UNIT_FIGHTER]  = { 0.4f, 0.4f, 0.4f },
+        [UNIT_ARCHER]   = { 1.7f, 1.7f, 1.7f },
+        [UNIT_SUPPORT]  = { 0.4f, 0.4f, 0.4f },
+        [UNIT_SPECIAL]  = { 0.19f, 0.14f, 0.09f },
+        [UNIT_GUARDIAN] = { 1.0f, 1.0f, 1.0f },
+    },
+};
+float unit_move_speed[FACTION_COUNT][UNIT_TYPE_ALL_COUNT][UNIT_LEVELS] = {
+    [FACTION_KNIGHTS] = {
+        [UNIT_FIGHTER]  = { 20.0f, 20.0f, 20.0f },
+        [UNIT_ARCHER]   = { 20.0f, 20.0f, 20.0f },
+        [UNIT_SUPPORT]  = { 20.0f, 20.0f, 20.0f },
+        [UNIT_SPECIAL]  = { 30.0f, 35.0f, 40.0f },
+        [UNIT_GUARDIAN] = { 0.0f },
+    },
+    [FACTION_MAGES] = {
+        [UNIT_FIGHTER]  = { 15.0f, 20.0f, 25.0f },
+        [UNIT_ARCHER]   = { 15.0f, 18.0f, 22.0f },
+        [UNIT_SUPPORT]  = { 25.0f, 30.0f, 35.0f },
+        [UNIT_SPECIAL]  = { 25.0f, 30.0f, 35.0f },
+        [UNIT_GUARDIAN] = { 0.0f, 0.0f, 0.0f },
+    },
+};
+float unit_support_power_strength[FACTION_COUNT][UNIT_LEVELS] = {
+    [FACTION_KNIGHTS] = { 0.05f, 0.1f, 0.15f },
+    [FACTION_MAGES]   = { 0.15f, 0.3f, 0.5f },
+};
+float unit_support_power_duration[FACTION_COUNT][UNIT_LEVELS] = {
+    [FACTION_KNIGHTS] = { 5.0f, 10.0f, 15.0f },
+    [FACTION_MAGES]   = { 5.0f, 10.0f, 15.0f },
+};
+float unit_support_power_type[FACTION_COUNT] = {
+    [FACTION_KNIGHTS] = MAGIC_HEALING,
+    [FACTION_MAGES] = MAGIC_WEAKNESS,
+};
+
 /* Combat ********************************************************************/
 usize get_unit_range (const Unit * unit) {
-    // @balance
-    switch(unit->type) {
-        case UNIT_FIGHTER:
-            return 1;
-        case UNIT_ARCHER:
-            return 3 + unit->upgrade;
-        case UNIT_SUPPORT:
-            return 4 + unit->upgrade;
-        case UNIT_SPECIAL:
-            switch (unit->faction) {
-                case FACTION_KNIGHTS: return 2;
-                case FACTION_MAGES: return 2;
-            }
-            break;
-        case UNIT_GUARDIAN:
-            switch (unit->faction) {
-                case FACTION_KNIGHTS: return UNIT_MAX_RANGE + 2;
-                case FACTION_MAGES: return UNIT_MAX_RANGE + 2;
-            }
-            break;
-    }
-    TraceLog(LOG_ERROR, "Failed to resolve unit to get range");
-    return 1;
+    return unit_range[unit->faction][unit->type][unit->upgrade];
 }
 float get_unit_attack_damage (const Unit * unit) {
-    // @balance
-    float attack;
-    switch (unit->type) {
-        case UNIT_FIGHTER: {
-            switch (unit->faction) {
-                case FACTION_KNIGHTS:
-                    switch (unit->upgrade) {
-                        case 0: attack = 32.0f; break;
-                        case 1: attack = 40.0f; break;
-                        case 2: attack = 64.0f; break;
-                        default: goto invalid;
-                    } break;
-                case FACTION_MAGES:
-                    switch (unit->upgrade) {
-                        case 0: attack = 50.0f; break;
-                        case 1: attack = 60.0f; break;
-                        case 2: attack = 70.0f; break;
-                        default: goto invalid;
-                    } break;
-                default: goto invalid;
-            }
-        } break;
-        case UNIT_ARCHER: {
-            switch (unit->faction) {
-                case FACTION_KNIGHTS:
-                    switch (unit->upgrade) {
-                        case 0: attack = 25.0f; break;
-                        case 1: attack = 30.0f; break;
-                        case 2: attack = 35.0f; break;
-                        default: goto invalid;
-                    } break;
-                case FACTION_MAGES:
-                    switch (unit->upgrade) {
-                        case 0: attack = 35.0f; break;
-                        case 1: attack = 40.0f; break;
-                        case 2: attack = 45.0f; break;
-                        default: goto invalid;
-                    } break;
-                default: goto invalid;
-            }
-        } break;
-        case UNIT_SUPPORT: {
-            switch (unit->faction) {
-                case FACTION_KNIGHTS:
-                    switch (unit->upgrade) {
-                        case 0: attack = 10.0f; break;
-                        case 1: attack = 20.0f; break;
-                        case 2: attack = 30.0f; break;
-                        default: goto invalid;
-                    } break;
-                case FACTION_MAGES:
-                    switch (unit->upgrade) {
-                        case 0: attack = 10.0f; break;
-                        case 1: attack = 20.0f; break;
-                        case 2: attack = 30.0f; break;
-                        default: goto invalid;
-                    } break;
-                default: goto invalid;
-            }
-        } break;
-        case UNIT_SPECIAL: {
-            switch (unit->faction) {
-                case FACTION_KNIGHTS:
-                    switch (unit->upgrade) {
-                        case 0: attack = 40.0f; break;
-                        case 1: attack = 55.0f; break;
-                        case 2: attack = 70.0f; break;
-                        default: goto invalid;
-                    } break;
-                case FACTION_MAGES:
-                    switch (unit->upgrade) {
-                        case 0: attack = 10.0f; break;
-                        case 1: attack = 20.0f; break;
-                        case 2: attack = 30.0f; break;
-                        default: goto invalid;
-                    } break;
-                default: goto invalid;
-            }
-        } break;
-        case UNIT_GUARDIAN: {
-            switch (unit->faction) {
-                case FACTION_KNIGHTS: attack = 20.0f; break;
-                case FACTION_MAGES:   attack = 20.0f; break;
-                default: goto invalid;
-            }
-        } break;
-        default: {
-            invalid:
-            TraceLog(LOG_ERROR, "Requested attack for unit with no valid type");
-            return 1.0f;
-        } break;
-    }
+    float attack = unit_damage[unit->faction][unit->type][unit->upgrade];
     float bonus = 0.0f;
     for (usize i = 0; i < unit->effects.len; i++) {
         switch (unit->effects.items[i].type) {
@@ -214,239 +214,32 @@ float get_unit_attack_damage (const Unit * unit) {
     return attack + bonus;
 }
 Result get_unit_support_power (const Unit * unit, MagicEffect * effect) {
-    // @balance
     if (unit->type != UNIT_SUPPORT)
         return FAILURE;
-    switch (unit->faction) {
-        case FACTION_KNIGHTS: {
-            *effect = (MagicEffect){
-                .type = MAGIC_HEALING,
-                .strength = 0.05f * (unit->upgrade + 1),
-                .duration = 5.0f * (unit->upgrade + 1),
-                .source_player = unit->player_owned,
-            };
-            return SUCCESS;
-        }
-        case FACTION_MAGES: {
-            *effect = (MagicEffect){
-                .type = MAGIC_WEAKNESS,
-                .strength = 0,
-                .duration = 5.0f * (unit->upgrade + 1),
-                .source_player = unit->player_owned,
-            };
-            switch (unit->upgrade) {
-                case 0: effect->strength = 0.15f; break;
-                case 1: effect->strength = 0.3f; break;
-                case 2: effect->strength = 0.5f; break;
-                default:
-                    TraceLog(LOG_ERROR, "Unit's upgrade is out of range");
-                    return FAILURE;
-            }
-            return SUCCESS;
-        }
-    }
-    TraceLog(LOG_ERROR, "Unsupported support unit");
-    return FAILURE;
+
+    *effect = (MagicEffect) {
+        .type = unit_support_power_type[unit->faction],
+        .strength = unit_support_power_strength[unit->faction][unit->upgrade],
+        .duration = unit_support_power_duration[unit->faction][unit->upgrade],
+        .source_player = unit->player_owned,
+    };
+
+    return SUCCESS;
 }
 float get_unit_health (UnitType type, FactionType faction, unsigned int upgrades) {
-    // @balance
-    switch (type) {
-        case UNIT_FIGHTER:
-            switch (faction) {
-                case FACTION_KNIGHTS:
-                    switch (upgrades) {
-                        case 0: return 105.0f;
-                        case 1: return 135.0f;
-                        case 2: return 165.0f;
-                    } break;
-                case FACTION_MAGES:
-                    switch (upgrades) {
-                        case 0: return 160.0f;
-                        case 1: return 180.0f;
-                        case 2: return 200.0f;
-                    } break;
-            } break;
-        case UNIT_ARCHER:
-            switch (faction) {
-                case FACTION_KNIGHTS:
-                    switch (upgrades) {
-                        case 0: return 80.0f;
-                        case 1: return 100.0f;
-                        case 2: return 120.0f;
-                    } break;
-                case FACTION_MAGES:
-                    switch (upgrades) {
-                        case 0: return 60.0f;
-                        case 1: return 80.0f;
-                        case 2: return 100.0f;
-                    } break;
-            } break;
-        case UNIT_SUPPORT:
-            switch (faction) {
-                case FACTION_KNIGHTS:
-                    switch (upgrades) {
-                        case 0: return 50.0f;
-                        case 1: return 60.0f;
-                        case 2: return 70.0f;
-                    } break;
-                case FACTION_MAGES:
-                    switch (upgrades) {
-                        case 0: return 50.0f;
-                        case 1: return 60.0f;
-                        case 2: return 70.0f;
-                    } break;
-            } break;
-        case UNIT_SPECIAL:
-            switch (faction) {
-                case FACTION_KNIGHTS:
-                    switch (upgrades) {
-                        case 0: return 110.0f;
-                        case 1: return 150.0f;
-                        case 2: return 170.0f;
-                    } break;
-                case FACTION_MAGES:
-                    switch (upgrades) {
-                        case 0: return 100.0f;
-                        case 1: return 130.0f;
-                        case 2: return 160.0f;
-                    } break;
-            } break;
-        case UNIT_GUARDIAN:
-            switch (faction) {
-                case FACTION_KNIGHTS: return 4000.0f;
-                case FACTION_MAGES:   return 4000.0f;
-            }
-            break;
-    }
-    TraceLog(LOG_ERROR, "Tried to obtain health of unsupported unit type");
-    return 1.0f;
+    return unit_health_max[faction][type][upgrades];
 }
 float get_unit_wounds (const Unit * unit) {
     return get_unit_health(unit->type, unit->faction, unit->upgrade) - unit->health;
 }
 float get_unit_cooldown (const Unit * unit) {
-    // @balance
-    switch (unit->faction) {
-        case FACTION_KNIGHTS: {
-            switch (unit->type) {
-                case UNIT_FIGHTER:  return 0.4f;
-                case UNIT_ARCHER:   return 1.7f;
-                case UNIT_SUPPORT:  return 2.5f;
-                case UNIT_SPECIAL:  return 0.4f;
-                case UNIT_GUARDIAN: return 1.2f;
-            }
-        } break;
-        case FACTION_MAGES: {
-            switch (unit->type) {
-                case UNIT_FIGHTER:  return 0.5f;
-                case UNIT_ARCHER:   return 1.7f;
-                case UNIT_SUPPORT:  return 1.9f;
-                case UNIT_SPECIAL:  return 0.2f - (unit->upgrade * 0.05f);
-                case UNIT_GUARDIAN: return 1.1f;
-            }
-        } break;
-    }
-    TraceLog(LOG_ERROR, "Attempted to get cooldown from unsupported unit");
-    return 1.0f;
+    return unit_attack_cooldown[unit->faction][unit->type][unit->upgrade];
 }
 float get_unit_attack_delay  (const Unit * unit) {
-    // @balance
-    switch (unit->faction) {
-        case FACTION_KNIGHTS: {
-            switch (unit->type) {
-                case UNIT_FIGHTER:  return 0.3f;
-                case UNIT_ARCHER:   return 1.0f;
-                case UNIT_SUPPORT:  return 1.0f;
-                case UNIT_SPECIAL:  return 0.4f;
-                case UNIT_GUARDIAN: return 1.0f;
-            }
-        } break;
-        case FACTION_MAGES: {
-            switch (unit->type) {
-                case UNIT_FIGHTER:  return 0.4f;
-                case UNIT_ARCHER:   return 0.7f;
-                case UNIT_SUPPORT:  return 0.4f;
-                case UNIT_SPECIAL:  return 0.19f - (unit->upgrade * 0.05f);
-                case UNIT_GUARDIAN: return 1.0f;
-            }
-        } break;
-    }
-    TraceLog(LOG_ERROR, "Attempted to get cooldown from unsupported unit");
-    return 1.0f;
+    return unit_projectile_hit_delay[unit->faction][unit->type][unit->upgrade];
 }
 float get_unit_speed (const Unit * unit) {
-    // @balance
-    float speed = 0;
-    switch (unit->faction) {
-        case FACTION_KNIGHTS:
-            switch (unit->type) {
-                case UNIT_FIGHTER:
-                    switch (unit->upgrade) {
-                        case 0: return 20.0f;
-                        case 1: return 25.0f;
-                        case 2: return 30.0f;
-                        default: TraceLog(LOG_FATAL, "Unit has invalid level"); return 0;
-                    }
-                case UNIT_ARCHER:
-                    switch (unit->upgrade) {
-                        case 0: return 20.0f;
-                        case 1: return 25.0f;
-                        case 2: return 30.0f;
-                        default: TraceLog(LOG_FATAL, "Unit has invalid level"); return 0;
-                    }
-                case UNIT_SUPPORT:
-                    switch (unit->upgrade) {
-                        case 0: return 15.0f;
-                        case 1: return 18.0f;
-                        case 2: return 22.0f;
-                        default: TraceLog(LOG_FATAL, "Unit has invalid level"); return 0;
-                    }
-                case UNIT_SPECIAL:
-                    switch (unit->upgrade) {
-                        case 0: return 30.0f;
-                        case 1: return 35.0f;
-                        case 2: return 40.0f;
-                        default: TraceLog(LOG_FATAL, "Unit has invalid level"); return 0;
-                    }
-                case UNIT_GUARDIAN: return 0.0f;
-                default: TraceLog(LOG_FATAL, "Unit has invalid type"); return 0;
-            }
-        case FACTION_MAGES:
-            switch (unit->type) {
-                case UNIT_FIGHTER:
-                    switch (unit->upgrade) {
-                        case 0: return 15.0f;
-                        case 1: return 20.0f;
-                        case 2: return 25.0f;
-                        default: TraceLog(LOG_FATAL, "Unit has invalid level"); return 0;
-                    }
-                case UNIT_ARCHER:
-                    switch (unit->upgrade) {
-                        case 0: return 15.0f;
-                        case 1: return 18.0f;
-                        case 2: return 22.0f;
-                        default: TraceLog(LOG_FATAL, "Unit has invalid level"); return 0;
-                    }
-                case UNIT_SUPPORT:
-                    switch (unit->upgrade) {
-                        case 0: return 25.0f;
-                        case 1: return 30.0f;
-                        case 2: return 35.0f;
-                        default: TraceLog(LOG_FATAL, "Unit has invalid level"); return 0;
-                    }
-                case UNIT_SPECIAL:
-                    switch (unit->upgrade) {
-                        case 0: return 25.0f;
-                        case 1: return 30.0f;
-                        case 2: return 35.0f;
-                        default: TraceLog(LOG_FATAL, "Unit has invalid level"); return 0;
-                    }
-                case UNIT_GUARDIAN: return 0.0f;
-                default: TraceLog(LOG_FATAL, "Unit has invalid type"); return 0;
-            }
-        default: TraceLog(LOG_FATAL, "Unit has invalid faction"); return 0;
-    }
-    return speed;
+    return unit_move_speed[unit->faction][unit->type][unit->upgrade];
 }
 Unit * get_enemy_in_range (const Unit * unit) {
     WayPoint * node = unit->waypoint;

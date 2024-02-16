@@ -300,7 +300,7 @@ usize building_buy_cost (BuildingType type) {
         case BUILDING_FIGHTER:  return 10;
         case BUILDING_ARCHER:   return 15;
         case BUILDING_SUPPORT:  return 20;
-        case BUILDING_SPECIAL:  return 40;
+        case BUILDING_SPECIAL:  return 30;
         case BUILDING_RESOURCE: return 15;
         default: {
             TraceLog(LOG_ERROR, "Attempted to get cost of unbuildable building type");
@@ -366,8 +366,8 @@ float building_trigger_interval (const Building * building) {
             break;
         case BUILDING_SPECIAL:
             switch (building->region->faction) {
-                case FACTION_KNIGHTS: return 9.0f + (building->units_spawned * 0.2f);
-                case FACTION_MAGES:   return 9.0f + (building->units_spawned * 0.2f);
+                case FACTION_KNIGHTS: return 7.0f + (building->units_spawned * 0.2f);
+                case FACTION_MAGES:   return 7.0f + (building->units_spawned * 0.2f);
             }
             break;
     }

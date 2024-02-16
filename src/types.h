@@ -91,6 +91,7 @@ makeList(NavGraph, NavGraph);
 makeList(Unit*, Unit);
 makeList(Region*, RegionP);
 
+// @volitile=faction
 typedef enum FactionType {
     FACTION_KNIGHTS = 0,
     FACTION_MAGES = 1,
@@ -99,6 +100,7 @@ typedef enum FactionType {
 
 #define FACTION_COUNT (FACTION_LAST + 1)
 
+// @volitile=unit
 typedef enum {
     UNIT_FIGHTER,
     UNIT_ARCHER,
@@ -107,6 +109,10 @@ typedef enum {
     UNIT_GUARDIAN,
 } UnitType ;
 
+// @volitile=unit
+#define UNIT_TYPE_ALL_COUNT (UNIT_GUARDIAN + 1)
+
+// @volitile=unit
 typedef enum {
    UNIT_TYPE_FIGHTER = UNIT_FIGHTER,
    UNIT_TYPE_ARCHER = UNIT_ARCHER,
@@ -114,6 +120,7 @@ typedef enum {
    UNIT_TYPE_SPECIAL = UNIT_SPECIAL,
 } UnitActiveType;
 
+// @volitile=unit
 #define UNIT_TYPE_COUNT (UNIT_TYPE_SPECIAL + 1)
 
 typedef enum {

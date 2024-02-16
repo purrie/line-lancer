@@ -18,6 +18,7 @@
 
 #define UNIT_SIZE 6.0f
 #define UNIT_MAX_RANGE 6
+// @volitile=unit
 #define UNIT_LEVELS 3
 
 #define PARTICLES_MAX 512
