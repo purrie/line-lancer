@@ -239,19 +239,15 @@ void state_building (GameState * state) {
         usize cost = building_buy_cost(type);
         PlayerData * player = &state->players.items[state->selected_building->region->player_id];
         #ifdef DEBUG
-        if (player->resource_gold >= cost || IsKeyDown(KEY_LEFT_SHIFT)) {
-            play_sound(state->resources, SOUND_BUILDING_BUILD);
-            place_building(state->selected_building, type);
-            if (IsKeyDown(KEY_LEFT_SHIFT) == false)
-                player->resource_gold -= cost;
+        if (IsKeyDown(KEY_LEFT_SHIFT)) {
+            cost = 0;
         }
-        #else
+        #endif
         if (player->resource_gold >= cost) {
             play_sound(state->resources, SOUND_BUILDING_BUILD);
             place_building(state->selected_building, type);
             player->resource_gold -= cost;
         }
-        #endif
         state->current_input = INPUT_NONE;
         state->selected_building = NULL;
     }
@@ -277,6 +273,11 @@ void state_building (GameState * state) {
             } break;
             case BUILDING_ACTION_UPGRADE: {
                 usize cost = building_upgrade_cost(state->selected_building);
+                #ifdef DEBUG
+                if (IsKeyDown(KEY_LEFT_SHIFT)) {
+                    cost = 0;
+                }
+                #endif
                 PlayerData * player = &state->players.items[state->selected_building->region->player_id];
                 if (player->resource_gold >= cost) {
                     play_sound(state->resources, SOUND_BUILDING_UPGRADE);
