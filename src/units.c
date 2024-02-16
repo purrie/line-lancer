@@ -91,7 +91,7 @@ usize unit_range[FACTION_COUNT][UNIT_TYPE_ALL_COUNT][UNIT_LEVELS] = {
         [UNIT_FIGHTER]  = { 1, 1, 1 },
         [UNIT_ARCHER]   = { 3, 4, 5 },
         [UNIT_SUPPORT]  = { 4, 5, 6 },
-        [UNIT_SPECIAL]  = { 2, 2, 2 },
+        [UNIT_SPECIAL]  = { 1, 1, 1 },
         [UNIT_GUARDIAN] = { 8, 8, 8 },
     },
     [FACTION_MAGES] = {
@@ -107,7 +107,7 @@ float unit_damage[FACTION_COUNT][UNIT_TYPE_ALL_COUNT][UNIT_LEVELS] = {
         [UNIT_FIGHTER]  = { 25, 28, 30 },
         [UNIT_ARCHER]   = { 25, 25, 35 },
         [UNIT_SUPPORT]  = { 20, 20, 20 },
-        [UNIT_SPECIAL]  = { 25, 28, 30 },
+        [UNIT_SPECIAL]  = { 30, 32, 35 },
         [UNIT_GUARDIAN] = { 15 },
     },
     [FACTION_MAGES] = {
