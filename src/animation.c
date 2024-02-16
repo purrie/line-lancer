@@ -32,10 +32,10 @@ void render_debug_unit (const GameState * game, const Unit * unit) {
 
 float unit_scale[FACTION_COUNT][UNIT_TYPE_COUNT][UNIT_LEVELS] = {
     [FACTION_KNIGHTS] = {
-        [UNIT_TYPE_FIGHTER] = { 1.0f, 1.0f, 1.0f },
-        [UNIT_TYPE_ARCHER]  = { 1.0f, 1.0f, 1.0f },
-        [UNIT_TYPE_SUPPORT] = { 1.0f, 1.0f, 1.0f },
-        [UNIT_TYPE_SPECIAL] = { 1.5f, 1.5f, 1.5f },
+        [UNIT_TYPE_FIGHTER] = { 0.8f, 0.8f, 0.8f },
+        [UNIT_TYPE_ARCHER]  = { 0.8f, 0.8f, 0.8f },
+        [UNIT_TYPE_SUPPORT] = { 0.8f, 0.8f, 0.8f },
+        [UNIT_TYPE_SPECIAL] = { 1.6f, 1.6f, 1.6f },
     },
     [FACTION_MAGES] = {
         [UNIT_TYPE_FIGHTER] = { 1.0f, 1.0f, 1.0f },
