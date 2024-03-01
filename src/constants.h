@@ -4,6 +4,8 @@
 #ifndef RELEASE
 #define DEBUG
 /* #define DEBUG_AI */
+#else
+#define NDEBUG
 #endif
 
 #if defined(ANDROID)

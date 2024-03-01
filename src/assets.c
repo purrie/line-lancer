@@ -1,7 +1,10 @@
+#include "constants.h"
+
 #include <raylib.h>
 #include <raymath.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <assert.h>
 
 #if !defined (_WIN32)
 #include <sys/types.h>
@@ -16,7 +19,6 @@
 #include "math.h"
 #include "assets.h"
 #include "std.h"
-#include "constants.h"
 #include "alloc.h"
 #include "ui.h"
 #include "animation.h"
@@ -1449,7 +1451,6 @@ Result load_animations (Assets * assets) {
                 cursor = skip_tokens(tokens, cursor);
                 continue;
             }
-            int end = tokens[cursor].parent;
             cursor++;
             if (tokens[cursor].type != JSMN_ARRAY) {
                 TraceLog(LOG_ERROR, "Expected frames to be within an array");
@@ -1463,7 +1464,7 @@ Result load_animations (Assets * assets) {
             cursor++;
 
             // loading frames
-            while (cursor < token_count && tokens[cursor].parent != end) {
+            while (cursor < token_count) {
                 if (cursor >= token_count || tokens[cursor].parent != frame_object_index) {
                     // finished loading frame data, save it into the array
                     AnimationFrame new = {
@@ -1577,6 +1578,7 @@ Result load_animations (Assets * assets) {
                         log_slice(LOG_ERROR, "Failed to load tag end", value);
                         goto next_file;
                     }
+                    assert((to < animations->frames.len) && "Animation frames out of range");
                     switch (tag_type) {
                         case 'i': {
                             animations->idle_start = from;
