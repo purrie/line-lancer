@@ -367,13 +367,6 @@ void make_purchasing_decision (GameState * state, usize player_index) {
     #error "Expected max building level to be 2 for this AI to work correctly"
     #endif
 
-    #ifdef DEBUG
-    if (BUILDING_TYPE_LAST != BUILDING_RESOURCE) {
-        TraceLog(LOG_FATAL, "We expect the resource building to be last to prevent out of bounds error");
-        return;
-    }
-    #endif
-
     float income = get_expected_income(&state->map, player_index);
     float upkeep = get_expected_maintenance_cost(&state->map, player_index);
 
@@ -386,9 +379,9 @@ void make_purchasing_decision (GameState * state, usize player_index) {
     usize buildings_first_level_count = 0;
     /* usize buildings_second_level_count = 0; */
     usize buildings_total = 0;
-    usize buildings_unupgraded_spread[BUILDING_TYPE_LAST + 1] = {0};
-    usize buildings_first_level_spread[BUILDING_TYPE_LAST + 1] = {0};
-    usize buildings_second_level_spread[BUILDING_TYPE_LAST + 1] = {0};
+    usize buildings_unupgraded_spread[BUILDING_TYPE_COUNT] = {0};
+    usize buildings_first_level_spread[BUILDING_TYPE_COUNT] = {0};
+    usize buildings_second_level_spread[BUILDING_TYPE_COUNT] = {0};
 
 
     for (usize r = 0; r < ai->regions.len; r++) {
@@ -426,7 +419,12 @@ void make_purchasing_decision (GameState * state, usize player_index) {
     }
 
     // choose what to buy
-    if (upkeep + ai->buildings.resources >= income) {
+    bool needs_income = upkeep + ai->buildings.resources >= income;
+    bool too_many_spendings = (buildings_unupgraded_spread[BUILDING_RESOURCE] +
+                               buildings_first_level_spread[BUILDING_RESOURCE] * 2 +
+                               buildings_second_level_spread[BUILDING_RESOURCE] * 3) < buildings_total;
+    too_many_spendings = too_many_spendings && player->resource_gold < 500;
+    if (needs_income || too_many_spendings) {
         wanted_building = BUILDING_RESOURCE;
         wanted_upgrade = buildings_unupgraded_spread[BUILDING_RESOURCE] || buildings_first_level_spread[BUILDING_RESOURCE];
         wanted_building_upgrade_level = buildings_unupgraded_spread[BUILDING_RESOURCE] == 0;

@@ -342,6 +342,7 @@ typedef struct {
     float max;
 } Range;
 
+// @volitile=buildings
 typedef enum {
     BUILDING_EMPTY = 0,
     BUILDING_FIGHTER,
@@ -349,8 +350,10 @@ typedef enum {
     BUILDING_SUPPORT,
     BUILDING_SPECIAL,
     BUILDING_RESOURCE,
-    BUILDING_TYPE_LAST = BUILDING_RESOURCE,
 } BuildingType;
+
+#define BUILDING_TYPE_LAST BUILDING_RESOURCE
+#define BUILDING_TYPE_COUNT (BUILDING_RESOURCE + 1)
 
 struct Building {
     Vector2        position;
