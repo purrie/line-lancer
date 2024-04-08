@@ -332,8 +332,41 @@ Result unit_progress_path (Unit * unit) {
         return FAILURE;
     }
     WayPoint * next = unit->pathfind.items[unit->current_path];
-    if (next->blocked || next->unit) {
+    if (next->blocked) {
         return FAILURE;
+    }
+    if (next->unit) {
+        if (next->unit->faction != unit->faction) return FAILURE;
+        if (next->unit->type == UNIT_GUARDIAN) return FAILURE;
+
+        usize my_range = get_unit_range(unit);
+        usize other_range = get_unit_range(next->unit);
+        if (other_range <= my_range) return FAILURE;
+
+        switch (next->unit->state) {
+            case UNIT_STATE_CHASING:
+            case UNIT_STATE_MOVING:
+            case UNIT_STATE_GUARDING:
+                return FAILURE;
+            case UNIT_STATE_FIGHTING:
+            case UNIT_STATE_IDLE:
+            case UNIT_STATE_SUPPORTING:
+                next->unit->state = UNIT_STATE_MOVING;
+                next->unit->state_time = 0;
+                next->unit->attacked = false;
+                next->unit->current_path = 0;
+                if (listWayPointAppend(&next->unit->pathfind, unit->waypoint)) {
+                    return FAILURE;
+                }
+                next->unit->waypoint = unit->waypoint;
+                next->unit->facing_direction = Vector2Normalize(Vector2Subtract(unit->waypoint->world_position, next->unit->position));
+
+                unit->waypoint->unit = next->unit;
+                unit->waypoint = next;
+                unit->waypoint->unit = unit;
+                unit->facing_direction = Vector2Normalize(Vector2Subtract(unit->waypoint->world_position, unit->position));
+                return SUCCESS;
+        }
     }
     unit->waypoint->unit = NULL;
     unit->waypoint = next;

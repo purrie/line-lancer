@@ -2,6 +2,7 @@
 #include "pathfinding.h"
 #include "std.h"
 #include "level.h"
+#include "units.h"
 #include "math.h"
 #include "alloc.h"
 #include <raymath.h>
@@ -518,8 +519,18 @@ Result nav_find_path (WayPoint * start, NavTarget target, ListWayPoint * result)
                     } break;
                 }
             }
-            if (neighbor->blocked || neighbor->unit) {
+            if (neighbor->blocked) {
                 continue;
+            }
+            if (neighbor->unit) {
+                if (start->unit) {
+                    if (neighbor->unit->faction != start->unit->faction) continue;
+                    if (neighbor->unit->type == UNIT_GUARDIAN) continue;
+                    usize my_range = get_unit_range(start->unit);
+                    usize other_range = get_unit_range(neighbor->unit);
+                    if (other_range <= my_range) continue;
+                }
+                else continue;
             }
             // we are on border between graphs, either bordering two regions if they're too close, or on border of path and region
             if (neighbor->graph != point->graph) {
