@@ -80,10 +80,10 @@ ExecutionMode level_select (Assets * assets, GameState * game) {
         render_player_select(screen, game, selected_map);
 
         Rectangle cancel = cake_cut_vertical(&buttons, 0.5f, 0);
-        float width = MeasureText("Cancel", theme->font_size) + 10.0f;
-        float height = theme->font_size * 1.5f;
+        float width = MeasureText("Cancel", theme->font_size) + theme->frame_thickness * 2 + theme->margin * 2;
+        float height = theme->font_size * theme->frame_thickness * 2 + theme->margin * 2;
         cancel = cake_carve_to(cancel, width, height);
-        width = MeasureText("Start", theme->font_size) + 10.0f;
+        width = MeasureText("Start", theme->font_size) + theme->frame_thickness * 2 + theme->margin * 2;
         Rectangle accept = cake_carve_to(buttons, width, height);
 
         Vector2 cursor = GetMousePosition();
@@ -355,6 +355,7 @@ int main(void) {
         TraceLog(LOG_FATAL, "Failed to load animations");
         goto close;
     }
+    game_settings.theme.assets = &game_assets.ui;
 
     apply_sound_settings(&game_assets, &game_settings);
     #if !defined(ANDROID)

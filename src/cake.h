@@ -109,7 +109,7 @@ CAKE_RECT cake_carve_to (CAKE_RECT rect, float width, float height) {
     if (result.width > width) {
         float diff = result.width - width;
         result.x += diff * 0.5f;
-        result.width -= diff;
+        result.width = width;
     }
     if (result.height > height) {
         float diff = result.height - height;
@@ -123,7 +123,7 @@ CAKE_RECT cake_carve_width (CAKE_RECT rect, float width, float pivot) {
     if (result.width > width) {
         float diff = result.width - width;
         result.x += diff * pivot;
-        result.width -= diff;
+        result.width = width;
     }
     return result;
 }

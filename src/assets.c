@@ -32,6 +32,7 @@ typedef struct {
 } StringSlice;
 
 void unload_animations (Assets * assets);
+void unload_ui (UiAssets * assets);
 
 /* String Handling ***********************************************************/
 void log_slice(TraceLogLevel log_level, char * text, StringSlice slice) {
@@ -325,6 +326,7 @@ void assets_deinit (Assets * assets) {
     UnloadTexture(assets->ground_texture);
     UnloadTexture(assets->water_texture);
     UnloadTexture(assets->bridge_texture);
+    unload_ui(&assets->ui);
     UnloadShader(assets->water_shader);
     UnloadShader(assets->outline_shader);
 }
@@ -1311,12 +1313,130 @@ Result load_backgrounds (Assets * assets) {
     }
     return SUCCESS;
 }
+Result load_ui (UiAssets * assets) {
+    char * path = asset_path("ui", "background.png", &temp_alloc);
+    if (NULL == path) {
+        TraceLog(LOG_ERROR, "Temp allocator failed to allocate path for ui");
+        return FAILURE;
+    }
+    assets->background_box = load_texture(path);
+    if (0 == assets->background_box.format) {
+        TraceLog(LOG_ERROR, "Failed to load ui background box");
+        return FAILURE;
+    }
+    assets->background_box_info = (NPatchInfo) {
+        .source = { 0, 0, assets->background_box.width, assets->background_box.height },
+        .layout = NPATCH_NINE_PATCH,
+        .top    = 12,
+        .bottom = 12,
+        .left   = 12,
+        .right  = 12,
+    };
+
+    path = asset_path("ui", "button.png", &temp_alloc);
+    if (NULL == path) {
+        TraceLog(LOG_ERROR, "Temp allocator failed to allocate path for button");
+        return FAILURE;
+    }
+    assets->button = load_texture(path);
+    if (0 == assets->button.format) {
+        TraceLog(LOG_ERROR, "Failed to load ui button texture");
+        return FAILURE;
+    }
+    path = asset_path("ui", "button-click.png", &temp_alloc);
+    if (NULL == path) {
+        TraceLog(LOG_ERROR, "Failed to allocate path for button close");
+        return FAILURE;
+    }
+    assets->button_press = load_texture(path);
+    if (0 == assets->button_press.format) {
+        TraceLog(LOG_ERROR, "Failed to load button press texture");
+        return FAILURE;
+    }
+    assets->button_info = (NPatchInfo) {
+        .source = { 0, 0, assets->button.width, assets->button.height },
+        .layout = NPATCH_NINE_PATCH,
+        .left   = 12,
+        .right  = 12,
+        .top    = 6,
+        .bottom = 8,
+    };
+    path = asset_path("ui", "button-close.png", &temp_alloc);
+    if (NULL == path) {
+        TraceLog(LOG_ERROR, "Temp allocator failed to allocate path for close button");
+        return FAILURE;
+    }
+    assets->close = load_texture(path);
+    if (0 == assets->close.format) {
+        TraceLog(LOG_ERROR, "Failed to load ui close button texture");
+        return FAILURE;
+    }
+    path = asset_path("ui", "button-close-click.png", &temp_alloc);
+    if (NULL == path) {
+        TraceLog(LOG_ERROR, "Temp allocator failed to allocate path for close button click");
+        return FAILURE;
+    }
+    assets->close_press = load_texture(path);
+    if (0 == assets->close_press.format) {
+        TraceLog(LOG_ERROR, "Failed to load ui close button click texture");
+        return FAILURE;
+    }
+    path = asset_path("ui", "slider.png", &temp_alloc);
+    if (NULL == path) {
+        TraceLog(LOG_ERROR, "Temp allocator failed to allocate path for slider");
+        return FAILURE;
+    }
+    assets->slider = load_texture(path);
+    if (0 == assets->slider.format) {
+        TraceLog(LOG_ERROR, "Failed to load ui slider texture");
+        return FAILURE;
+    }
+    path = asset_path("ui", "pointer.png", &temp_alloc);
+    if (NULL == path) {
+        TraceLog(LOG_ERROR, "Temp allocator failed to allocate path for slider thumb");
+        return FAILURE;
+    }
+    assets->slider_thumb = load_texture(path);
+    if (0 == assets->slider_thumb.format) {
+        TraceLog(LOG_ERROR, "Failed to load ui slider thumb texture");
+        return FAILURE;
+    }
+    assets->slider_info = (NPatchInfo) {
+        .source = { 0, 0, assets->slider.width, assets->slider.height },
+        .layout = NPATCH_THREE_PATCH_HORIZONTAL,
+        .left = 21,
+        .right = 21,
+    };
+    path = asset_path("ui", "drop.png", &temp_alloc);
+    if (NULL == path) {
+        TraceLog(LOG_ERROR, "Temp allocator failed to allocate path for drop down");
+        return FAILURE;
+    }
+    assets->drop = load_texture(path);
+    if (0 == assets->button.format) {
+        TraceLog(LOG_ERROR, "Failed to load ui dropdown texture");
+        return FAILURE;
+    }
+    return SUCCESS;
+}
+void unload_ui (UiAssets * assets) {
+    UnloadTexture(assets->background_box);
+    UnloadTexture(assets->button);
+    UnloadTexture(assets->button_press);
+    UnloadTexture(assets->close);
+    UnloadTexture(assets->close_press);
+    UnloadTexture(assets->slider);
+    UnloadTexture(assets->slider_thumb);
+    UnloadTexture(assets->drop);
+}
 Result load_graphics (Assets * assets) {
     Result result = load_particles(assets->particles);
     if (result != SUCCESS) return result;
     result = load_buildings(assets);
     if (result != SUCCESS) return result;
     result = load_backgrounds(assets);
+    if (result != SUCCESS) return result;
+    result = load_ui(&assets->ui);
     return result;
 }
 

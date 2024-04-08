@@ -135,11 +135,18 @@ const char * manual_credits_text =
     "    Tiled\n";
 
 void manual_text (Rectangle area, const char * text, const Theme * theme) {
-    DrawRectangleRec(area, theme->background);
-    DrawRectangleLinesEx(area, theme->frame_thickness, theme->frame);
+    draw_background(area, theme);
 
-    area = cake_margin_all(area, theme->margin * 2);
-    DrawText(text, area.x, area.y, theme->font_size, theme->text);
+    Vector2 text_area = MeasureTextEx(GetFontDefault(), text, theme->font_size, theme->font_size/10.0f);
+    Rectangle back = {
+        area.x + theme->frame_thickness + theme->margin,
+        area.y + theme->frame_thickness + theme->margin,
+        area.width - theme->frame_thickness * 2 - theme->margin * 2,
+        text_area.y,
+    };
+    DrawTextureNPatch(theme->assets->button, theme->assets->button_info, back, (Vector2){0}, 0, WHITE);
+    area = cake_margin_all(area, theme->margin * 2 + theme->frame_thickness * 2);
+    DrawText(text, area.x, area.y, theme->font_size, theme->text_dark);
 }
 
 typedef enum {
@@ -194,12 +201,11 @@ ExecutionMode manual_mode (Assets * assets, const Theme * theme) {
 
         manual_text(screen, texts[selected_page], theme);
 
-        DrawRectangleRec(menu, theme->background);
-        DrawRectangleLinesEx(menu, theme->frame_thickness, theme->frame);
+        draw_background(menu, theme);
 
-        menu = cake_margin_all(menu, theme->margin);
+        menu = cake_margin_all(menu, theme->frame_thickness * 2);
 
-        float button_size = theme->font_size + theme->margin * 2.0f;
+        float button_size = theme->font_size + theme->margin * 2.0f + theme->frame_thickness * 2;
         Vector2 cursor = GetMousePosition();
         bool click = IsMouseButtonPressed(MOUSE_LEFT_BUTTON);
         uint8_t i = 0;

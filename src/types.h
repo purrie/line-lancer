@@ -460,6 +460,20 @@ typedef struct {
     Texture2D resource[3];
 } BuildingSpriteSet;
 
+typedef struct {
+    Texture2D  background_box;
+    NPatchInfo background_box_info;
+    Texture2D  button;
+    Texture2D  button_press;
+    NPatchInfo button_info;
+    Texture2D  close;
+    Texture2D  close_press;
+    Texture2D  slider;
+    Texture2D  slider_thumb;
+    NPatchInfo slider_info;
+    Texture2D  drop;
+} UiAssets;
+
 struct Assets {
     ListMap maps;
     Shader water_shader;
@@ -477,6 +491,7 @@ struct Assets {
     Texture2D empty_building;
     ListSFX sound_effects;
     Animations animations;
+    UiAssets ui;
 };
 
 struct Theme {
@@ -503,6 +518,8 @@ struct Theme {
     float dialog_build_height;
     float dialog_upgrade_width;
     float dialog_upgrade_height;
+
+    const UiAssets * assets;
 };
 
 struct Settings {
