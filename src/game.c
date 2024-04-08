@@ -524,6 +524,14 @@ void units_damage(GameState * state, float delta_time) {
         Unit * guardian = &region->castle;
         usize attacks = guardian->incoming_attacks.len;
         if (attacks == 0) { // regenerate if not under attack
+            ListWayPoint nav = region->nav_graph.waypoints;
+            // skip regeneration if enemies are in the region
+            for (usize p = 0; p < nav.len; p++) {
+                if (nav.items[p] && nav.items[p]->unit) {
+                    if(nav.items[p]->unit->faction != guardian->faction)
+                        goto next_guard;
+                }
+            }
             float max_health = get_unit_health(UNIT_GUARDIAN, region->faction, 0);
             if (guardian->health < max_health) {
                 // @balance
