@@ -111,11 +111,11 @@ float unit_damage[FACTION_COUNT][UNIT_TYPE_ALL_COUNT][UNIT_LEVELS] = {
         [UNIT_GUARDIAN] = { 15 },
     },
     [FACTION_MAGES] = {
-        [UNIT_FIGHTER]  = { 50, 60, 70 },
-        [UNIT_ARCHER]   = { 35, 40, 45 },
-        [UNIT_SUPPORT]  = { 10, 20, 30 },
-        [UNIT_SPECIAL]  = { 10, 20, 30 },
-        [UNIT_GUARDIAN] = { 20, 20, 20 },
+        [UNIT_FIGHTER]  = { 35, 37, 40 },
+        [UNIT_ARCHER]   = { 25, 30, 35 },
+        [UNIT_SUPPORT]  = { 10, 12, 15 },
+        [UNIT_SPECIAL]  = { 20, 15, 10 },
+        [UNIT_GUARDIAN] = { 15 },
     },
 };
 float unit_health_max[FACTION_COUNT][UNIT_TYPE_ALL_COUNT][UNIT_LEVELS] = {
@@ -127,10 +127,10 @@ float unit_health_max[FACTION_COUNT][UNIT_TYPE_ALL_COUNT][UNIT_LEVELS] = {
         [UNIT_GUARDIAN] = { 4000 },
     },
     [FACTION_MAGES] = {
-        [UNIT_FIGHTER]  = { 105, 105, 105 },
-        [UNIT_ARCHER]   = { 100, 100, 100 },
-        [UNIT_SUPPORT]  = { 100, 100, 100 },
-        [UNIT_SPECIAL]  = { 105, 105, 105 },
+        [UNIT_FIGHTER]  = { 145, 155, 165 },
+        [UNIT_ARCHER]   = { 106, 110, 115 },
+        [UNIT_SUPPORT]  = { 110, 115, 135 },
+        [UNIT_SPECIAL]  = { 115, 125, 135 },
         [UNIT_GUARDIAN] = { 4000, 4000, 4000 },
     },
 };
@@ -143,9 +143,9 @@ float unit_attack_cooldown[FACTION_COUNT][UNIT_TYPE_ALL_COUNT][UNIT_LEVELS] = {
         [UNIT_GUARDIAN] = { 1.0f },
     },
     [FACTION_MAGES] = {
-        [UNIT_FIGHTER]  = { 0.5f, 0.5f, 0.5f },
-        [UNIT_ARCHER]   = { 1.7f, 1.7f, 1.7f },
-        [UNIT_SUPPORT]  = { 1.9f, 1.9f, 1.9f },
+        [UNIT_FIGHTER]  = { 0.45f, 0.45f, 0.45f },
+        [UNIT_ARCHER]   = { 0.5f, 0.6f, 0.7f },
+        [UNIT_SUPPORT]  = { 0.6f, 0.6f, 0.6f },
         [UNIT_SPECIAL]  = { 0.2f, 0.15f, 0.1f },
         [UNIT_GUARDIAN] = { 1.1f, 1.1f, 1.1f },
     },
@@ -159,11 +159,11 @@ float unit_projectile_hit_delay[FACTION_COUNT][UNIT_TYPE_ALL_COUNT][UNIT_LEVELS]
         [UNIT_GUARDIAN] = { 1.0f },
     },
     [FACTION_MAGES] = {
-        [UNIT_FIGHTER]  = { 0.4f, 0.4f, 0.4f },
-        [UNIT_ARCHER]   = { 1.7f, 1.7f, 1.7f },
-        [UNIT_SUPPORT]  = { 0.4f, 0.4f, 0.4f },
-        [UNIT_SPECIAL]  = { 0.19f, 0.14f, 0.09f },
-        [UNIT_GUARDIAN] = { 1.0f, 1.0f, 1.0f },
+        [UNIT_FIGHTER]  = { 0.3f, 0.3f, 0.3f },
+        [UNIT_ARCHER]   = { 1.0f, 1.0f, 1.0f },
+        [UNIT_SUPPORT]  = { 1.4f, 1.4f, 1.4f },
+        [UNIT_SPECIAL]  = { 0.3f, 0.2f, 1.5f },
+        [UNIT_GUARDIAN] = { 1.0f },
     },
 };
 float unit_move_speed[FACTION_COUNT][UNIT_TYPE_ALL_COUNT][UNIT_LEVELS] = {
@@ -171,20 +171,20 @@ float unit_move_speed[FACTION_COUNT][UNIT_TYPE_ALL_COUNT][UNIT_LEVELS] = {
         [UNIT_FIGHTER]  = { 20.0f, 20.0f, 20.0f },
         [UNIT_ARCHER]   = { 20.0f, 20.0f, 20.0f },
         [UNIT_SUPPORT]  = { 20.0f, 20.0f, 20.0f },
-        [UNIT_SPECIAL]  = { 30.0f, 35.0f, 40.0f },
+        [UNIT_SPECIAL]  = { 25.0f, 30.0f, 35.0f },
         [UNIT_GUARDIAN] = { 0.0f },
     },
     [FACTION_MAGES] = {
-        [UNIT_FIGHTER]  = { 15.0f, 20.0f, 25.0f },
-        [UNIT_ARCHER]   = { 15.0f, 18.0f, 22.0f },
-        [UNIT_SUPPORT]  = { 25.0f, 30.0f, 35.0f },
-        [UNIT_SPECIAL]  = { 25.0f, 30.0f, 35.0f },
-        [UNIT_GUARDIAN] = { 0.0f, 0.0f, 0.0f },
+        [UNIT_FIGHTER]  = { 18.0f, 18.0f, 18.0f },
+        [UNIT_ARCHER]   = { 20.0f, 20.0f, 20.0f },
+        [UNIT_SUPPORT]  = { 25.0f, 25.0f, 25.0f },
+        [UNIT_SPECIAL]  = { 22.0f, 23.0f, 24.0f },
+        [UNIT_GUARDIAN] = { 0.0f },
     },
 };
 float unit_support_power_strength[FACTION_COUNT][UNIT_LEVELS] = {
-    [FACTION_KNIGHTS] = { 0.05f, 0.1f, 0.15f },
-    [FACTION_MAGES]   = { 0.15f, 0.3f, 0.5f },
+    [FACTION_KNIGHTS] = { 0.02f, 0.05f, 0.08f },
+    [FACTION_MAGES]   = { 0.1f, 0.2f, 0.3f },
 };
 float unit_support_power_duration[FACTION_COUNT][UNIT_LEVELS] = {
     [FACTION_KNIGHTS] = { 5.0f, 10.0f, 15.0f },
@@ -192,7 +192,7 @@ float unit_support_power_duration[FACTION_COUNT][UNIT_LEVELS] = {
 };
 float unit_support_power_type[FACTION_COUNT] = {
     [FACTION_KNIGHTS] = MAGIC_HEALING,
-    [FACTION_MAGES] = MAGIC_WEAKNESS,
+    [FACTION_MAGES]   = MAGIC_WEAKNESS,
 };
 
 /* Combat ********************************************************************/
