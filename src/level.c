@@ -10,6 +10,7 @@
 #include "audio.h"
 #include "ai.h"
 #include <raymath.h>
+#include <assert.h>
 
 /* Line Functions **********************************************************/
 Result line_intersection (Line a, Line b, Vector2 * value) {
@@ -280,6 +281,36 @@ Test area_line_intersects (const Area * area, Line line) {
     return NO;
 }
 
+/* Balance *******************************************************************/
+// @balance
+// @volitile=buildings
+usize building_cost[BUILDING_TYPE_COUNT][UNIT_LEVELS] = {
+    [BUILDING_FIGHTER]  = { 10, 20, 30 },
+    [BUILDING_ARCHER]   = { 15, 30, 45 },
+    [BUILDING_SUPPORT]  = { 20, 40, 60 },
+    [BUILDING_SPECIAL]  = { 30, 60, 90 },
+    [BUILDING_RESOURCE] = { 15, 30, 45 },
+};
+usize building_spawn_cost[BUILDING_TYPE_COUNT][UNIT_LEVELS] = {
+    [BUILDING_FIGHTER] = { 1, 2, 3 },
+    [BUILDING_ARCHER]  = { 1, 2, 3 },
+    [BUILDING_SUPPORT] = { 2, 4, 6 },
+    [BUILDING_SPECIAL] = { 3, 6, 9 },
+};
+float building_cooldown[BUILDING_TYPE_COUNT][UNIT_LEVELS] = {
+    [BUILDING_FIGHTER]  = { 5, 5, 5 },
+    [BUILDING_ARCHER]   = { 6, 6, 6 },
+    [BUILDING_SUPPORT]  = { 7, 7, 7 },
+    [BUILDING_SPECIAL]  = { 7, 7, 7 },
+    [BUILDING_RESOURCE] = { 10, 10, 10 },
+};
+usize building_unit_capacity[BUILDING_TYPE_COUNT][UNIT_LEVELS] = {
+    [BUILDING_FIGHTER]  = { 5, 10, 15 },
+    [BUILDING_ARCHER]   = { 3, 5, 8 },
+    [BUILDING_SUPPORT]  = { 2, 4, 6 },
+    [BUILDING_SPECIAL]  = { 3, 6, 9 },
+};
+
 /* Building Functions ******************************************************/
 void place_building (Building * building, BuildingType type) {
     building->type = type;
@@ -295,38 +326,22 @@ void demolish_building (Building * building) {
     building->units_spawned = 0;
 }
 usize building_buy_cost (BuildingType type) {
-    // @balance
-    switch (type) {
-        case BUILDING_FIGHTER:  return 10;
-        case BUILDING_ARCHER:   return 15;
-        case BUILDING_SUPPORT:  return 20;
-        case BUILDING_SPECIAL:  return 30;
-        case BUILDING_RESOURCE: return 15;
-        default: {
-            TraceLog(LOG_ERROR, "Attempted to get cost of unbuildable building type");
-        } return 10000;
-    }
+    assert(type < BUILDING_TYPE_COUNT);
+    assert(type > BUILDING_EMPTY);
+    return building_cost[type][0];
 }
 usize building_upgrade_cost_raw (BuildingType type, usize level) {
     // @balance
-    return building_buy_cost(type) * (level + 2);
+    assert(type < BUILDING_TYPE_COUNT);
+    assert(type > BUILDING_EMPTY);
+    assert(level < UNIT_LEVELS);
+    return building_cost[type][level];
 }
 usize building_upgrade_cost (const Building * building) {
-    return building_upgrade_cost_raw(building->type, building->upgrades);
+    return building_upgrade_cost_raw(building->type, building->upgrades + 1);
 }
 usize building_cost_to_spawn (const Building * building) {
-    // @balance
-    switch (building->type) {
-        case BUILDING_EMPTY:
-        case BUILDING_RESOURCE:
-            return 0;
-        case BUILDING_FIGHTER: return 1 + building->upgrades;
-        case BUILDING_ARCHER:  return 1 + building->upgrades;
-        case BUILDING_SUPPORT: return 1 + building->upgrades;
-        case BUILDING_SPECIAL: return 2 * (building->upgrades + 1);
-    }
-    TraceLog(LOG_ERROR, "Attempted to get spawning cost from unhandled building: %s", building_type_to_string(building->type));
-    return 0;
+    return building_spawn_cost[building->type][building->upgrades];
 }
 usize building_generated_income (const Building * building) {
     // @balance
@@ -335,50 +350,10 @@ usize building_generated_income (const Building * building) {
     return 0;
 }
 float building_trigger_interval (const Building * building) {
-    // @balance
-    switch (building->type) {
-        case BUILDING_EMPTY:
-            return 0.0f;
-            break;
-        case BUILDING_RESOURCE:
-            switch (building->region->faction) {
-                case FACTION_KNIGHTS: return 10.0f - building->upgrades;
-                case FACTION_MAGES:   return 10.0f - building->upgrades;
-            }
-            break;
-        case BUILDING_FIGHTER:
-            switch (building->region->faction) {
-                case FACTION_KNIGHTS: return 5.0f + (building->units_spawned * 0.2f);
-                case FACTION_MAGES:   return 5.0f + (building->units_spawned * 0.2f);
-            }
-            break;
-        case BUILDING_ARCHER:
-            switch (building->region->faction) {
-                case FACTION_KNIGHTS: return 6.0f + (building->units_spawned * 0.2f);
-                case FACTION_MAGES:   return 6.0f + (building->units_spawned * 0.2f);
-            }
-            break;
-        case BUILDING_SUPPORT:
-            switch (building->region->faction) {
-                case FACTION_KNIGHTS: return 7.0f + (building->units_spawned * 0.2f);
-                case FACTION_MAGES:   return 7.0f + (building->units_spawned * 0.2f);
-            }
-            break;
-        case BUILDING_SPECIAL:
-            switch (building->region->faction) {
-                case FACTION_KNIGHTS: return 7.0f + (building->units_spawned * 0.2f);
-                case FACTION_MAGES:   return 7.0f + (building->units_spawned * 0.2f);
-            }
-            break;
-    }
-    TraceLog(LOG_WARNING, "Attempted to obtain trigger interval from unhandled building: T: %s, F:%s", building_type_to_string(building->type), faction_to_string(building->region->faction));
-    return 0.0f;
+    return building_cooldown[building->type][building->upgrades];
 }
 usize building_max_units (const Building * building) {
-    // @balance
-    if (building->type == BUILDING_EMPTY || building->type == BUILDING_RESOURCE)
-        return 0;
-    return 5 * (building->upgrades + 1);
+    return building_unit_capacity[building->type][building->upgrades];
 }
 Building * get_building_by_position (const Map * map, Vector2 position, float range) {
     for (usize r = 0; r < map->regions.len; r++) {
