@@ -735,9 +735,15 @@ void game_state_deinit (GameState * state) {
 }
 void game_tick (GameState * state) {
     float dt = GetFrameTime();
+    update_input_state(state);
+
+    #if defined(GAME_SUPER_SPEED)
+    int counter = GAME_SUPER_SPEED;
+    while (counter --> 0) {
+    #endif
+
     state->turn ++;
 
-    update_input_state(state);
     update_resources(state);
     simulate_ai(state);
     simulate_units(state, dt);
@@ -745,6 +751,10 @@ void game_tick (GameState * state) {
 
     particles_advance(state->particles_in_use.items, state->particles_in_use.len, dt);
     particles_clean(state);
+
+    #if defined(GAME_SUPER_SPEED)
+    }
+    #endif
 }
 usize game_winner (GameState * game) {
     usize player = 0;

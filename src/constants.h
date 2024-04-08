@@ -4,6 +4,7 @@
 #ifndef RELEASE
 #define DEBUG
 /* #define DEBUG_AI */
+#define GAME_SUPER_SPEED 5
 #else
 #define NDEBUG
 #endif
