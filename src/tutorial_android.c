@@ -224,7 +224,7 @@ void draw_tutorial_camera (GameState * game) {
         spot = starting_region->buildings.items[idx].position;
         spot = GetWorldToScreen2D(spot, game->camera);
         spot.y -= 10.0f + sinf(get_time() * 5.0f) * 5.0f;
-        Color color = theme->frame_light;
+        Color color = theme->text;
         DrawLineEx(spot, Vector2Subtract(spot, (Vector2){ 0.0f, 60.0f }), 10.0f,  color);
         DrawLineEx(spot, Vector2Subtract(spot, (Vector2){ 20.0f, 30.0f }), 8.0f, color);
         DrawLineEx(spot, Vector2Subtract(spot, (Vector2){ -20.0f, 30.0f }), 8.0f, color);
@@ -405,7 +405,6 @@ ExecutionMode tutorial_mode (Assets * assets, GameState * game) {
     game->players.items[2].faction = FACTION_MAGES;
 
     tutorial_stage = TUTORIAL_INTRODUCTION;
-    const Theme * theme = &game->settings->theme;
 
     Map * map = NULL;
     for (usize i = 0; i < assets->maps.len; i++) {
@@ -457,7 +456,7 @@ ExecutionMode tutorial_mode (Assets * assets, GameState * game) {
             break;
         }
         BeginDrawing();
-        ClearBackground(theme->background);
+        ClearBackground(BLACK);
         UpdateMusicStream(music);
         if (play_state == INFO_BAR_ACTION_NONE) {
             game_tick(game);

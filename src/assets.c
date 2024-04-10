@@ -1417,6 +1417,40 @@ Result load_ui (UiAssets * assets) {
         TraceLog(LOG_ERROR, "Failed to load ui dropdown texture");
         return FAILURE;
     }
+
+    #if defined(ANDROID)
+    path = asset_path("ui", "arrow-wheel.png", &temp_alloc);
+    if (NULL == path) {
+        TraceLog(LOG_ERROR, "Temp allocator failed to allocate path for joystick");
+        return FAILURE;
+    }
+    assets->joystick = load_texture(path);
+    if (0 == assets->joystick.format) {
+        TraceLog(LOG_ERROR, "Failed to load ui joystick texture");
+        return FAILURE;
+    }
+    path = asset_path("ui", "zoom-in.png", &temp_alloc);
+    if (NULL == path) {
+        TraceLog(LOG_ERROR, "Temp allocator failed to allocate path for zoom in");
+        return FAILURE;
+    }
+    assets->zoom_in = load_texture(path);
+    if (0 == assets->zoom_in.format) {
+        TraceLog(LOG_ERROR, "Failed to load ui zoom in texture");
+        return FAILURE;
+    }
+    path = asset_path("ui", "zoom-out.png", &temp_alloc);
+    if (NULL == path) {
+        TraceLog(LOG_ERROR, "Temp allocator failed to allocate path for zoom out");
+        return FAILURE;
+    }
+    assets->zoom_out = load_texture(path);
+    if (0 == assets->zoom_out.format) {
+        TraceLog(LOG_ERROR, "Failed to load ui zoom out texture");
+        return FAILURE;
+    }
+    #endif
+
     return SUCCESS;
 }
 void unload_ui (UiAssets * assets) {

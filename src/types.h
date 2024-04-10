@@ -472,6 +472,11 @@ typedef struct {
     Texture2D  slider_thumb;
     NPatchInfo slider_info;
     Texture2D  drop;
+    #if defined(ANDROID)
+    Texture2D  joystick;
+    Texture2D  zoom_in;
+    Texture2D  zoom_out;
+    #endif
 } UiAssets;
 
 struct Assets {

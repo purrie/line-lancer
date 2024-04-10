@@ -584,11 +584,12 @@ void render_upgrade_building_dialog (const GameState * state) {
 
     draw_button(dialog.demolish, "Demolish", cursor, UI_LAYOUT_CENTER, theme);
 }
+#if defined(ANDROID)
 void render_path_button (const GameState * state) {
     Rectangle area = flag_button_position();
 
-    DrawRectangleRec(area, state->settings->theme.button);
-    DrawRectangleLinesEx(area, state->settings->theme.frame_thickness, state->settings->theme.button_frame);
+    draw_background(area, &state->settings->theme);
+    area = cake_margin_all(area, state->settings->theme.frame_thickness);
     usize player;
     if (get_local_player_index(state, &player)) {
         player = 1;
@@ -601,69 +602,14 @@ void render_camera_controls (const GameState * state) {
 
     CameraJoystick joy = android_camera_control(theme);
 
-    Vector2 joy_center = { joy.joystick.x + joy.joystick.width  * 0.5f,
-                           joy.joystick.y + joy.joystick.height * 0.5f };
-
-    Vector2 plus_center = { joy.zoom_in.x + joy.zoom_in.width * 0.5f,
-                            joy.zoom_in.y + joy.zoom_in.height * 0.5f };
-
-    Vector2 minus_center = { joy.zoom_out.x + joy.zoom_out.width * 0.5f,
-                             joy.zoom_out.y + joy.zoom_out.height * 0.5f };
-
-    joy.joystick.width *= 0.5f;
-    joy.joystick.height *= 0.5f;
-    joy.zoom_in.width *= 0.5f;
-    joy.zoom_in.height *= 0.5f;
-    joy.zoom_out.width *= 0.5f;
-    joy.zoom_out.height *= 0.5f;
-
-    DrawCircleV(joy_center, joy.joystick.width, theme->button);
-    DrawCircleLinesV(joy_center, joy.joystick.width, theme->button_frame);
-
-    DrawCircleV(minus_center, joy.zoom_out.width, theme->button);
-    DrawCircleLinesV(minus_center, joy.zoom_out.width, theme->button_frame);
-    DrawCircleV(plus_center, joy.zoom_in.width, theme->button);
-    DrawCircleLinesV(plus_center, joy.zoom_in.width, theme->button_frame);
-
-    Vector2 plus_left = { plus_center.x - joy.zoom_in.width * 0.5f, plus_center.y };
-    Vector2 plus_rigt = { plus_center.x + joy.zoom_in.width * 0.5f, plus_center.y };
-    Vector2 plus_top = { plus_center.x, plus_center.y - joy.zoom_in.height * 0.5f };
-    Vector2 plus_bot = { plus_center.x, plus_center.y + joy.zoom_in.height * 0.5f };
-
-    Vector2 minus_left = { minus_center.x - joy.zoom_out.width * 0.5f, minus_center.y };
-    Vector2 minus_rigt = { minus_center.x + joy.zoom_out.width * 0.5f, minus_center.y };
-
-    DrawLineEx(plus_left  , plus_rigt  , theme->frame_thickness, theme->text);
-    DrawLineEx(plus_top   , plus_bot   , theme->frame_thickness, theme->text);
-    DrawLineEx(minus_left , minus_rigt , theme->frame_thickness, theme->text);
-
-    Vector2 arrow_left = { joy_center.x - joy.joystick.width * 0.75f, joy_center.y };
-    Vector2 arrow_rigt = { joy_center.x + joy.joystick.width * 0.75f, joy_center.y };
-    Vector2 arrow_top = { joy_center.x, joy_center.y - joy.joystick.height * 0.75f };
-    Vector2 arrow_bot = { joy_center.x, joy_center.y + joy.joystick.height * 0.75f };
-
-    Vector2 arrow_top_l = { arrow_top.x - joy.joystick.width * 0.15f, arrow_top.y + joy.joystick.height * 0.15f };
-    Vector2 arrow_top_r = { arrow_top.x + joy.joystick.width * 0.15f, arrow_top.y + joy.joystick.height * 0.15f };
-    Vector2 arrow_bot_l = { arrow_bot.x - joy.joystick.width * 0.15f, arrow_bot.y - joy.joystick.height * 0.15f };
-    Vector2 arrow_bot_r = { arrow_bot.x + joy.joystick.width * 0.15f, arrow_bot.y - joy.joystick.height * 0.15f };
-    Vector2 arrow_left_t = { arrow_left.x + joy.joystick.width * 0.15f, arrow_left.y - joy.joystick.height * 0.15f };
-    Vector2 arrow_left_b = { arrow_left.x + joy.joystick.width * 0.15f, arrow_left.y + joy.joystick.height * 0.15f };
-    Vector2 arrow_rigt_t = { arrow_rigt.x - joy.joystick.width * 0.15f, arrow_rigt.y - joy.joystick.height * 0.15f };
-    Vector2 arrow_rigt_b = { arrow_rigt.x - joy.joystick.width * 0.15f, arrow_rigt.y + joy.joystick.height * 0.15f };
-
-    DrawLineEx(arrow_left, arrow_rigt, theme->frame_thickness, theme->text);
-    DrawLineEx(arrow_top, arrow_bot, theme->frame_thickness, theme->text);
-
-    DrawLineEx(arrow_top, arrow_top_l, theme->frame_thickness, theme->text);
-    DrawLineEx(arrow_top, arrow_top_r, theme->frame_thickness, theme->text);
-    DrawLineEx(arrow_bot, arrow_bot_l, theme->frame_thickness, theme->text);
-    DrawLineEx(arrow_bot, arrow_bot_r, theme->frame_thickness, theme->text);
-
-    DrawLineEx(arrow_left, arrow_left_t, theme->frame_thickness, theme->text);
-    DrawLineEx(arrow_left, arrow_left_b, theme->frame_thickness, theme->text);
-    DrawLineEx(arrow_rigt, arrow_rigt_t, theme->frame_thickness, theme->text);
-    DrawLineEx(arrow_rigt, arrow_rigt_b, theme->frame_thickness, theme->text);
+    Texture2D joystick = theme->assets->joystick;
+    Texture2D zoom_in  = theme->assets->zoom_in;
+    Texture2D zoom_out = theme->assets->zoom_out;
+    DrawTexturePro(joystick, (Rectangle) { 0, 0, joystick.width, joystick.height }, joy.joystick, (Vector2){0}, 0, WHITE);
+    DrawTexturePro(zoom_in, (Rectangle) { 0, 0, zoom_in.width, zoom_in.height }, joy.zoom_in, (Vector2){0}, 0, WHITE);
+    DrawTexturePro(zoom_out, (Rectangle) { 0, 0, zoom_out.width, zoom_out.height }, joy.zoom_out, (Vector2){0}, 0, WHITE);
 }
+#endif
 void render_winner (const GameState * state, usize winner) {
     Rectangle screen = cake_rect(GetScreenWidth(), GetScreenHeight());
     cake_cut_horizontal(&screen, state->settings->theme.info_bar_height, 0);
