@@ -840,7 +840,8 @@ void render_player_select (Rectangle area, GameState * state, int selected_map) 
         cake_cut_vertical(&label, theme->frame_thickness * 2, 0);
         Rectangle color_box = cake_cut_vertical(&label, theme->font_size, theme->frame_thickness * 2);
         color_box = cake_shrink_to(color_box, color_box.width);
-        DrawRectangleRec(color_box, get_player_color(i + 1));
+        DrawRectangleRec(color_box, BLACK);
+        DrawRectangleRec(cake_margin_all(color_box, 1), get_player_color(i + 1));
         label = cake_shrink_to(label, theme->font_size);
         DrawText(name, label.x, label.y, theme->font_size, theme->text_dark);
 
