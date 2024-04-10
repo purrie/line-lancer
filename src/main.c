@@ -47,7 +47,7 @@ ExecutionMode level_select (Assets * assets, GameState * game) {
             break;
         }
         BeginDrawing();
-        ClearBackground(black);
+        draw_title(&game->settings->theme);
 
         UpdateMusicStream(assets->main_theme);
 
@@ -143,7 +143,8 @@ ExecutionMode play_mode (GameState * game) {
             break;
         }
         BeginDrawing();
-        ClearBackground(black);
+        draw_title(&game->settings->theme);
+
         UpdateMusicStream(theme);
         if (play_state == INFO_BAR_ACTION_NONE) {
             game_tick(game);
@@ -245,7 +246,7 @@ ExecutionMode main_menu (Assets * assets, Settings * settings) {
         }
         UpdateMusicStream(assets->main_theme);
         BeginDrawing();
-        ClearBackground(black);
+        draw_title(&settings->theme);
 
         if (options) {
             Rectangle screen = cake_rect(GetScreenWidth(), GetScreenHeight());
@@ -255,9 +256,12 @@ ExecutionMode main_menu (Assets * assets, Settings * settings) {
             }
         }
         else {
-            MainMenuLayout layout = main_menu_layout();
+            MainMenuLayout layout = main_menu_layout(&settings->theme);
             Vector2 cursor = GetMousePosition();
 
+
+            label (layout.title, "Line Lancer", settings->theme.font_size * 2, UI_LAYOUT_CENTER, &settings->theme);
+            draw_background(layout.background, &settings->theme);
             draw_button(layout.new_game, "New Game", cursor, UI_LAYOUT_CENTER, &settings->theme);
             draw_button(layout.tutorial, "Tutorial", cursor, UI_LAYOUT_CENTER, &settings->theme);
             draw_button(layout.manual, "Manual", cursor, UI_LAYOUT_CENTER, &settings->theme);

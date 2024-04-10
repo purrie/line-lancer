@@ -38,11 +38,13 @@ typedef struct {
 } CameraJoystick;
 
 typedef struct {
+    Rectangle background;
     Rectangle new_game;
     Rectangle tutorial;
     Rectangle manual;
     Rectangle options;
     Rectangle quit;
+    Rectangle title;
 } MainMenuLayout;
 
 typedef enum {
@@ -52,14 +54,16 @@ typedef enum {
 } UiLayout;
 
 /* Drawers *******************************************************************/
-void draw_background(Rectangle area, const Theme * theme);
+void draw_background (Rectangle area, const Theme * theme);
+void draw_title      (const Theme * theme);
+void label           (Rectangle area, const char * text, float size, UiLayout layout, const Theme * theme);
 
 /* Input *********************************************************************/
 Result ui_building_action_click (BuildingDialog dialog, Vector2 cursor, BuildingAction * action);
 Result ui_building_buy_click    (EmptyDialog dialog, Vector2 cursor, BuildingType * result);
 
 /* Layout ********************************************************************/
-MainMenuLayout main_menu_layout ();
+MainMenuLayout main_menu_layout (const Theme * theme);
 void theme_update (Theme * theme);
 Theme theme_setup ();
 EmptyDialog    empty_dialog         (Vector2 position, const Theme * theme);

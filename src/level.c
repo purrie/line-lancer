@@ -331,7 +331,6 @@ usize building_buy_cost (BuildingType type) {
     return building_cost[type][0];
 }
 usize building_upgrade_cost_raw (BuildingType type, usize level) {
-    // @balance
     assert(type < BUILDING_TYPE_COUNT);
     assert(type > BUILDING_EMPTY);
     assert(level < UNIT_LEVELS);

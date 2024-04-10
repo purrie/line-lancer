@@ -173,7 +173,6 @@ const char * buttons[] = {
 };
 
 ExecutionMode manual_mode (Assets * assets, const Theme * theme) {
-    const Color black = (Color) {18, 18, 18, 255};
     const char * texts[] = {
         [PAGE_INFO]     = manual_info_text,
         [PAGE_CONTROLS] = manual_controls_text,
@@ -191,7 +190,7 @@ ExecutionMode manual_mode (Assets * assets, const Theme * theme) {
         }
         UpdateMusicStream(assets->main_theme);
         BeginDrawing();
-        ClearBackground(black);
+        draw_title(theme);
 
         Rectangle screen = cake_rect(GetScreenWidth(), GetScreenHeight());
         Rectangle menu = cake_cut_vertical(&screen, 0.3f, 0);

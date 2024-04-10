@@ -1413,7 +1413,17 @@ Result load_ui (UiAssets * assets) {
         return FAILURE;
     }
     assets->drop = load_texture(path);
-    if (0 == assets->button.format) {
+    if (0 == assets->drop.format) {
+        TraceLog(LOG_ERROR, "Failed to load ui dropdown texture");
+        return FAILURE;
+    }
+    path = asset_path("ui", "title.png", &temp_alloc);
+    if (NULL == path) {
+        TraceLog(LOG_ERROR, "Temp allocator failed to allocate path for drop down");
+        return FAILURE;
+    }
+    assets->title = load_texture(path);
+    if (0 == assets->title.format) {
         TraceLog(LOG_ERROR, "Failed to load ui dropdown texture");
         return FAILURE;
     }
@@ -1462,6 +1472,12 @@ void unload_ui (UiAssets * assets) {
     UnloadTexture(assets->slider);
     UnloadTexture(assets->slider_thumb);
     UnloadTexture(assets->drop);
+    UnloadTexture(assets->title);
+    #if defined(ANDROID)
+    UnloadTexture(assets->joystick);
+    UnloadTexture(assets->zoom_in);
+    UnloadTexture(assets->zoom_out);
+    #endif
 }
 Result load_graphics (Assets * assets) {
     Result result = load_particles(assets->particles);

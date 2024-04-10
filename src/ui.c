@@ -121,6 +121,10 @@ void slider (Rectangle area, float thumb, int hover, const Theme * theme) {
 void draw_background(Rectangle area, const Theme * theme) {
     DrawTextureNPatch(theme->assets->background_box, theme->assets->background_box_info, area, (Vector2){0}, 0, WHITE);
 }
+void draw_title (const Theme * theme) {
+    Texture2D title = theme->assets->title;
+    DrawTexturePro(title, (Rectangle){0, 0, title.width, title.height}, (Rectangle){0, 0, GetScreenWidth(), GetScreenHeight()}, (Vector2){0}, 0, WHITE);
+}
 
 /* Helper UI *****************************************************************/
 void render_interaction (const GameState * state, Vector2 position, usize player) {
@@ -730,22 +734,27 @@ InfoBarAction render_resource_bar (const GameState * state) {
 }
 
 /* Main Menu *****************************************************************/
-MainMenuLayout main_menu_layout () {
+MainMenuLayout main_menu_layout (const Theme * theme) {
+    MainMenuLayout result = {0};
+
     Rectangle screen = cake_rect(GetScreenWidth(), GetScreenHeight());
     const uint8_t parts_count = 5;
     Rectangle parts[parts_count];
     cake_split_vertical(screen, 3, parts, 0.0f);
-    cake_split_horizontal(parts[1], 3, parts, 0.0f);
 
-    cake_split_horizontal(parts[1], parts_count, parts, 0.0f);
+    result.title = cake_carve_height(parts[1], theme->font_size * 2 + theme->frame_thickness * 2 + theme->margin * 2, 0.1f);
 
-    MainMenuLayout result = {
-        .new_game = cake_carve_to(parts[0], 250.0f, 50.0f),
-        .tutorial = cake_carve_to(parts[1], 250.0f, 50.0f),
-        .manual   = cake_carve_to(parts[2], 250.0f, 50.0f),
-        .options  = cake_carve_to(parts[3], 250.0f, 50.0f),
-        .quit     = cake_carve_to(parts[4], 250.0f, 50.0f),
-    };
+    cake_split_horizontal(parts[0], 3, parts, 0.0f);
+
+    result.background = cake_diet_to(parts[1], parts[1].width * 0.5);
+    cake_split_horizontal(cake_margin_all(result.background, theme->frame_thickness + theme->margin), parts_count, parts, 0.0f);
+
+    result.new_game = cake_carve_height(parts[0], 50.0f, 0.5f);
+    result.tutorial = cake_carve_height(parts[1], 50.0f, 0.5f);
+    result.manual   = cake_carve_height(parts[2], 50.0f, 0.5f);
+    result.options  = cake_carve_height(parts[3], 50.0f, 0.5f);
+    result.quit     = cake_carve_height(parts[4], 50.0f, 0.5f);
+
     return result;
 }
 void render_simple_map_preview (Rectangle area, Map * map, const Theme * theme) {
