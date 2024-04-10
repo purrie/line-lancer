@@ -40,7 +40,7 @@ Color get_player_color (usize player_id) {
         case 3: return (Color) { 0xaa, 0xff, 0x66, 255 };
         case 4: return (Color) { 0x5a, 0x32, 0x64, 255 };
         case 5: return (Color) { 0x30, 0x3f, 0x2f, 255 };
-        case 6: return (Color) { 0x01, 0x08, 0x10, 255 };
+        case 6: return (Color) { 0x1f, 0x08, 0x01, 255 };
         default: return PINK;
     }
 }
