@@ -11,6 +11,7 @@
 #include <stdio.h>
 #include "audio.h"
 
+/* Drawers *******************************************************************/
 void draw_button (
     Rectangle     area,
     const char  * text,
@@ -48,7 +49,6 @@ void draw_button (
         DrawText(text, text_area.x, text_area.y, theme->font_size, theme->text_dark);
     }
 }
-
 void draw_building_button (
     Rectangle     area,
     Texture2D     icon,
@@ -59,28 +59,31 @@ void draw_building_button (
     Test          active,
     const Theme * theme
 ) {
-    Rectangle button = cake_margin_all(area, theme->margin * 2);
+    Rectangle button = cake_margin_all(area, theme->margin + theme->frame_thickness);
     Rectangle image  = cake_cut_vertical(&button, -button.height, theme->spacing);
     button = cake_shrink_to(button, theme->font_size);
     Rectangle label      = cake_cut_vertical(&button, cost_offset, theme->spacing);
     Rectangle label_cost = button;
 
-    if (active && CheckCollisionPointRec(cursor, area)) {
-        DrawRectangleRec(area, theme->button_hover);
-        DrawRectangleLinesEx(area, theme->frame_thickness, theme->button_frame);
-        DrawTexturePro(icon, (Rectangle){0, 0, icon.width, icon.height}, image, Vector2Zero(), 0, WHITE);
-        DrawText(text, label.x, label.y, theme->font_size, theme->text);
-        DrawText(cost, label_cost.x, label_cost.y, theme->font_size, theme->text);
+    Color but_color;
+    Color tex_color;
+    if (! active) {
+        but_color = theme->button_inactive;
+        tex_color = theme->text_dark;
+    }
+    else if (CheckCollisionPointRec(cursor, area)) {
+        but_color = theme->button_hover;
+        tex_color = theme->text;
     }
     else {
-        DrawRectangleRec(area, active ? theme->button : theme->button_inactive);
-        DrawRectangleLinesEx(area, theme->frame_thickness, theme->button_frame);
-        DrawTexturePro(icon, (Rectangle){0, 0, icon.width, icon.height}, image, Vector2Zero(), 0, WHITE);
-        DrawText(text, label.x, label.y, theme->font_size, theme->text_dark);
-        DrawText(cost, label_cost.x, label_cost.y, theme->font_size, theme->text_dark);
+        but_color = theme->button;
+        tex_color = theme->text_dark;
     }
+    DrawTextureNPatch(theme->assets->button, theme->assets->button_info, area, (Vector2){0}, 0, but_color);
+    DrawTexturePro(icon, (Rectangle){0, 0, icon.width, icon.height}, image, Vector2Zero(), 0, WHITE);
+    DrawText(text, label.x, label.y, theme->font_size, tex_color);
+    DrawText(cost, label_cost.x, label_cost.y, theme->font_size, tex_color);
 }
-
 void label (Rectangle area, const char * text, float size, UiLayout layout, const Theme * theme) {
     int sides_width = theme->assets->button_info.left + theme->assets->button_info.right;
     int height = theme->assets->button_info.top + theme->assets->button_info.bottom;
@@ -107,7 +110,7 @@ void label (Rectangle area, const char * text, float size, UiLayout layout, cons
 }
 void slider (Rectangle area, float thumb, int hover, const Theme * theme) {
     Rectangle slider_area = cake_shrink_to(area, theme->assets->slider.height);
-    DrawTextureNPatch(theme->assets->slider, theme->assets->slider_info, slider_area, (Vector2){0}, 0, hover ? theme->frame_light : theme->frame);
+    DrawTextureNPatch(theme->assets->slider, theme->assets->slider_info, slider_area, (Vector2){0}, 0, hover ? theme->button_hover : theme->button);
 
     Rectangle slider_dot = cake_carve_width(area, theme->assets->slider_thumb.width, thumb);
     slider_dot.x += theme->assets->slider_thumb.width * (thumb - 0.5);
@@ -115,12 +118,8 @@ void slider (Rectangle area, float thumb, int hover, const Theme * theme) {
     Rectangle source = { 0, 0, theme->assets->slider_thumb.width, theme->assets->slider_thumb.height };
     DrawTexturePro(theme->assets->slider_thumb, source, slider_dot, (Vector2){0}, 0, hover ? theme->button_hover : theme->button);
 }
-
-/* Drawers *******************************************************************/
 void draw_background(Rectangle area, const Theme * theme) {
     DrawTextureNPatch(theme->assets->background_box, theme->assets->background_box_info, area, (Vector2){0}, 0, WHITE);
-    /* DrawRectangleRec(area, theme->background); */
-    /* DrawRectangleLinesEx(area, theme->frame_thickness, theme->frame); */
 }
 
 /* Helper UI *****************************************************************/
@@ -184,45 +183,27 @@ void theme_update (Theme * theme) {
     #if defined(ANDROID)
     int height = GetScreenHeight();
     theme->font_size = height * 0.03f;
-    theme->margin = theme->font_size * 0.5f;
-    theme->spacing = theme->margin * 0.8f;
-    theme->frame_thickness = 2;
-
     theme->info_bar_field_width = GetScreenWidth() * 0.1f;
-    theme->info_bar_height = theme->font_size + theme->margin * 2.0f;
-
-    theme->dialog_build_width = theme->font_size * 20.0f;
-    theme->dialog_build_height = theme->font_size * 15.0f;
-    theme->dialog_upgrade_width = theme->font_size * 15.0f;
-    theme->dialog_upgrade_height = theme->font_size * 15.0f;
     #else
     theme->font_size = 20;
+    theme->info_bar_field_width = 200;
+    #endif
+
     theme->margin = 4;
     theme->spacing = 4;
     theme->frame_thickness = 12;
-
-    theme->info_bar_field_width = 200;
-    theme->info_bar_height = 32;
-
-    theme->dialog_build_width = 350;
-    theme->dialog_build_height = 350;
-    theme->dialog_upgrade_width = 350;
-    theme->dialog_upgrade_height = 350;
-    #endif
+    theme->dialog_width = 350;
+    theme->info_bar_height = theme->font_size + theme->margin * 2 + theme->frame_thickness * 3;
     SetTextLineSpacing(theme->font_size * 1.15f);
 }
 Theme theme_setup () {
     Theme theme = {0};
-    theme.background = BLACK;
-    theme.background_light = (Color){ 32, 32, 32, 255 };
-    theme.frame = DARKGRAY;
-    theme.frame_light = GRAY;
     theme.text = DARKBLUE;
     theme.text_dark = BLACK;
     theme.button = (Color) { 230, 230, 230, 255 };
     theme.button_inactive = (Color) { 128, 128, 128, 255 };
     theme.button_hover = (Color) { 255, 255, 255, 255 };
-    theme.button_frame = RAYWHITE;
+    /* theme.button_frame = RAYWHITE; */
     theme_update(&theme);
     return theme;
 }
@@ -231,19 +212,23 @@ Theme theme_setup () {
 EmptyDialog empty_dialog (Vector2 position, const Theme * theme) {
     EmptyDialog result;
 
+    float frame = theme->margin + theme->frame_thickness;
+    float line_height = theme->font_size + frame * 2;
+    float width  = theme->dialog_width + frame * 2;
+    float height = line_height * BUILDING_TYPE_COUNT + theme->spacing * BUILDING_TYPE_LAST + frame * 2;
+
     Rectangle screen = cake_rect(GetScreenWidth(), GetScreenHeight());
     #if defined(ANDROID)
-    position = (Vector2) { screen.width  - theme->dialog_build_width  * 0.5f - theme->info_bar_height,
-                           screen.height - theme->dialog_build_height * 0.5f - theme->info_bar_height };
+    position = (Vector2) { screen.width  - width * 0.5f - theme->info_bar_height,
+                           screen.height - height * 0.5f - theme->info_bar_height };
     #endif
     cake_cut_horizontal(&screen, theme->info_bar_height, 0);
 
-    result.area = cake_rect(theme->dialog_build_width + theme->spacing * 2.0f + theme->margin * 2.0f,
-                            theme->dialog_build_height + theme->margin * 2.0f + theme->spacing);
+    result.area = cake_rect(width, height);
     result.area = cake_center_rect(result.area, position.x, position.y);
     cake_clamp_inside(&result.area, screen);
 
-    Rectangle butt = cake_margin_all(result.area, theme->margin);
+    Rectangle butt = cake_margin_all(result.area, theme->margin + theme->frame_thickness);
     Rectangle buttons[5];
     cake_split_horizontal(butt, 5, buttons, theme->spacing);
 
@@ -258,19 +243,23 @@ EmptyDialog empty_dialog (Vector2 position, const Theme * theme) {
 BuildingDialog building_dialog (Vector2 position, const Theme * theme) {
     BuildingDialog result;
 
+    float frame = theme->margin + theme->frame_thickness;
+    float line_height = theme->font_size + frame * 2;
+    float width  = theme->dialog_width + frame * 2;
+    float height = line_height * BUILDING_TYPE_COUNT + theme->spacing * BUILDING_TYPE_LAST + frame * 2;
+
     Rectangle screen = cake_rect(GetScreenWidth(), GetScreenHeight());
     #if defined(ANDROID)
-    position = (Vector2) { screen.width  - theme->dialog_upgrade_width  * 0.5f - theme->info_bar_height,
-                           screen.height - theme->dialog_upgrade_height * 0.5f - theme->info_bar_height };
+    position = (Vector2) { screen.width  - width  * 0.5f - theme->info_bar_height,
+                           screen.height - height * 0.5f - theme->info_bar_height };
     #endif
     cake_cut_horizontal(&screen, theme->info_bar_height, 0);
 
-    result.area = cake_rect(theme->dialog_upgrade_width  + theme->margin * 2.0f,
-                            theme->dialog_upgrade_height + theme->margin * 2.0f + theme->spacing * 2.0f);
+    result.area = cake_rect(width, height);
     result.area = cake_center_rect(result.area, position.x, position.y);
     cake_clamp_inside(&result.area, screen);
 
-    Rectangle butt = cake_margin_all(result.area, theme->margin);
+    Rectangle butt = cake_margin_all(result.area, theme->margin + theme->frame_thickness);
     Rectangle buttons[3];
     cake_split_horizontal(butt, 3, buttons, theme->spacing);
 
@@ -501,22 +490,13 @@ void render_upgrade_building_dialog (const GameState * state) {
     Building * building = state->selected_building;
 
     draw_background(dialog.area, theme);
-    /* DrawRectangleRec(dialog.area, theme->background); */
     const char * text = building_name(building->type, faction, building->upgrades);
     const char * lvl;
     switch (state->selected_building->upgrades) {
-        case 0: {
-            lvl = "Level 1";
-        } break;
-        case 1: {
-            lvl = "Level 2";
-        } break;
-        case 2: {
-            lvl = "Level 3";
-        } break;
-        default: {
-            lvl = "Level N/A";
-        } break;
+        case 0: lvl = "Level 1"; break;
+        case 1: lvl = "Level 2"; break;
+        case 2: lvl = "Level 3"; break;
+        default: lvl = "Level N/A"; break;
     }
     usize max_units = building_max_units(building);
     usize now_units = building->units_spawned;
@@ -525,7 +505,7 @@ void render_upgrade_building_dialog (const GameState * state) {
 
     float title_scale = 1.5f;
 
-    DrawRectangleRec(dialog.label, theme->background_light);
+    /* DrawRectangleRec(dialog.label, theme->background_light); */
     dialog.label = cake_margin_all(dialog.label, theme->margin);
 
     Rectangle r_title = cake_cut_horizontal(&dialog.label, theme->font_size * title_scale, theme->spacing * 2);
@@ -534,9 +514,9 @@ void render_upgrade_building_dialog (const GameState * state) {
 
     r_title = cake_carve_width(r_title, MeasureText(text, theme->font_size * title_scale), 0.5f);
 
-    DrawText(text, r_title.x, r_title.y, theme->font_size * title_scale, theme->text);
-    DrawText(lvl, r_level.x, r_level.y, theme->font_size, theme->text);
-    DrawText(counter, r_units.x, r_units.y, theme->font_size, theme->text);
+    DrawText(text, r_title.x, r_title.y, theme->font_size * title_scale, theme->text_dark);
+    DrawText(lvl, r_level.x, r_level.y, theme->font_size, theme->text_dark);
+    DrawText(counter, r_units.x, r_units.y, theme->font_size, theme->text_dark);
 
     Vector2 cursor = GetMousePosition();
 
@@ -553,31 +533,34 @@ void render_upgrade_building_dialog (const GameState * state) {
         Texture2D icon = building_image(state->resources, faction, building->type, building->upgrades + 1);
         Test active = cost <= player->resource_gold;
 
-        Rectangle button = cake_margin_all(dialog.upgrade, theme->margin * 2);
+        Rectangle button = cake_margin_all(dialog.upgrade, theme->margin + theme->frame_thickness);
         Rectangle image  = cake_cut_vertical(&button, -button.height, theme->spacing);
         button = cake_shrink_to(button, theme->font_size * 2 + theme->spacing * 2);
 
         Rectangle label      = cake_cut_horizontal(&button, theme->font_size, theme->spacing * 2);
         Rectangle label_cost = button;
 
-        if (active && CheckCollisionPointRec(cursor, dialog.upgrade)) {
-            DrawRectangleRec(dialog.upgrade, theme->button_hover);
-            DrawRectangleLinesEx(dialog.upgrade, theme->frame_thickness, theme->button_frame);
-            DrawTexturePro(icon, (Rectangle){0, 0, icon.width, icon.height}, image, Vector2Zero(), 0, WHITE);
-            DrawText(u_label, label.x, label.y, theme->font_size, theme->text);
-            DrawText(u_cost, label_cost.x, label_cost.y, theme->font_size, theme->text);
+        Color but_color;
+        Color tex_color;
+        if (! active) {
+            but_color = theme->button_inactive;
+            tex_color = theme->text_dark;
+        }
+        else if (CheckCollisionPointRec(cursor, dialog.upgrade)) {
+            but_color = theme->button_hover;
+            tex_color = theme->text;
         }
         else {
-            DrawRectangleRec(dialog.upgrade, active ? theme->button : theme->button_inactive);
-            DrawRectangleLinesEx(dialog.upgrade, theme->frame_thickness, theme->button_frame);
-            DrawTexturePro(icon, (Rectangle){0, 0, icon.width, icon.height}, image, Vector2Zero(), 0, WHITE);
-            DrawText(u_label, label.x, label.y, theme->font_size, theme->text_dark);
-            DrawText(u_cost, label_cost.x, label_cost.y, theme->font_size, theme->text_dark);
+            but_color = theme->button;
+            tex_color = theme->text_dark;
         }
+        DrawTextureNPatch(theme->assets->button, theme->assets->button_info, dialog.upgrade, (Vector2){0}, 0, but_color);
+        DrawTexturePro(icon, (Rectangle){0, 0, icon.width, icon.height}, image, Vector2Zero(), 0, WHITE);
+        DrawText(u_label, label.x, label.y, theme->font_size, tex_color);
+        DrawText(u_cost, label_cost.x, label_cost.y, theme->font_size, tex_color);
     }
     else {
-        DrawRectangleRec(dialog.upgrade, theme->button_inactive);
-        DrawRectangleLinesEx(dialog.upgrade, theme->frame_thickness, theme->button_frame);
+        DrawTextureNPatch(theme->assets->button, theme->assets->button_info, dialog.upgrade, (Vector2){0}, 0, theme->button_inactive);
         dialog.upgrade = cake_carve_to(dialog.upgrade, MeasureText("Max Level", theme->font_size), theme->font_size);
         DrawText("Max Level", dialog.upgrade.x, dialog.upgrade.y, theme->font_size, theme->text_dark);
     }
@@ -637,15 +620,15 @@ void render_winner (const GameState * state, usize winner) {
             snprintf(text, 256, "You won!");
         }
         else {
-            snprintf(text, 256, "You lost! Winner is Player %zu!", winner);
+            snprintf(text, 256, "You lost! Player %zu is the Winner!", winner);
         }
     }
-    int width = MeasureText(text, theme->font_size);
+    int width = MeasureText(text, theme->font_size) + theme->margin * 4 + theme->frame_thickness * 4;
 
     screen = cake_cut_horizontal(&screen, 0.5, 0);
-    screen = cake_carve_to(screen, width * 1.5f, theme->font_size * 4.0f);
-    DrawRectangleRec(screen, theme->background);
-    DrawRectangleLinesEx(screen, theme->frame_thickness, theme->frame);
+    screen = cake_carve_to(screen, width, theme->font_size * 4.0f);
+    draw_background(screen, theme);
+    label (cake_margin_all(screen, theme->margin + theme->frame_thickness), text, theme->font_size, UI_LAYOUT_CENTER, theme);
 
     winner_color.a = 255;
     base_layers /= 2;
@@ -655,9 +638,6 @@ void render_winner (const GameState * state, usize winner) {
         DrawRectangleLinesEx(screen, 1, winner_color);
         winner_color.a -= alpha_step;
     }
-    screen = cake_carve_to(screen, width, theme->font_size);
-
-    DrawText(text, screen.x, screen.y, theme->font_size, theme->text);
 }
 InfoBarAction render_resource_bar (const GameState * state) {
     usize player_index;
@@ -671,10 +651,26 @@ InfoBarAction render_resource_bar (const GameState * state) {
 
     const Theme * theme = &state->settings->theme;
     Rectangle bar = cake_rect(GetScreenWidth(), theme->info_bar_height);
-    Rectangle mbar = cake_margin_all(bar, theme->margin);
 
-    DrawRectangleRec(bar, theme->background_light);
-    DrawRectangleLinesEx(bar, theme->frame_thickness, get_player_color(player_index));
+    draw_background(bar, theme);
+    bar = cake_margin_all(bar, theme->frame_thickness);
+
+    char * menu_label = "Settings";
+    char * quit_label = "Exit to Menu";
+    float quit_width = MeasureText(quit_label, theme->font_size) + theme->margin * 2 + theme->frame_thickness * 2;
+    float menu_width = MeasureText(menu_label, theme->font_size) + theme->margin * 2 + theme->frame_thickness * 2;
+    Rectangle quit = cake_cut_vertical(&bar, -quit_width, theme->spacing);
+    Rectangle menu = cake_cut_vertical(&bar, -menu_width, theme->spacing);
+    Vector2 cursor = GetMousePosition();
+    draw_button(quit, quit_label, cursor, UI_LAYOUT_CENTER, theme);
+    draw_button(menu, menu_label, cursor, UI_LAYOUT_CENTER, theme);
+
+    bar = cake_shrink_to(bar, theme->font_size);
+
+    Rectangle rect = cake_cut_vertical(&bar, bar.height, theme->spacing);
+    Color player_color = get_player_color(player_index);
+    DrawRectangleRec(rect, theme->text_dark);
+    DrawRectangleRec(cake_margin_all(rect, 1), player_color);
 
     const usize buffer_size = 256;
     char buffer[buffer_size];
@@ -695,8 +691,8 @@ InfoBarAction render_resource_bar (const GameState * state) {
     int label_width = MeasureText(label, theme->font_size);
     if (label_width < theme->info_bar_field_width)
         label_width = theme->info_bar_field_width;
-    Rectangle rect = cake_cut_vertical(&mbar, label_width, theme->spacing);
-    DrawText(label , rect.x, rect.y, theme->font_size, theme->text);
+    rect = cake_cut_vertical(&bar, label_width, theme->spacing);
+    DrawText(label , rect.x, rect.y, theme->font_size, theme->text_dark);
 
     if (snprintf(buffer, buffer_size, "Income: %.1f/s ", income) <= 0) {
         label = "too much ...";
@@ -707,8 +703,8 @@ InfoBarAction render_resource_bar (const GameState * state) {
     label_width = MeasureText(label, theme->font_size);
     if (label_width < theme->info_bar_field_width)
         label_width = theme->info_bar_field_width;
-    rect = cake_cut_vertical(&mbar, label_width, theme->spacing);
-    DrawText(label , rect.x, rect.y, theme->font_size, theme->text);
+    rect = cake_cut_vertical(&bar, label_width, theme->spacing);
+    DrawText(label , rect.x, rect.y, theme->font_size, theme->text_dark);
 
     if (snprintf(buffer, buffer_size, "Upkeep: %.1f/s ", upkeep) <= 0) {
         label = "too much ...";
@@ -719,16 +715,9 @@ InfoBarAction render_resource_bar (const GameState * state) {
     label_width = MeasureText(label, theme->font_size);
     if (label_width < theme->info_bar_field_width)
         label_width = theme->info_bar_field_width;
-    rect = cake_cut_vertical(&mbar, label_width, theme->spacing);
-    DrawText(label , rect.x, rect.y, theme->font_size, theme->text);
+    rect = cake_cut_vertical(&bar, label_width, theme->spacing);
+    DrawText(label , rect.x, rect.y, theme->font_size, theme->text_dark);
 
-    char * menu_label = "Settings";
-    char * quit_label = "Exit to Menu";
-    Rectangle quit = cake_cut_vertical(&mbar, -MeasureText(quit_label, theme->font_size) * 1.2f, theme->spacing);
-    Rectangle menu = cake_cut_vertical(&mbar, -MeasureText(menu_label, theme->font_size) * 1.2f, theme->spacing);
-    Vector2 cursor = GetMousePosition();
-    draw_button(quit, quit_label, cursor, UI_LAYOUT_CENTER, theme);
-    draw_button(menu, menu_label, cursor, UI_LAYOUT_CENTER, theme);
     if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
         if (CheckCollisionPointRec(cursor, menu)) {
             return INFO_BAR_ACTION_SETTINGS;
@@ -761,13 +750,13 @@ MainMenuLayout main_menu_layout () {
 }
 void render_simple_map_preview (Rectangle area, Map * map, const Theme * theme) {
     draw_background(area, theme);
+    area = cake_margin_all(area, theme->frame_thickness + theme->margin);
 
     if (map == NULL) {
-        DrawLine(area.x, area.y, area.x + area.width, area.y + area.height, theme->frame);
-        DrawLine(area.x + area.width, area.y, area.x, area.y + area.height, theme->frame);
+        DrawLine(area.x, area.y, area.x + area.width, area.y + area.height, theme->text_dark);
+        DrawLine(area.x + area.width, area.y, area.x, area.y + area.height, theme->text_dark);
         return;
     }
-    area = cake_margin_all(area, theme->frame_thickness * 2);
 
     float scale_w = area.width / (float)(map->width);
     float scale_h = area.height / (float)(map->height);
@@ -786,7 +775,7 @@ void render_simple_map_preview (Rectangle area, Map * map, const Theme * theme) 
         to   = Vector2Multiply (to,   (Vector2){ scale_w, scale_h });
         from = Vector2Add      (from, (Vector2){ area.x, area.y });
         to   = Vector2Add      (to,   (Vector2){ area.x, area.y });
-        DrawLineEx(from, to, theme->frame_thickness, theme->frame_light);
+        DrawLineEx(from, to, theme->frame_thickness, theme->text_dark);
     }
 
     for (usize i = 0; i < map->regions.len; i++) {
@@ -794,8 +783,8 @@ void render_simple_map_preview (Rectangle area, Map * map, const Theme * theme) 
         Vector2 point = Vector2Multiply(region->castle.position, (Vector2){ scale_w, scale_h });
         point = Vector2Add(point, (Vector2){ area.x, area.y });
         Color col = get_player_color(region->player_id);
-        DrawCircleV(point, theme->frame_thickness * 3.0f + 1.0f, theme->frame_light);
-        DrawCircleV(point, theme->frame_thickness * 3.0f, col);
+        DrawCircleV(point, theme->frame_thickness * 2.0f + 1.0f, theme->text_dark);
+        DrawCircleV(point, theme->frame_thickness * 2.0f, col);
     }
 }
 void render_player_select (Rectangle area, GameState * state, int selected_map) {

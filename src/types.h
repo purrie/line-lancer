@@ -500,16 +500,11 @@ struct Assets {
 };
 
 struct Theme {
-    Color background;
-    Color background_light;
-    Color frame;
-    Color frame_light;
     Color text;
     Color text_dark;
     Color button;
     Color button_hover;
     Color button_inactive;
-    Color button_frame;
 
     float font_size;
     float margin;
@@ -519,10 +514,7 @@ struct Theme {
     float info_bar_height;
     float info_bar_field_width;
 
-    float dialog_build_width;
-    float dialog_build_height;
-    float dialog_upgrade_width;
-    float dialog_upgrade_height;
+    float dialog_width;
 
     const UiAssets * assets;
 };
