@@ -161,8 +161,8 @@ float unit_projectile_hit_delay[FACTION_COUNT][UNIT_TYPE_ALL_COUNT][UNIT_LEVELS]
     [FACTION_MAGES] = {
         [UNIT_FIGHTER]  = { 0.3f, 0.3f, 0.3f },
         [UNIT_ARCHER]   = { 1.0f, 1.0f, 1.0f },
-        [UNIT_SUPPORT]  = { 1.4f, 1.4f, 1.4f },
-        [UNIT_SPECIAL]  = { 0.3f, 0.2f, 1.5f },
+        [UNIT_SUPPORT]  = { 0.4f, 0.4f, 0.4f },
+        [UNIT_SPECIAL]  = { 0.3f, 0.2f, 0.1f },
         [UNIT_GUARDIAN] = { 1.0f },
     },
 };
