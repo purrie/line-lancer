@@ -1,5 +1,4 @@
 #include "types.h"
-#define CAKE_RECT Rectangle
 #include "cake.h"
 #include "ui.h"
 #include "audio.h"

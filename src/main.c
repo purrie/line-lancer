@@ -10,7 +10,6 @@
 #include "units.h"
 #include "level.h"
 #include "particle.h"
-#define CAKE_RECT Rectangle
 #include "cake.h"
 #include "audio.h"
 #include "tutorial.h"

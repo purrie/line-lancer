@@ -17,7 +17,6 @@ WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN 
 
 #ifndef CAKE_RECT
 #define CAKE_RECT Rectangle
-typedef struct Rectangle Rectangle;
 #endif
 
 /*
