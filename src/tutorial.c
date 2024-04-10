@@ -15,7 +15,7 @@
 const char * tutorial_introduction1 = "In this game your goal is to capture all regions from your opponents.";
 const char * tutorial_introduction2 = "In turn, you have to defend your own regions from being captured.";
 const char * tutorial_introduction3 = " ";
-const char * tutorial_introduction4 = "Click to continue";
+const char * tutorial_introduction4 = "Click here to continue";
 
 #define TUT_INTROS(X, a, b) \
     X(tutorial_introduction1, a, b) \
@@ -60,7 +60,7 @@ const char * tutorial_paths6 = "by clicking on the path. A flag will be placed o
 const char * tutorial_paths7 = "When you click active path, the flag will be taken off";
 const char * tutorial_paths8 = "The units then will stay within the region until you direct them elsewhere";
 const char * tutorial_paths9 = " ";
-const char * tutorial_paths10 = "Click to continue";
+const char * tutorial_paths10 = "Click here to continue";
 
 #define TUT_PATHS(X, a, b) \
     X(tutorial_paths1, a, b) \
@@ -78,7 +78,7 @@ const char * tutorial_upgrade1 = "Purchased buildings can be upgraded up to leve
 const char * tutorial_upgrade2 = "Each upgrade improves the capabilities of units produced there.";
 const char * tutorial_upgrade3 = "Be sure to upgrade buildings when you deem that advantageous.";
 const char * tutorial_upgrade4 = " ";
-const char * tutorial_upgrade5 = "Click to continue";
+const char * tutorial_upgrade5 = "Click here to continue";
 
 #define TUT_UPGRADES(X, a, b) \
     X(tutorial_upgrade1, a, b) \
@@ -100,7 +100,7 @@ const char * tutorial_resources10 = " ";
 const char * tutorial_resources11 = "Each region you own gives you a little income.";
 const char * tutorial_resources12 = "You can also build farms to increase your income further.";
 const char * tutorial_resources13 = " ";
-const char * tutorial_resources14 = "Click to continue";
+const char * tutorial_resources14 = "Click here to continue";
 
 #define TUT_RESOURCES(X, a, b) \
     X(tutorial_resources1, a, b) \
@@ -122,7 +122,7 @@ const char * tutorial_outro1 = "That covers the most of what you need to get sta
 const char * tutorial_outro2 = "Experiment and try various strategies out";
 const char * tutorial_outro3 = "Good luck and have fun!";
 const char * tutorial_outro4 = " ";
-const char * tutorial_outro5 = "Click to play";
+const char * tutorial_outro5 = "Click here to play";
 
 #define TUT_OUTROS(X, a, b) \
     X(tutorial_outro1, a, b) \
@@ -141,7 +141,7 @@ const char * tutorial_outro5 = "Click to play";
     else if (w < rec.width) { \
         rec = cake_diet_to(rec, w); \
     } \
-    DrawText(txt, rec.x, rec.y, theme->font_size, theme->text); \
+    DrawText(txt, rec.x, rec.y, theme->font_size, theme->text_dark); \
     rec.y += theme->font_size + theme->spacing; \
 }
 
@@ -174,8 +174,9 @@ void draw_tutorial_intro (GameState * game) {
     TUT_INTROS(UPDATE_HEIGHT, theme, max_height)
     Rectangle screen = make_window(max_width, max_height, theme);
     screen = cake_center_rect(screen, GetScreenWidth() * 0.5f, GetScreenHeight() * 0.5f);
+    Vector2 cursor = GetMousePosition();
 
-    if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
+    if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT) && CheckCollisionPointRec(cursor, screen)) {
         tutorial_stage = TUTORIAL_BUILDINGS;
     }
 
@@ -208,7 +209,7 @@ void draw_tutorial_buildings (GameState * game) {
         spot = starting_region->buildings.items[idx].position;
         spot = GetWorldToScreen2D(spot, game->camera);
         spot.y -= 10.0f + sinf(get_time() * 5.0f) * 5.0f;
-        Color color = theme->frame_light;
+        Color color = theme->text;
         DrawLineEx(spot, Vector2Subtract(spot, (Vector2){ 0.0f, 60.0f }), 10.0f,  color);
         DrawLineEx(spot, Vector2Subtract(spot, (Vector2){ 20.0f, 30.0f }), 8.0f, color);
         DrawLineEx(spot, Vector2Subtract(spot, (Vector2){ -20.0f, 30.0f }), 8.0f, color);
@@ -281,12 +282,13 @@ void draw_tutorial_paths (GameState * game) {
     Rectangle screen = make_window(max_width, max_height, theme);
 
     screen = cake_center_rect(screen, GetScreenWidth() - max_width, GetScreenHeight() * 0.5f);
+    bool over = CheckCollisionPointRec(GetMousePosition(), screen);
 
     draw_background(screen, theme);
     screen = make_text_view(screen, theme);
     TUT_PATHS(DRAW_TEXT, theme, screen)
 
-    if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
+    if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT) && over) {
         tutorial_stage = TUTORIAL_UPGRADING;
     }
 }
@@ -299,12 +301,13 @@ void draw_tutorial_upgrades (GameState * game) {
     Rectangle screen = make_window(max_width, max_height, theme);
 
     screen = cake_center_rect(screen, GetScreenWidth() - max_width, GetScreenHeight() * 0.5f);
+    bool over = CheckCollisionPointRec(GetMousePosition(), screen);
 
     draw_background(screen, theme);
     screen = make_text_view(screen, theme);
     TUT_UPGRADES(DRAW_TEXT, theme, screen)
 
-    if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
+    if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT) && over) {
         tutorial_stage = TUTORIAL_RESOURCES;
     }
 }
@@ -317,12 +320,13 @@ void draw_tutorial_resources (GameState * game) {
     Rectangle screen = make_window(max_width, max_height, theme);
 
     screen = cake_move_rect(screen, theme->info_bar_field_width * 0.5f, theme->info_bar_height * 4.0f);
+    bool over = CheckCollisionPointRec(GetMousePosition(), screen);
 
     draw_background(screen, theme);
     screen = make_text_view(screen, theme);
     TUT_RESOURCES(DRAW_TEXT, theme, screen)
 
-    if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
+    if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT) && over) {
         tutorial_stage = TUTORIAL_OUTRO;
     }
 }
@@ -335,12 +339,13 @@ void draw_tutorial_outro (GameState * game) {
     Rectangle screen = make_window(max_width, max_height, theme);
 
     screen = cake_center_rect(screen, GetScreenWidth() - max_width, GetScreenHeight() * 0.5f);
+    bool over = CheckCollisionPointRec(GetMousePosition(), screen);
 
     draw_background(screen, theme);
     screen = make_text_view(screen, theme);
     TUT_OUTROS(DRAW_TEXT, theme, screen)
 
-    if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
+    if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT) && over) {
         tutorial_stage = TUTORIAL_DONE;
     }
 }
@@ -370,7 +375,6 @@ ExecutionMode tutorial_mode (Assets * assets, GameState * game) {
     game->players.items[2].faction = FACTION_MAGES;
 
     tutorial_stage = TUTORIAL_INTRODUCTION;
-    const Theme * theme = &game->settings->theme;
 
     Map * map = NULL;
     for (usize i = 0; i < assets->maps.len; i++) {
@@ -414,7 +418,7 @@ ExecutionMode tutorial_mode (Assets * assets, GameState * game) {
             break;
         }
         BeginDrawing();
-        ClearBackground(theme->background);
+        ClearBackground(BLACK);
         UpdateMusicStream(music);
         if (play_state == INFO_BAR_ACTION_NONE) {
             game_tick(game);
