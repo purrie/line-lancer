@@ -272,17 +272,19 @@ void state_building (GameState * state) {
             case BUILDING_ACTION_NONE: {
             } break;
             case BUILDING_ACTION_UPGRADE: {
-                usize cost = building_upgrade_cost(state->selected_building);
-                #ifdef DEBUG
-                if (IsKeyDown(KEY_LEFT_SHIFT)) {
-                    cost = 0;
-                }
-                #endif
-                PlayerData * player = &state->players.items[state->selected_building->region->player_id];
-                if (player->resource_gold >= cost) {
-                    play_sound(state->resources, SOUND_BUILDING_UPGRADE);
-                    upgrade_building(state->selected_building);
-                    player->resource_gold -= cost;
+                if (state->selected_building->upgrades < BUILDING_MAX_UPGRADES) {
+                    usize cost = building_upgrade_cost(state->selected_building);
+                    #ifdef DEBUG
+                    if (IsKeyDown(KEY_LEFT_SHIFT)) {
+                        cost = 0;
+                    }
+                    #endif
+                    PlayerData * player = &state->players.items[state->selected_building->region->player_id];
+                    if (player->resource_gold >= cost) {
+                        play_sound(state->resources, SOUND_BUILDING_UPGRADE);
+                        upgrade_building(state->selected_building);
+                        player->resource_gold -= cost;
+                    }
                 }
                 state->current_input = INPUT_NONE;
                 state->selected_building = NULL;
