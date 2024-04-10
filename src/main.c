@@ -301,7 +301,7 @@ int main(void) {
 
     SetRandomSeed(time(0));
 
-    InitWindow(WINDOW_WIDTH, WINDOW_HEIGHT, "Hello!");
+    InitWindow(WINDOW_WIDTH, WINDOW_HEIGHT, "Line Lancer");
     InitAudioDevice();
     SetWindowMinSize(1200, 720);
 
