@@ -1,6 +1,7 @@
 
 CC=clang
 CCW=x86_64-w64-mingw32-gcc
+RSW=x86_64-w64-mingw32-windres
 ARW=x86_64-w64-mingw32-ar
 
 BIN=line-lancer
@@ -85,8 +86,11 @@ build-win: $(BIN_FOLDER)/$(BIN).exe
 $(OBJ_FOLDER)/%_win.o: $(SOURCE_FOLDER)/%.c $(OBJ_FOLDER)
 	$(CCW) $(FLAGS_WIN) -o $@ -c $< $(INCLUDES)
 
-$(BIN_FOLDER)/$(BIN).exe: $(BIN_FOLDER) $(OBJECTS_WIN) $(RAYLIB_WIN)
-	$(CCW) $(FLAGS_WIN) -L$(LIBS_PATH_WIN) -o $@ $(OBJECTS_WIN) -l:$(RAYLIB_NAME) $(LIBW) $(INCLUDES)
+$(BIN_FOLDER)/$(BIN).exe: $(BIN_FOLDER) $(OBJECTS_WIN) $(RAYLIB_WIN) $(OBJ_FOLDER)/winres.res
+	$(CCW) $(FLAGS_WIN) -L$(LIBS_PATH_WIN) -o $@ $(OBJECTS_WIN) $(OBJ_FOLDER)/winres.res -l:$(RAYLIB_NAME) $(LIBW) $(INCLUDES) -Wl,--subsystem,windows
+
+$(OBJ_FOLDER)/winres.res:
+	$(RSW) deploy/windows/resources.rs -O coff -o $(OBJ_FOLDER)/winres.res
 
 # ANDROID #####################################################################
 build-android: lib/arm64-v8a/lib$(LIB).so lib/armeabi-v7a/lib$(LIB).so lib/x86/lib$(LIB).so lib/x86_64/lib$(LIB).so
@@ -185,14 +189,9 @@ pack/linelancer.apk: $(LIBS_PATH_AND)/line-lancer.keystore $(SOURCE_FOLDER)/pack
 	mkdir -p pack/android/obj
 	mkdir -p pack/android/dex
 	mkdir -p pack/android/assets
-	mkdir -p pack/android/res/drawable-ldpi
-	mkdir -p pack/android/res/drawable-mdpi
-	mkdir -p pack/android/res/drawable-hdpi
-	mkdir -p pack/android/res/drawable-xhdpi
-	cp deploy/icon_tiny.png pack/android/res/drawable-ldpi/icon.png
-	cp deploy/icon_small.png pack/android/res/drawable-mdpi/icon.png
-	cp deploy/icon_medium.png pack/android/res/drawable-hdpi/icon.png
-	cp deploy/icon_large.png pack/android/res/drawable-xhdpi/icon.png
+	mkdir -p pack/android/res
+	cp deploy/android/play_store_512.png pack/android/
+	cp -r deploy/android/res/* pack/android/res/
 	cp deploy/android/NativeLoader.java pack/android/src/com/linelancer/game/NativeLoader.java
 	cp deploy/android/AndroidManifest.xml pack/android/AndroidManifest.xml
 

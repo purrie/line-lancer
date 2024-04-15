@@ -5,7 +5,7 @@
     <uses-sdk android:minSdkVersion="23" android:targetSdkVersion="29"/>
     <uses-feature android:glEsVersion="0x00020000" android:required="true"/>
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"/>
-    <application android:allowBackup="false" android:label="Line Lancer" android:icon="@drawable/icon" android:appCategory="game">
+    <application android:allowBackup="false" android:label="Line Lancer" android:icon="@mipmap/ic_launcher" android:appCategory="game">
         <activity android:name="com.linelancer.game.NativeLoader"
             android:theme="@android:style/Theme.NoTitleBar.Fullscreen"
             android:configChanges="orientation|keyboardHidden|screenSize"
