@@ -477,6 +477,7 @@ typedef struct {
     Texture2D  joystick;
     Texture2D  zoom_in;
     Texture2D  zoom_out;
+    Texture2D  crosshair;
     #endif
 } UiAssets;
 

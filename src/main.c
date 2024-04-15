@@ -54,13 +54,12 @@ ExecutionMode level_select (Assets * assets, GameState * game) {
         Rectangle screen = cake_rect(GetScreenWidth(), GetScreenHeight());
         screen = cake_margin_all(screen, 20);
         Rectangle map_list = cake_cut_vertical(&screen, 0.3f, 10);
-        Rectangle map_preview = cake_cut_horizontal(&screen, 0.5f, 10);
+        Rectangle map_preview = cake_cut_horizontal(&screen, 0.4f, 10);
 
         Map * selected = NULL;
         if (selected_map >= 0) {
             selected = &assets->maps.items[selected_map];
         }
-        render_simple_map_preview(map_preview, selected, theme);
 
         usize max_len = map_list.height / theme->font_size;
         if (max_len > assets->maps.len) {
@@ -74,16 +73,29 @@ ExecutionMode level_select (Assets * assets, GameState * game) {
             // TODO make a scroll bar
         }
 
+        float cancel_width = MeasureText("Cancel", theme->font_size) + theme->frame_thickness * 2 + theme->margin * 2;
+        float start_width = MeasureText("Start", theme->font_size) + theme->frame_thickness * 2 + theme->margin * 2;
 
-        Rectangle buttons = cake_cut_horizontal(&screen, theme->font_size * -1.5f, 20);
-        render_player_select(screen, game, selected_map);
+        #if defined(ANDROID)
+        Rectangle buttons = cake_cut_vertical(&map_preview, (cancel_width > start_width) ? -cancel_width : -start_width, 20);
+
+        float height = theme->font_size + theme->frame_thickness * 2 + theme->margin * 2;
+        Rectangle cancel = cake_cut_horizontal(&buttons, 0.5f, 0);
+        cancel = cake_carve_height(cancel, height, 0.5f);
+        Rectangle accept = cake_carve_height(buttons, height, 0.5);
+
+        #else
+        float buttons_height = theme->font_size * -1.5f;
+        Rectangle buttons = cake_cut_horizontal(&screen, buttons_height, 20);
 
         Rectangle cancel = cake_cut_vertical(&buttons, 0.5f, 0);
-        float width = MeasureText("Cancel", theme->font_size) + theme->frame_thickness * 2 + theme->margin * 2;
         float height = theme->font_size * theme->frame_thickness * 2 + theme->margin * 2;
-        cancel = cake_carve_to(cancel, width, height);
-        width = MeasureText("Start", theme->font_size) + theme->frame_thickness * 2 + theme->margin * 2;
-        Rectangle accept = cake_carve_to(buttons, width, height);
+        cancel = cake_carve_to(cancel, cancel_width, height);
+        Rectangle accept = cake_carve_to(buttons, start_width, height);
+        #endif
+
+        render_simple_map_preview(map_preview, selected, theme);
+        render_player_select(screen, game, selected_map);
 
         Vector2 cursor = GetMousePosition();
         draw_button(cancel, "Cancel", cursor, UI_LAYOUT_CENTER, theme);
@@ -130,10 +142,6 @@ ExecutionMode play_mode (GameState * game) {
         player = 1;
     }
 
-    #if defined(ANDROID)
-    Color player_color = get_player_color(player);
-    #endif
-
     Music theme = game->resources->faction_themes[game->players.items[player].faction];
     PlayMusicStream(theme);
     InfoBarAction play_state = INFO_BAR_ACTION_NONE;
@@ -179,14 +187,9 @@ ExecutionMode play_mode (GameState * game) {
                 render_camera_controls(game);
             }
             Vector2 cursor = mouse_position_pointer();
-            const Theme * ui_theme = &game->settings->theme;
-            Vector2 top_left  = { cursor.x - ui_theme->info_bar_height, cursor.y - ui_theme->info_bar_height };
-            Vector2 top_right = { cursor.x + ui_theme->info_bar_height, cursor.y - ui_theme->info_bar_height };
-            Vector2 bot_left  = { cursor.x - ui_theme->info_bar_height, cursor.y + ui_theme->info_bar_height };
-            Vector2 bot_right = { cursor.x + ui_theme->info_bar_height, cursor.y + ui_theme->info_bar_height };
-
-            DrawLineEx(top_left, bot_right, ui_theme->frame_thickness, player_color);
-            DrawLineEx(bot_left, top_right, ui_theme->frame_thickness, player_color);
+            Texture2D cross = game->resources->ui.crosshair;
+            Rectangle cross_rect = { cursor.x - cross.width * 0.5f, cursor.y - cross.height * 0.5f, cross.width, cross.height };
+            DrawTexturePro(cross, (Rectangle) { 0, 0, cross.width, cross.height }, cross_rect, (Vector2){0}, 0, WHITE);
         }
         #else
         if (play_state == INFO_BAR_ACTION_NONE && game->current_input == INPUT_OPEN_BUILDING) {

@@ -187,16 +187,17 @@ void theme_update (Theme * theme) {
     #if defined(ANDROID)
     int height = GetScreenHeight();
     theme->font_size = height * 0.03f;
-    theme->info_bar_field_width = GetScreenWidth() * 0.1f;
+    theme->dialog_width = 550;
+    theme->info_bar_field_width = 300;
     #else
     theme->font_size = 20;
+    theme->dialog_width = 350;
     theme->info_bar_field_width = 200;
     #endif
 
     theme->margin = 4;
     theme->spacing = 4;
     theme->frame_thickness = 12;
-    theme->dialog_width = 350;
     theme->info_bar_height = theme->font_size + theme->margin * 2 + theme->frame_thickness * 3;
     SetTextLineSpacing(theme->font_size * 1.15f);
 }
@@ -207,7 +208,6 @@ Theme theme_setup () {
     theme.button = (Color) { 230, 230, 230, 255 };
     theme.button_inactive = (Color) { 128, 128, 128, 255 };
     theme.button_hover = (Color) { 255, 255, 255, 255 };
-    /* theme.button_frame = RAYWHITE; */
     theme_update(&theme);
     return theme;
 }
@@ -381,7 +381,6 @@ void render_empty_building_dialog (const GameState * state) {
     FactionType faction = player->faction;
 
     draw_background(dialog.area, theme);
-    /* DrawRectangleRec(dialog.area, state->settings->theme.background); */
 
     Texture2D icon_fighter  = state->resources->buildings[faction].fighter[0];
     Texture2D icon_archer   = state->resources->buildings[faction].archer[0];
@@ -804,10 +803,10 @@ void render_player_select (Rectangle area, GameState * state, int selected_map) 
     draw_background(area, theme);
     area = cake_margin_all(area, theme->frame_thickness);
 
-    float frame = theme->frame_thickness * 2 + theme->margin * 2;
+    float frame = theme->frame_thickness + theme->margin;
 
-    Rectangle title = cake_cut_horizontal(&area, theme->font_size + frame, 0);
-    title = cake_diet_to(title, MeasureText(map->name, theme->font_size) + frame);
+    Rectangle title = cake_cut_horizontal(&area, theme->font_size + frame * 2, 0);
+    title = cake_diet_to(title, MeasureText(map->name, theme->font_size) + frame * 2);
     label(title, map->name, theme->font_size, UI_LAYOUT_CENTER, theme);
 
     area = cake_margin_all(area, theme->frame_thickness);

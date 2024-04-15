@@ -1459,6 +1459,16 @@ Result load_ui (UiAssets * assets) {
         TraceLog(LOG_ERROR, "Failed to load ui zoom out texture");
         return FAILURE;
     }
+    path = asset_path("ui", "target.png", &temp_alloc);
+    if (NULL == path) {
+        TraceLog(LOG_ERROR, "Temp allocator failed to allocate path for aim target");
+        return FAILURE;
+    }
+    assets->crosshair = load_texture(path);
+    if (0 == assets->crosshair.format) {
+        TraceLog(LOG_ERROR, "Failed to load ui aim target texture");
+        return FAILURE;
+    }
     #endif
 
     return SUCCESS;
@@ -1477,6 +1487,7 @@ void unload_ui (UiAssets * assets) {
     UnloadTexture(assets->joystick);
     UnloadTexture(assets->zoom_in);
     UnloadTexture(assets->zoom_out);
+    UnloadTexture(assets->crosshair);
     #endif
 }
 Result load_graphics (Assets * assets) {
