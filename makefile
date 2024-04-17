@@ -160,6 +160,11 @@ $(LIBS_PATH_AND)/line-lancer.keystore: $(LIBS_PATH_AND)
 	keytool -genkeypair -validity 10000 -dname "CN=linelancer,O=Android,C=ES" -keystore $@ -storepass 'lancer' -keypass 'lancer' -alias projectKey -keyalg RSA
 
 # PACKING #####################################################################
+pack-all:
+	make pack-linux
+	make pack-windows
+	make pack-android
+
 pack-linux:
 	make clean
 	make build FLAGS_LNX="$(FLAGS_LNX) $(RELEASE_FLAGS)" CC=gcc
@@ -169,7 +174,12 @@ pack-linux:
 	cp -fu $(BIN_FOLDER)/$(BIN) pack/linux/line-lancer/line-lancer
 	cp -fur assets/* pack/linux/line-lancer/assets/
 	cp -fu deploy/linux/* pack/linux/line-lancer/
-	cd pack/linux && if [ -e "line-lancer.tar.gz" ]; then rm line-lancer.tar.gz; fi && tar -caf line-lancer.tar.gz line-lancer
+	rm pack/linux/line-lancer/assets/ui/target.png
+	rm pack/linux/line-lancer/assets/ui/arrow-wheel.png
+	rm pack/linux/line-lancer/assets/ui/zoom-in.png
+	rm pack/linux/line-lancer/assets/ui/zoom-out.png
+	if [ -e "pack/linux/line-lancer.tar.gz" ]; then rm "pack/linux/line-lancer.tar.gz"; fi
+	cd pack/linux && tar -caf line-lancer.tar.gz line-lancer
 
 pack-windows:
 	make clean
@@ -179,7 +189,12 @@ pack-windows:
 	mkdir -p pack/windows/Line-Lancer/assets
 	cp -fu $(BIN_FOLDER)/$(BIN).exe pack/windows/Line-Lancer
 	cp -fur assets/* pack/windows/Line-Lancer/assets/
-	cd pack/windows && if [ -e "Line-Lancer.zip" ]; then rm Line-Lancer.zip; fi && zip -r Line-Lancer Line-Lancer
+	rm pack/windows/Line-Lancer/assets/ui/target.png
+	rm pack/windows/Line-Lancer/assets/ui/arrow-wheel.png
+	rm pack/windows/Line-Lancer/assets/ui/zoom-in.png
+	rm pack/windows/Line-Lancer/assets/ui/zoom-out.png
+	if [ -e "pack/windows/Line-Lancer.zip" ]; then rm pack/windows/Line-Lancer.zip; fi
+	cd pack/windows && zip -r Line-Lancer Line-Lancer
 
 pack-android: pack/linelancer.apk
 
