@@ -5,9 +5,21 @@ set -xe
 DATA_PATH="${XDG_DATA_HOME:-$HOME/.local/share}/line-lancer"
 BIN_PATH="$HOME/.local/bin/line-lancer"
 DESKTOP_PATH="${XDG_DATA_HOME:-$HOME/.local/share}/applications/line-lancer.desktop"
+ICON_PATH="${XDG_DATA_HOME:-$HOME/.local/share}/icons/hicolor/128x128/apps/line-lancer.png"
 
 mkdir -p "$DATA_PATH"
 
 cp -ru assets/* "$DATA_PATH"
 cp -u line-lancer "$BIN_PATH"
-cp -u line-lancer.desktop "$DESKTOP_PATH"
+
+if which xdg-desktop-menu >/dev/null 2>/dev/null; then
+    xdg-desktop-menu install line-lancer.desktop
+else
+    cp -u line-lancer.desktop "$DESKTOP_PATH"
+fi
+
+if which xdg-icon-resource >/dev/null 2>/dev/null; then
+    xdg-icon-resource install -size 128 line-lancer.png
+else
+    cp -u line-lancer.png "$ICON_PATH"
+fi

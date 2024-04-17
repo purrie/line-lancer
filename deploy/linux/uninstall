@@ -5,7 +5,19 @@ set -xe
 DATA_PATH="${XDG_DATA_HOME:-$HOME/.local/share}/line-lancer"
 BIN_PATH="$HOME/.local/bin/line-lancer"
 DESKTOP_PATH="${XDG_DATA_HOME:-$HOME/.local/share}/applications/line-lancer.desktop"
+ICON_PATH="${XDG_DATA_HOME:-$HOME/.local/share}/icons/hicolor/128x128/apps/line-lancer.png"
 
 [ -d "$DATA_PATH" ] && rm -rf "$DATA_PATH"
 [ -e "$BIN_PATH" ] && rm "$BIN_PATH"
-[ -e "$DESKTOP_PATH" ] && rm "$DESKTOP_PATH"
+
+if which xdg-desktop-menu >/dev/null 2>/dev/null; then
+    xdg-desktop-menu uninstall line-lancer.desktop
+else
+    rm "$DESKTOP_PATH"
+fi
+
+if which xdg-icon-resource >/dev/null 2>/dev/null; then
+    xdg-icon-resource uninstall -size 128 line-lancer.png
+else
+    rm "$ICON_PATH"
+fi

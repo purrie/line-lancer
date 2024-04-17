@@ -3,5 +3,6 @@ Type=Application
 Name=Line Lancer
 Comment=Video Game
 Exec=line-lancer
+Icon=line-lancer
 Terminal=false
 Categories=Game;
