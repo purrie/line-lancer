@@ -479,6 +479,13 @@ typedef struct {
     Texture2D  zoom_out;
     Texture2D  crosshair;
     #endif
+    Texture2D media_itch;
+    Texture2D media_github;
+    Texture2D media_coffee;
+    Texture2D media_x;
+    Texture2D media_youtube;
+    Texture2D media_twitch;
+    Texture2D media_discord;
 } UiAssets;
 
 struct Assets {

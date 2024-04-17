@@ -84,6 +84,16 @@ void draw_building_button (
     DrawText(text, label.x, label.y, theme->font_size, tex_color);
     DrawText(cost, label_cost.x, label_cost.y, theme->font_size, tex_color);
 }
+void draw_image_button (Rectangle area, Texture2D image, Vector2 cursor, const Theme * theme) {
+    Rectangle source = { 0, 0, image.width, image.height };
+    if (CheckCollisionPointRec(cursor, area)) {
+        area = cake_grow_by(area, area.width * 0.1f, area.height * 0.1f);
+        DrawTexturePro(image, source, area, (Vector2){0}, 0, theme->button_hover);
+    }
+    else {
+        DrawTexturePro(image, source, area, (Vector2){0}, 0, theme->button);
+    }
+}
 void label (Rectangle area, const char * text, float size, UiLayout layout, const Theme * theme) {
     int sides_width = theme->assets->button_info.left + theme->assets->button_info.right;
     int height = theme->assets->button_info.top + theme->assets->button_info.bottom;
@@ -738,10 +748,11 @@ MainMenuLayout main_menu_layout (const Theme * theme) {
 
     Rectangle screen = cake_rect(GetScreenWidth(), GetScreenHeight());
     const uint8_t parts_count = 5;
-    Rectangle parts[parts_count];
+    Rectangle parts[parts_count + 2];
     cake_split_vertical(screen, 3, parts, 0.0f);
 
     result.title = cake_carve_height(parts[1], theme->font_size * 2 + theme->frame_thickness * 2 + theme->margin * 2, 0.1f);
+    Rectangle media = parts[2];
 
     cake_split_horizontal(parts[0], 3, parts, 0.0f);
 
@@ -753,6 +764,18 @@ MainMenuLayout main_menu_layout (const Theme * theme) {
     result.manual   = cake_carve_height(parts[2], 50.0f, 0.5f);
     result.options  = cake_carve_height(parts[3], 50.0f, 0.5f);
     result.quit     = cake_carve_height(parts[4], 50.0f, 0.5f);
+
+    media = cake_carve_width(media, 50.0f, 0.9f);
+    media = cake_carve_height(media, 350.0f + 60.0f, 0.44f);
+
+    cake_split_horizontal(media, 7, parts, 10.0f);
+    result.media_coffee  = parts[0];
+    result.media_itch    = parts[1];
+    result.media_github  = parts[2];
+    result.media_twitch  = parts[3];
+    result.media_youtube = parts[4];
+    result.media_x       = parts[5];
+    result.media_discord = parts[6];
 
     return result;
 }

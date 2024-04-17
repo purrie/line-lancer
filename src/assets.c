@@ -1471,6 +1471,77 @@ Result load_ui (UiAssets * assets) {
     }
     #endif
 
+    path = asset_path("branding", "itch.png", &temp_alloc);
+    if (NULL == path) {
+        TraceLog(LOG_ERROR, "Tempt allocator failed to allocate path for itch brand");
+        return FAILURE;
+    }
+    assets->media_itch = load_texture(path);
+    if (0 == assets->media_itch.format) {
+        TraceLog(LOG_ERROR, "Failed to load brand logo for itch");
+        return FAILURE;
+    }
+    path = asset_path("branding", "github.png", &temp_alloc);
+    if (NULL == path) {
+        TraceLog(LOG_ERROR, "Tempt allocator failed to allocate path for github brand");
+        return FAILURE;
+    }
+    assets->media_github = load_texture(path);
+    if (0 == assets->media_github.format) {
+        TraceLog(LOG_ERROR, "Failed to load brand logo for github");
+        return FAILURE;
+    }
+    path = asset_path("branding", "coffee.png", &temp_alloc);
+    if (NULL == path) {
+        TraceLog(LOG_ERROR, "Tempt allocator failed to allocate path for coffee brand");
+        return FAILURE;
+    }
+    assets->media_coffee = load_texture(path);
+    if (0 == assets->media_coffee.format) {
+        TraceLog(LOG_ERROR, "Failed to load brand logo for coffee");
+        return FAILURE;
+    }
+    path = asset_path("branding", "youtube.png", &temp_alloc);
+    if (NULL == path) {
+        TraceLog(LOG_ERROR, "Tempt allocator failed to allocate path for youtube brand");
+        return FAILURE;
+    }
+    assets->media_youtube = load_texture(path);
+    if (0 == assets->media_youtube.format) {
+        TraceLog(LOG_ERROR, "Failed to load brand logo for youtube");
+        return FAILURE;
+    }
+    path = asset_path("branding", "twitch.png", &temp_alloc);
+    if (NULL == path) {
+        TraceLog(LOG_ERROR, "Tempt allocator failed to allocate path for twitch brand");
+        return FAILURE;
+    }
+    assets->media_twitch = load_texture(path);
+    if (0 == assets->media_twitch.format) {
+        TraceLog(LOG_ERROR, "Failed to load brand logo for twitch");
+        return FAILURE;
+    }
+    path = asset_path("branding", "x.png", &temp_alloc);
+    if (NULL == path) {
+        TraceLog(LOG_ERROR, "Tempt allocator failed to allocate path for x brand");
+        return FAILURE;
+    }
+    assets->media_x = load_texture(path);
+    if (0 == assets->media_x.format) {
+        TraceLog(LOG_ERROR, "Failed to load brand logo for x");
+        return FAILURE;
+    }
+    path = asset_path("branding", "discord.png", &temp_alloc);
+    if (NULL == path) {
+        TraceLog(LOG_ERROR, "Tempt allocator failed to allocate path for discord brand");
+        return FAILURE;
+    }
+    assets->media_discord = load_texture(path);
+    if (0 == assets->media_discord.format) {
+        TraceLog(LOG_ERROR, "Failed to load brand logo for discord");
+        return FAILURE;
+    }
+
     return SUCCESS;
 }
 void unload_ui (UiAssets * assets) {
@@ -1489,6 +1560,13 @@ void unload_ui (UiAssets * assets) {
     UnloadTexture(assets->zoom_out);
     UnloadTexture(assets->crosshair);
     #endif
+    UnloadTexture(assets->media_itch);
+    UnloadTexture(assets->media_github);
+    UnloadTexture(assets->media_coffee);
+    UnloadTexture(assets->media_x);
+    UnloadTexture(assets->media_youtube);
+    UnloadTexture(assets->media_twitch);
+    UnloadTexture(assets->media_discord);
 }
 Result load_graphics (Assets * assets) {
     Result result = load_particles(assets->particles);

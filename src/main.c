@@ -271,6 +271,14 @@ ExecutionMode main_menu (Assets * assets, Settings * settings) {
             draw_button(layout.options, "Settings", cursor, UI_LAYOUT_CENTER, &settings->theme);
             draw_button(layout.quit, "Exit", cursor, UI_LAYOUT_CENTER, &settings->theme);
 
+            draw_image_button(layout.media_coffee, assets->ui.media_coffee, cursor, &settings->theme);
+            draw_image_button(layout.media_itch, assets->ui.media_itch, cursor, &settings->theme);
+            draw_image_button(layout.media_github, assets->ui.media_github, cursor, &settings->theme);
+            draw_image_button(layout.media_youtube, assets->ui.media_youtube, cursor, &settings->theme);
+            draw_image_button(layout.media_twitch, assets->ui.media_twitch, cursor, &settings->theme);
+            draw_image_button(layout.media_x, assets->ui.media_x, cursor, &settings->theme);
+            draw_image_button(layout.media_discord, assets->ui.media_discord, cursor, &settings->theme);
+
             if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
                 if (CheckCollisionPointRec(cursor, layout.new_game)) {
                     play_sound(assets, SOUND_UI_CLICK);
@@ -291,6 +299,28 @@ ExecutionMode main_menu (Assets * assets, Settings * settings) {
                 if (CheckCollisionPointRec(cursor, layout.quit)) {
                     play_sound(assets, SOUND_UI_CLICK);
                     mode = EXE_MODE_EXIT;
+                }
+
+                if (CheckCollisionPointRec(cursor, layout.media_x)) {
+                    OpenURL("https://twitter.com/purrdev");
+                }
+                if (CheckCollisionPointRec(cursor, layout.media_coffee)) {
+                    OpenURL("https://buymeacoffee.com/purrie");
+                }
+                if (CheckCollisionPointRec(cursor, layout.media_itch)) {
+                    OpenURL("https://purrie-brightstar.itch.io/");
+                }
+                if (CheckCollisionPointRec(cursor, layout.media_github)) {
+                    OpenURL("https://github.com/purrie");
+                }
+                if (CheckCollisionPointRec(cursor, layout.media_twitch)) {
+                    OpenURL("https://www.twitch.tv/purrie_brightstar");
+                }
+                if (CheckCollisionPointRec(cursor, layout.media_youtube)) {
+                    OpenURL("https://www.youtube.com/@purriebrightstar");
+                }
+                if (CheckCollisionPointRec(cursor, layout.media_discord)) {
+                    OpenURL("https://discord.gg/kK5SkNZ2r4");
                 }
             }
         }

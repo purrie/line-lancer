@@ -45,6 +45,13 @@ typedef struct {
     Rectangle options;
     Rectangle quit;
     Rectangle title;
+    Rectangle media_itch;
+    Rectangle media_github;
+    Rectangle media_coffee;
+    Rectangle media_x;
+    Rectangle media_youtube;
+    Rectangle media_twitch;
+    Rectangle media_discord;
 } MainMenuLayout;
 
 typedef enum {
@@ -57,6 +64,7 @@ typedef enum {
 void draw_background (Rectangle area, const Theme * theme);
 void draw_title      (const Theme * theme);
 void label           (Rectangle area, const char * text, float size, UiLayout layout, const Theme * theme);
+void draw_image_button (Rectangle area, Texture2D image, Vector2 cursor, const Theme * theme);
 
 /* Input *********************************************************************/
 Result ui_building_action_click (BuildingDialog dialog, Vector2 cursor, BuildingAction * action);
