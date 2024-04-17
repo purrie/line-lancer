@@ -17,7 +17,7 @@ else
 fi
 
 if which xdg-icon-resource >/dev/null 2>/dev/null; then
-    xdg-icon-resource uninstall -size 128 line-lancer.png
+    xdg-icon-resource uninstall --size 128 line-lancer.png
 else
     rm "$ICON_PATH"
 fi
