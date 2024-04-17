@@ -188,6 +188,9 @@ ExecutionMode manual_mode (Assets * assets, const Theme * theme) {
         if (WindowShouldClose()) {
             return EXE_MODE_EXIT;
         }
+        if (IsKeyPressed(KEY_ESCAPE)) {
+            return EXE_MODE_MAIN_MENU;
+        }
         UpdateMusicStream(assets->main_theme);
         BeginDrawing();
         draw_title(theme);

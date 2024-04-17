@@ -46,6 +46,10 @@ ExecutionMode level_select (Assets * assets, GameState * game) {
             action = 3;
             break;
         }
+        if (IsKeyPressed(KEY_ESCAPE)) {
+            action = 1;
+            break;
+        }
         BeginDrawing();
         draw_title(&game->settings->theme);
 
@@ -345,6 +349,12 @@ int main(void) {
     InitWindow(WINDOW_WIDTH, WINDOW_HEIGHT, "Line Lancer");
     InitAudioDevice();
     SetWindowMinSize(1200, 720);
+
+    #if defined(RELEASE)
+    SetExitKey(KEY_NULL);
+    #else
+    SetExitKey(KEY_F1);
+    #endif
 
     {
         BeginDrawing();

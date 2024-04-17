@@ -1199,5 +1199,8 @@ Test render_settings (Rectangle area, Settings * settings, const Assets * assets
         close_color     = theme->button;
     }
     DrawTexturePro(close_texture, close_rectangle, close, (Vector2){0}, 0, close_color);
+    if (IsKeyPressed(KEY_ESCAPE)) {
+        return YES;
+    }
     return NO;
 }
