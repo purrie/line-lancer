@@ -31,8 +31,8 @@ CCAA32 = $(ANDROID_TOOLCHAIN)/bin/armv7a-linux-androideabi$(ANDROID_VERSION)-cla
 CCAX86 = $(ANDROID_TOOLCHAIN)/bin/i686-linux-android$(ANDROID_VERSION)-clang
 CCAX64 = $(ANDROID_TOOLCHAIN)/bin/x86_64-linux-android$(ANDROID_VERSION)-clang
 
-FLAGS_LNX    ?= -Wall -Wextra -Warray-bounds -Wshadow -Wunused -Wdeprecated
-FLAGS_WIN    ?= -Wall -Wextra -Warray-bounds -Wshadow -Wunused -Wdeprecated
+FLAGS_LNX    ?= -Wall -Wextra -Warray-bounds -Wshadow -Wunused -Wdeprecated -DLINUX
+FLAGS_WIN    ?= -Wall -Wextra -Warray-bounds -Wshadow -Wunused -Wdeprecated -DWINDOWS
 FLAGS_AND    ?= -Wall -Wextra -Warray-bounds -Wshadow -Wunused -Wdeprecated \
 				-ffunction-sections -funwind-tables -fstack-protector-strong \
 				-fPIC -Wformat -Werror=format-security -no-canonical-prefixes \

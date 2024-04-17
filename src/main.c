@@ -304,17 +304,17 @@ ExecutionMode main_menu (Assets * assets, Settings * settings) {
 
 int main(void) {
     int result = 0;
+    #if defined(RELEASE)
+    SetTraceLogLevel(LOG_ERROR);
+    #else
     SetTraceLogLevel(LOG_INFO);
+    #endif
 
     SetRandomSeed(time(0));
 
     InitWindow(WINDOW_WIDTH, WINDOW_HEIGHT, "Line Lancer");
     InitAudioDevice();
     SetWindowMinSize(1200, 720);
-
-    #if !defined(DEBUG)
-    SetTraceLogLevel(LOG_ERROR);
-    #endif
 
     {
         BeginDrawing();

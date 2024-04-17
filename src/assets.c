@@ -6,7 +6,7 @@
 #include <stdlib.h>
 #include <assert.h>
 
-#if !defined (_WIN32)
+#if defined (LINUX)
 #include <sys/types.h>
 #include <sys/stat.h>
 #endif
@@ -213,7 +213,7 @@ char * file_name_from_path (char * path, Alloc alloc) {
   return name;
 }
 char * asset_path (const char * target_folder, const char * file, Alloc alloc) {
-    #if defined(_WIN32) || defined(DEBUG) || defined(ANDROID)
+    #if defined(WINDOWS) || defined(DEBUG) || defined(ANDROID) || defined(EMBEDED_ASSETS)
     char * assets_path = "assets" PATH_SEPARATOR_STR;
     #else
     char * assets_path;
@@ -263,10 +263,10 @@ char * asset_path (const char * target_folder, const char * file, Alloc alloc) {
 char * config_path (const char * file, Alloc alloc) {
     char * prefix;
     usize prefix_len;
-    #ifdef _WIN32
+    #if defined(WINDOWS)
     prefix = "./";
     prefix_len = string_length(prefix);
-    #else
+    #elif defined(LINUX)
     char * conf = getenv("XDG_CONFIG_HOME");
     if (NULL == conf) {
         TraceLog(LOG_WARNING, "User does not have XDG_CONFIG_HOME set, falling back to default config path");

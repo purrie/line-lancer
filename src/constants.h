@@ -47,13 +47,13 @@
 /* #define RENDER_NAV_GRID */
 /* #define RENDER_PATHS_DEBUG */
 
-#ifdef _WIN32
+#ifdef WINDOWS
 #define PATH_SEPARATOR '\\'
 #else
 #define PATH_SEPARATOR '/'
 #endif
 
-#ifdef _WIN32
+#ifdef WINDOWS
 #define PATH_SEPARATOR_STR "\\"
 #else
 #define PATH_SEPARATOR_STR "/"
