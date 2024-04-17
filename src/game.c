@@ -26,7 +26,8 @@ Result get_local_player_index (const GameState * state, usize * result) {
     for (usize i = 0; i < state->players.len; i++) {
         PlayerData * player = &state->players.items[i];
         if (player->type == PLAYER_LOCAL) {
-            *result = i;
+            if (result != NULL)
+                *result = i;
             return SUCCESS;
         }
     }
@@ -746,7 +747,10 @@ void game_tick (GameState * state) {
     update_input_state(state);
 
     #if defined(GAME_SUPER_SPEED)
-    int counter = GAME_SUPER_SPEED;
+    int counter;
+    if (get_local_player_index(state, NULL))
+        counter = GAME_SUPER_SPEED;
+    else counter = 1;
     while (counter --> 0) {
     #endif
 
