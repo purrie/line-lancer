@@ -1,5 +1,7 @@
 #+title: Line Lancer
 
+[[./assets/ui/title.png]]
+
 Minimalistic strategy game with goal of capturing islands. Direct your army to conquer opponent's territory until you're the last one on the map.
 
 * Game Mechanics
@@ -13,10 +15,10 @@ The game can be run as is with no installation steps. Unpack the archive and pla
 Game build comes with install script which will put the game in appropriate directories according to XDG specification.
 
 ** Android
-Apk file can be compied over to a phone and installed manually with no extra steps.
+Apk file can be copied over to a phone and installed manually with no extra steps.
 
 * Building
-The game has no external dependencies aside from Raylib and its dependencies. You can preview those here: [[https://github.com/raysan5/raylib/wiki/Working-on-GNU-Linux][Working on GNU Linux]].
+All of the game's dependencies are embedded within the project and don't require any external libraries to be installed. Building for Android requires SDK and NDK to be installed on your system. You can use [[https://github.com/raysan5/raylib/wiki/Working-for-Android-(on-Linux)][this]] guide as to how to do it. Build script expects ANDROID_SDK and ANDROID_NDK environment variables to be set to paths where each was installed.
 
 The project uses make for build system. Recipes are only tested on GNU/Linux system and may not be suitable for usage on other systems.
 
