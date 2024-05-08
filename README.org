@@ -8,6 +8,8 @@ Minimalistic strategy game with goal of capturing islands. Direct your army to c
 The game is played with just the mouse by selecting which regions your army will move towards. Your focus is to choose which type of units to build and where to direct them. Your warriors will act and fight your opponents and capture land on their own.
 
 * Installation
+Game builds can be found on my Itch page [[https://purrie-brightstar.itch.io/line-lancer][here]].
+
 ** Windows
 The game can be run as is with no installation steps. Unpack the archive and play.
 
